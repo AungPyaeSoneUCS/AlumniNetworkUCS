@@ -333,6 +333,7 @@ export default function ImageUploadEditor({
                 fill 
                 sizes="(max-width: 768px) 100px, 150px"
                 priority
+                unoptimized
                 className="object-cover" 
               />
             ) : (
@@ -359,6 +360,7 @@ export default function ImageUploadEditor({
                   fill 
                   sizes="(max-width: 768px) 100px, 150px"
                   priority
+                  unoptimized
                   className="object-cover" 
                 />
               ) : (

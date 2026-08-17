@@ -290,6 +290,7 @@ export default function Nav() {
                         alt={me?.name || data.user.name || t.profile}
                         width={36}
                         height={36}
+                        unoptimized
                         className="h-full w-full object-cover"
                       />
                     ) : (
