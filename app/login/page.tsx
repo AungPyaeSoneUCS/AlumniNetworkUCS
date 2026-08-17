@@ -179,8 +179,8 @@ function LoginContent() {
 
   if (status === "loading" || checkingSession) {
     return (
-      <main className="min-h-[calc(75vh-70px)] px-2 pb-6 pt-6 sm:px-3">
-        <section className="relative mx-auto flex min-h-[calc(75vh-112px)] max-w-7xl items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md">
+      <main className="min-h-[calc(100vh-70px)] px-2 pb-6 pt-6 sm:px-3">
+        <section className="relative mx-auto flex min-h-[calc(100vh-112px)] max-w-7xl items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md">
           <BackgroundPhoto />
 
           <div className="relative z-10 flex items-center gap-3 rounded-2xl border border-white/25 bg-white/90 px-6 py-5 text-sm font-black text-[#008B8B] shadow-2xl backdrop-blur-2xl">
@@ -193,13 +193,13 @@ function LoginContent() {
   }
 
   return (
-    <main className="min-h-[calc(75vh-70px)] px-2 pb-6 pt-6 sm:px-3">
+    <main className="min-h-[calc(100vh-70px)] px-2 pb-6 pt-6 sm:px-3">
       <section className="relative mx-auto grid max-w-7xl overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md lg:grid-cols-[0.95fr_1.05fr]">
         <BackgroundPhoto />
 
         {/* Left Column: Branding matching the Home Page Design Specification */}
         {/* COMMENT: Changed from "flex" to "hidden lg:flex" to hide on mobile screens */}
-        <div className="relative z-10 hidden min-h-[calc(75vh-112px)] items-center px-5 py-10 sm:px-8 lg:flex lg:px-12">
+        <div className="relative z-10 hidden min-h-[calc(100vh-112px)] items-center px-5 py-10 sm:px-8 lg:flex lg:px-12">
           {/* Gradient overlay positioned under text and over background photo */}
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/68 to-slate-950/25 lg:via-slate-950/55" />
 
@@ -432,8 +432,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-[calc(75vh-70px)] px-2 pb-6 pt-6 sm:px-3">
-          <section className="relative mx-auto flex min-h-[calc(75vh-112px)] max-w-7xl items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md">
+        <main className="min-h-[calc(100vh-70px)] px-2 pb-6 pt-6 sm:px-3">
+          <section className="relative mx-auto flex min-h-[calc(100vh-112px)] max-w-7xl items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md">
             <BackgroundPhoto />
             <div className="relative z-10 flex items-center gap-3 rounded-2xl border border-white/25 bg-white/90 px-6 py-5 text-sm font-black text-[#008B8B] shadow-2xl backdrop-blur-2xl">
               <Loader2 className="h-5 w-5 animate-spin" />

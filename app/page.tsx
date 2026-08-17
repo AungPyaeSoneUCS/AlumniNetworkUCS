@@ -58,7 +58,7 @@ export default function HomePage() {
   const isLoggedIn = !!session?.user;
 
   return (
-    <main className="min-h-[calc(75vh-65px)]  px-2 pb-6 pt-6 sm:px-3 ">
+    <main className="min-h-[calc(100vh-65px)]  px-2 pb-6 pt-6 sm:px-3 ">
       <section className="relative mx-auto max-w-7xl overflow-hidden rounded-2xl border border-white/20 shadow-md bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff]">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
