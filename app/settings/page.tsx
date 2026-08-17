@@ -740,12 +740,7 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          <div className="flex flex-wrap justify-center gap-2 sm:justify-end">
-            <button type="submit" disabled={saving} className={gradientBtn}>
-              <Save className="h-3.5 w-3.5" />
-              {saving ? t.saving : t.saveChanges}
-            </button>
-          </div>
+         
         </form>
       </section>
 
