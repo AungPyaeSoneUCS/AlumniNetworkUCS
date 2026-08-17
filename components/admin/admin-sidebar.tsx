@@ -192,7 +192,7 @@ export default function AdminSidebar({
 
   async function handleLogout() {
     await signOut({ redirect: false });
-    window.location.href = "https://ucshalumninetwork.netlify.app/admin/login";
+    window.location.href = "/admin/login";
   }
 
   return (
