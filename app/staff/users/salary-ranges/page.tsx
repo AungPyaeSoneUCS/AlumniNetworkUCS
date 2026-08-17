@@ -130,7 +130,15 @@ function buildCsv(items: SalaryItem[], t: typeof text.en) {
   return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;
 }
 
-function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkSize: number) {
+// buildHtml now accepts `isPdf` flag to change styles solely for PDF export, leaving print unharmed
+function buildHtml(
+  items: SalaryItem[],
+  title: string,
+  t: typeof text.en,
+  firstChunkSize: number,
+  subsequentChunkSize: number,
+  isPdf: boolean
+) {
   const globalMax = Math.max(...items.map((item) => item.maxSalary), 1);
   const totalPositions = items.length;
 
@@ -138,15 +146,24 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkS
   const dateStr = now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
-  // SPLITTING LOGIC: Chunk items into smaller arrays so they neatly fit on export pages.
+  // Increased spacing strictly for PDF
+  const vChartGap = isPdf ? "32px" : "16px";
+  const vRowGap = isPdf ? "12px" : "4px";
+
+  // SPLITTING LOGIC FOR GRAPHS ONLY
   const graphChunks: SalaryItem[][] = [];
-  for (let i = 0; i < items.length; i += chunkSize) {
-    graphChunks.push(items.slice(i, i + chunkSize));
+  if (items.length > 0) {
+    graphChunks.push(items.slice(0, firstChunkSize));
+    let remaining = items.slice(firstChunkSize);
+    while (remaining.length > 0) {
+      graphChunks.push(remaining.slice(0, subsequentChunkSize));
+      remaining = remaining.slice(subsequentChunkSize);
+    }
   }
 
-  const chartHtml = graphChunks
+  const pagesHtml = graphChunks
     .map((chunk, index) => {
-      const rows = chunk
+      const graphRows = chunk
         .map((item) => {
           const minW = Math.max((item.minSalary / globalMax) * BAR_MAX_WIDTH, item.minSalary ? 6 : 2);
           const maxW = Math.max((item.maxSalary / globalMax) * BAR_MAX_WIDTH, item.maxSalary ? 6 : 2);
@@ -167,22 +184,146 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkS
         })
         .join("");
         
-      // Ensure each graph chunk starts on a new page (except the first one)
-      const pageBreakStyle = index > 0 ? "page-break-before: always; break-before: page; margin-top: 20px;" : "";
-      
-      return `<div class="v-chart" style="page-break-inside: avoid; break-inside: avoid; ${pageBreakStyle}">${rows}</div>`;
+      const chunkHtml = `<div class="v-chart">${graphRows}</div>`;
+
+      // If it's the very first page, we wrap it with the header and summaries
+      if (index === 0) {
+        return `
+          <div class="page">
+            <div class="report-header">
+              <img src="/logo.png" alt="UCSH Logo" class="logo-placeholder" onerror="this.style.display='none'">
+              <div class="header-text">
+                <h1>University of Computer Studies (Hinthada)</h1>
+                <h2>Alumni Network System</h2>
+                <h3> REPORT OF ${escapeHtml(title).toUpperCase()} </h3>
+                <div class="header-meta">
+                  Generated Date: ${dateStr} | Time: ${timeStr}
+                </div>
+              </div>
+            </div>
+
+            <div class="summary-container">
+              <div class="summary-card">
+                <div class="card-icon" style="background: #0f766e;">💼</div>
+                <div class="card-info">
+                  <p>Total Job Titles</p>
+                  <h4>${totalPositions}</h4>
+                </div>
+              </div>
+              <div class="summary-card">
+                <div class="card-icon orange">💰</div>
+                <div class="card-info">
+                  <p>Min Income Indicator</p>
+                  <h4 style="font-size: 14px; margin-top:6px;">${escapeHtml(t.minSalary)}</h4>
+                </div>
+              </div>
+              <div class="summary-card">
+                <div class="card-icon green">📈</div>
+                <div class="card-info">
+                  <p>Max Income Indicator</p>
+                  <h4 style="font-size: 14px; margin-top:6px;">${escapeHtml(t.maxSalary)}</h4>
+                </div>
+              </div>
+            </div>
+
+            <div class="legend">
+              <span><i class="dot" style="background:${MIN_BAR_COLOR}"></i>${escapeHtml(t.minSalary)}</span>
+              <span><i class="dot" style="background:${MAX_BAR_COLOR}"></i>${escapeHtml(t.maxSalary)}</span>
+            </div>
+
+            ${chunkHtml}
+            ${isPdf ? '<div class="footer"><span>Alumni Network System</span><span>Official Administrative Report</span></div>' : ''}
+          </div>
+        `;
+      }
+
+      // For subsequent pages
+      return `
+        <div class="page" style="${!isPdf ? 'page-break-before: always; margin-top: 20px;' : ''}">
+          ${chunkHtml}
+          ${isPdf ? '<div class="footer" style="margin-top:20px;"><span>Alumni Network System</span><span>Official Administrative Report</span></div>' : ''}
+        </div>
+      `;
     })
     .join("");
 
-  const tableHtml = items
-    .map(
-      (item) => `<tr>
+  // TABLE GENERATION
+  let tablePagesHtml = "";
+  if (isPdf) {
+    // For PDF: Split into strict page containers (Max 25 rows per page)
+    const TABLE_ROWS_PER_PAGE = 25;
+    const tableChunks: SalaryItem[][] = [];
+    if (items.length > 0) {
+      let remainingTableRows = items;
+      while (remainingTableRows.length > 0) {
+        tableChunks.push(remainingTableRows.slice(0, TABLE_ROWS_PER_PAGE));
+        remainingTableRows = remainingTableRows.slice(TABLE_ROWS_PER_PAGE);
+      }
+    }
+
+    tablePagesHtml = tableChunks.map((chunk) => {
+      const rows = chunk.map((item) => `<tr>
+          <td>${escapeHtml(item.position)}</td>
+          <td>${escapeHtml(item.minSalary.toLocaleString())}</td>
+          <td>${escapeHtml(item.maxSalary.toLocaleString())}</td>
+        </tr>`).join("");
+
+      return `
+        <div class="page">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 50%;">${escapeHtml(t.position)}</th>
+                <th>${escapeHtml(t.minSalary)}</th>
+                <th>${escapeHtml(t.maxSalary)}</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div class="footer" style="margin-top:25px;"><span>Alumni Network System</span><span>Official Administrative Report</span></div>
+        </div>
+      `;
+    }).join("");
+  } else {
+    // For Print: One continuous table (native print handles breaks beautifully)
+    const tableRows = items.map((item) => `<tr>
         <td>${escapeHtml(item.position)}</td>
         <td>${escapeHtml(item.minSalary.toLocaleString())}</td>
         <td>${escapeHtml(item.maxSalary.toLocaleString())}</td>
-      </tr>`,
-    )
-    .join("");
+      </tr>`).join("");
+
+    tablePagesHtml = items.length > 0 ? `
+      <div class="page" style="margin-top: 30px; page-break-before: always;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50%;">${escapeHtml(t.position)}</th>
+              <th>${escapeHtml(t.minSalary)}</th>
+              <th>${escapeHtml(t.maxSalary)}</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    ` : "";
+  }
+
+  // Inject different base CSS for PDF canvas rendering vs Printing
+  const pageStyle = isPdf ? `
+    body { background: #e2e8f0; margin: 0; padding: 0; }
+    .page {
+      width: 1240px;
+      min-height: 1754px; /* A4 aspect ratio height to prevent arbitrary clipping */
+      background: #fff;
+      margin: 0 auto 20px auto;
+      padding: 60px;
+      box-sizing: border-box;
+      position: relative;
+    }
+  ` : `
+    body { margin: 0; padding: 20px 40px; }
+    .page { page-break-after: auto; }
+  `;
 
   return `<!doctype html>
 <html>
@@ -200,11 +341,11 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkS
   * { box-sizing: border-box; }
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    margin: 0;
-    padding: 20px 40px;
     color: var(--text-main);
     background: #fff;
   }
+
+  ${pageStyle}
 
   .report-header {
     display: flex;
@@ -311,34 +452,34 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkS
   .v-chart {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: ${vChartGap};
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 16px;
+    padding: 24px;
     margin-bottom: 25px;
   }
   .v-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: ${vRowGap};
     page-break-inside: avoid;
     break-inside: avoid;
   }
   .v-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 900;
     color: var(--text-main);
   }
   .v-bars-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
   }
   .v-bar-line {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
   .v-bar {
     height: ${BAR_HEIGHT}px;
@@ -347,7 +488,7 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkS
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   }
   .v-val {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 900;
     color: var(--text-muted);
   }
@@ -359,8 +500,8 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkS
   }
   th, td {
     border: 1px solid #cbd5e1;
-    padding: 8px 10px;
-    font-size: 11px;
+    padding: 10px 14px;
+    font-size: 12px;
     text-align: left;
   }
   th {
@@ -368,7 +509,7 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkS
     color: white;
     font-weight: bold;
     text-transform: uppercase;
-    font-size: 10px;
+    font-size: 11px;
   }
   tr {
     page-break-inside: avoid;
@@ -385,6 +526,7 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkS
     padding-top: 10px;
     font-size: 10px;
     color: var(--text-muted);
+    page-break-inside: avoid;
   }
 
   @media print {
@@ -397,70 +539,22 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, chunkS
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
     }
+    .page {
+      width: 100% !important;
+      min-height: auto !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
   }
 </style>
 </head>
 <body>
 
-  <div class="report-header">
-    <img src="/logo.png" alt="UCSH Logo" class="logo-placeholder" onerror="this.style.display='none'">
-    <div class="header-text">
-      <h1>University of Computer Studies (Hinthada)</h1>
-      <h2>Alumni Network System</h2>
-      <h3> REPORT OF ${escapeHtml(title).toUpperCase()} </h3>
-      <div class="header-meta">
-        Generated Date: ${dateStr} | Time: ${timeStr}
-      </div>
-    </div>
-  </div>
+  ${pagesHtml}
+  
+  ${tablePagesHtml}
 
-  <div class="summary-container">
-    <div class="summary-card">
-      <div class="card-icon" style="background: #0f766e;">💼</div>
-      <div class="card-info">
-        <p>Total Job Titles</p>
-        <h4>${totalPositions}</h4>
-      </div>
-    </div>
-    <div class="summary-card">
-      <div class="card-icon orange">💰</div>
-      <div class="card-info">
-        <p>Min Income Indicator</p>
-        <h4 style="font-size: 14px; margin-top:6px;">${escapeHtml(t.minSalary)}</h4>
-      </div>
-    </div>
-    <div class="summary-card">
-      <div class="card-icon green">📈</div>
-      <div class="card-info">
-        <p>Max Income Indicator</p>
-        <h4 style="font-size: 14px; margin-top:6px;">${escapeHtml(t.maxSalary)}</h4>
-      </div>
-    </div>
-  </div>
-
-  <div class="legend">
-    <span><i class="dot" style="background:${MIN_BAR_COLOR}"></i>${escapeHtml(t.minSalary)}</span>
-    <span><i class="dot" style="background:${MAX_BAR_COLOR}"></i>${escapeHtml(t.maxSalary)}</span>
-  </div>
-
-  <!-- The chart wrapper is removed so that our chunked HTML can flow normally -->
-  ${chartHtml}
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 50%;">${escapeHtml(t.position)}</th>
-        <th>${escapeHtml(t.minSalary)}</th>
-        <th>${escapeHtml(t.maxSalary)}</th>
-      </tr>
-    </thead>
-    <tbody>${tableHtml}</tbody>
-  </table>
-
-  <div class="footer">
-    <span>Alumni Network System</span>
-    <span>Official Administrative Report</span>
-  </div>
+  ${!isPdf ? '<div class="footer"><span>Alumni Network System</span><span>Official Administrative Report</span></div>' : ''}
 
 </body>
 </html>`;
@@ -548,11 +642,11 @@ export default async function StaffSalaryRangesPage({
 
   const csv = buildCsv(salaryItems, t);
   
-  // PDF HTML: Pass Math.max(salaryItems.length, 1) to ensure the entire graph stays together (NO splitting)
-  const pdfHtml = buildHtml(salaryItems, title, t, Math.max(salaryItems.length, 1));
-  
-  // Print HTML: Chunk every 6 items so it splits accurately during window.print()
-  const printHtml = buildHtml(salaryItems, title, t, 6);
+  // Create TWO distinct versions: 
+  // Print handles its own pagination natively, chunking is 5/10.
+  const printHtml = buildHtml(salaryItems, title, t, 5, 10, false);
+  // PDF is strictly customized to slice perfectly at 10 items on page 1, and 15 items on subpages.
+  const pdfHtml = buildHtml(salaryItems, title, t, 10, 15, true);
   
   const maxSalaryValue = Math.max(...salaryItems.map((item) => item.maxSalary), 1);
 
@@ -860,7 +954,7 @@ function AutoScripts({
               iframe.style.left = "-99999px";
               iframe.style.top = "0";
               iframe.style.width = "1240px";
-              iframe.style.height = "900px";
+              iframe.style.height = "2000px";
               iframe.style.border = "0";
               document.body.appendChild(iframe);
 
@@ -869,39 +963,35 @@ function AutoScripts({
               doc.write(pdfHtmlData);
               doc.close();
 
-              await new Promise((resolve) => setTimeout(resolve, 700));
+              // Wait heavily for internal rendering
+              await new Promise((resolve) => setTimeout(resolve, 800));
 
-              const targetElement = doc.body;
-
-              const canvas = await window.html2canvas(targetElement, {
-                scale: 2,
-                backgroundColor: "#ffffff",
-                useCORS: true,
-                logging: false,
-                windowWidth: 1240,
-              });
-
-              const imgData = canvas.toDataURL("image/png");
               const jsPDF = window.jspdf.jsPDF;
-
               const pdf = new jsPDF("p", "mm", "a4");
-              const pageWidth = pdf.internal.pageSize.getWidth();
-              const pageHeight = pdf.internal.pageSize.getHeight();
+              const pdfWidth = pdf.internal.pageSize.getWidth();
+              
+              // We grab all our pre-formatted explicit chunks
+              const pages = Array.from(doc.querySelectorAll('.page'));
 
-              const imgWidth = pageWidth;
-              const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-              let heightLeft = imgHeight;
-              let position = 0;
-
-              pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-              heightLeft -= pageHeight;
-
-              while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+              if (pages.length > 0) {
+                 for (let i = 0; i < pages.length; i++) {
+                   if (i > 0) pdf.addPage();
+                   
+                   const pageEl = pages[i];
+                   
+                   const canvas = await window.html2canvas(pageEl, {
+                     scale: 2,
+                     backgroundColor: "#ffffff",
+                     useCORS: true,
+                     logging: false,
+                     windowWidth: 1240, 
+                   });
+                   
+                   const imgData = canvas.toDataURL("image/png");
+                   const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+                   
+                   pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, imgHeight);
+                 }
               }
 
               pdf.save(safeName + ".pdf");

@@ -130,8 +130,15 @@ function buildCsv(items: SalaryItem[], t: typeof text.en) {
   return `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;
 }
 
-// Fixed Logic: Chunks graphs strictly (6 then 10), appends ONE continuous table at the very end
-function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstChunkSize: number, subsequentChunkSize: number) {
+// buildHtml now accepts `isPdf` flag to change styles solely for PDF export, leaving print unharmed
+function buildHtml(
+  items: SalaryItem[],
+  title: string,
+  t: typeof text.en,
+  firstChunkSize: number,
+  subsequentChunkSize: number,
+  isPdf: boolean
+) {
   const globalMax = Math.max(...items.map((item) => item.maxSalary), 1);
   const totalPositions = items.length;
 
@@ -139,7 +146,11 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstC
   const dateStr = now.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
-  // SPLITTING LOGIC FOR GRAPHS ONLY
+  // Increased spacing strictly for PDF
+  const vChartGap = isPdf ? "32px" : "16px";
+  const vRowGap = isPdf ? "12px" : "4px";
+
+  // SPLITTING LOGIC FOR GRAPHS ONLY (Dynamic based on arguments)
   const graphChunks: SalaryItem[][] = [];
   if (items.length > 0) {
     graphChunks.push(items.slice(0, firstChunkSize));
@@ -221,44 +232,98 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstC
             </div>
 
             ${chunkHtml}
+            ${isPdf ? '<div class="footer"><span>Alumni Network System</span><span>Official Administrative Report</span></div>' : ''}
           </div>
         `;
       }
 
-      // For subsequent pages, just force a page break and render the graph data
+      // For subsequent pages
       return `
-        <div class="page" style="page-break-before: always; break-before: page; margin-top: 20px;">
+        <div class="page" style="${!isPdf ? 'page-break-before: always; margin-top: 20px;' : ''}">
           ${chunkHtml}
+          ${isPdf ? '<div class="footer" style="margin-top:20px;"><span>Alumni Network System</span><span>Official Administrative Report</span></div>' : ''}
         </div>
       `;
     })
     .join("");
 
-  // ONE CONTINUOUS TABLE AT THE END
-  const tableRows = items
-    .map(
-      (item) => `<tr>
+  // TABLE GENERATION
+  let tablePagesHtml = "";
+  if (isPdf) {
+    // For PDF: Split into strict page containers (Max 25 rows per page)
+    const TABLE_ROWS_PER_PAGE = 25;
+    const tableChunks: SalaryItem[][] = [];
+    if (items.length > 0) {
+      let remainingTableRows = items;
+      while (remainingTableRows.length > 0) {
+        tableChunks.push(remainingTableRows.slice(0, TABLE_ROWS_PER_PAGE));
+        remainingTableRows = remainingTableRows.slice(TABLE_ROWS_PER_PAGE);
+      }
+    }
+
+    tablePagesHtml = tableChunks.map((chunk) => {
+      const rows = chunk.map((item) => `<tr>
+          <td>${escapeHtml(item.position)}</td>
+          <td>${escapeHtml(item.minSalary.toLocaleString())}</td>
+          <td>${escapeHtml(item.maxSalary.toLocaleString())}</td>
+        </tr>`).join("");
+
+      return `
+        <div class="page">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 50%;">${escapeHtml(t.position)}</th>
+                <th>${escapeHtml(t.minSalary)}</th>
+                <th>${escapeHtml(t.maxSalary)}</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div class="footer" style="margin-top:25px;"><span>Alumni Network System</span><span>Official Administrative Report</span></div>
+        </div>
+      `;
+    }).join("");
+  } else {
+    // For Print: One continuous table (native print handles breaks beautifully)
+    const tableRows = items.map((item) => `<tr>
         <td>${escapeHtml(item.position)}</td>
         <td>${escapeHtml(item.minSalary.toLocaleString())}</td>
         <td>${escapeHtml(item.maxSalary.toLocaleString())}</td>
-      </tr>`,
-    )
-    .join("");
+      </tr>`).join("");
 
-  const fullTableHtml = items.length > 0 ? `
-    <div style="margin-top: 30px; page-break-before: always; break-before: page;">
-      <table>
-        <thead>
-          <tr>
-            <th style="width: 50%;">${escapeHtml(t.position)}</th>
-            <th>${escapeHtml(t.minSalary)}</th>
-            <th>${escapeHtml(t.maxSalary)}</th>
-          </tr>
-        </thead>
-        <tbody>${tableRows}</tbody>
-      </table>
-    </div>
-  ` : "";
+    tablePagesHtml = items.length > 0 ? `
+      <div class="page" style="margin-top: 30px; page-break-before: always;">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 50%;">${escapeHtml(t.position)}</th>
+              <th>${escapeHtml(t.minSalary)}</th>
+              <th>${escapeHtml(t.maxSalary)}</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    ` : "";
+  }
+
+  // Inject different base CSS for PDF canvas rendering vs Printing
+  const pageStyle = isPdf ? `
+    body { background: #e2e8f0; margin: 0; padding: 0; }
+    .page {
+      width: 1240px;
+      min-height: 1754px; /* A4 aspect ratio height to prevent arbitrary clipping */
+      background: #fff;
+      margin: 0 auto 20px auto;
+      padding: 60px;
+      box-sizing: border-box;
+      position: relative;
+    }
+  ` : `
+    body { margin: 0; padding: 20px 40px; }
+    .page { page-break-after: auto; }
+  `;
 
   return `<!doctype html>
 <html>
@@ -276,15 +341,11 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstC
   * { box-sizing: border-box; }
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    margin: 0;
-    padding: 20px 40px;
     color: var(--text-main);
     background: #fff;
   }
 
-  .page {
-    page-break-after: auto;
-  }
+  ${pageStyle}
 
   .report-header {
     display: flex;
@@ -391,34 +452,34 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstC
   .v-chart {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: ${vChartGap};
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 16px;
+    padding: 24px;
     margin-bottom: 25px;
   }
   .v-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: ${vRowGap};
     page-break-inside: avoid;
     break-inside: avoid;
   }
   .v-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 900;
     color: var(--text-main);
   }
   .v-bars-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
   }
   .v-bar-line {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
   }
   .v-bar {
     height: ${BAR_HEIGHT}px;
@@ -427,7 +488,7 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstC
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   }
   .v-val {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 900;
     color: var(--text-muted);
   }
@@ -439,8 +500,8 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstC
   }
   th, td {
     border: 1px solid #cbd5e1;
-    padding: 8px 10px;
-    font-size: 11px;
+    padding: 10px 14px;
+    font-size: 12px;
     text-align: left;
   }
   th {
@@ -448,7 +509,7 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstC
     color: white;
     font-weight: bold;
     text-transform: uppercase;
-    font-size: 10px;
+    font-size: 11px;
   }
   tr {
     page-break-inside: avoid;
@@ -478,6 +539,12 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstC
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
     }
+    .page {
+      width: 100% !important;
+      min-height: auto !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
   }
 </style>
 </head>
@@ -485,12 +552,9 @@ function buildHtml(items: SalaryItem[], title: string, t: typeof text.en, firstC
 
   ${pagesHtml}
   
-  ${fullTableHtml}
+  ${tablePagesHtml}
 
-  <div class="footer">
-    <span>Alumni Network System</span>
-    <span>Official Administrative Report</span>
-  </div>
+  ${!isPdf ? '<div class="footer"><span>Alumni Network System</span><span>Official Administrative Report</span></div>' : ''}
 
 </body>
 </html>`;
@@ -575,9 +639,11 @@ export default async function AdminSalaryRangesPage({
 
   const csv = buildCsv(salaryItems, t);
   
-  // Print HTML: Graph is chunked (6 on first page, 10 on next pages), then 1 continuous table at the end.
-  const printHtml = buildHtml(salaryItems, title, t, 6, 10);
-  const pdfHtml = printHtml;
+  // Create TWO distinct versions: 
+  // Print handles its own pagination natively, chunking is 5/10.
+  const printHtml = buildHtml(salaryItems, title, t, 5, 10, false);
+  // PDF is strictly customized to slice perfectly at 10 items on page 1, and 15 items on subpages.
+  const pdfHtml = buildHtml(salaryItems, title, t, 10, 15, true);
   
   const maxSalaryValue = Math.max(...salaryItems.map((item) => item.maxSalary), 1);
 
@@ -885,7 +951,7 @@ function AutoScripts({
               iframe.style.left = "-99999px";
               iframe.style.top = "0";
               iframe.style.width = "1240px";
-              iframe.style.height = "900px";
+              iframe.style.height = "2000px";
               iframe.style.border = "0";
               document.body.appendChild(iframe);
 
@@ -894,39 +960,35 @@ function AutoScripts({
               doc.write(pdfHtmlData);
               doc.close();
 
-              await new Promise((resolve) => setTimeout(resolve, 700));
+              // Wait heavily for internal rendering
+              await new Promise((resolve) => setTimeout(resolve, 800));
 
-              const targetElement = doc.body;
-
-              const canvas = await window.html2canvas(targetElement, {
-                scale: 2,
-                backgroundColor: "#ffffff",
-                useCORS: true,
-                logging: false,
-                windowWidth: 1240,
-              });
-
-              const imgData = canvas.toDataURL("image/png");
               const jsPDF = window.jspdf.jsPDF;
-
               const pdf = new jsPDF("p", "mm", "a4");
-              const pageWidth = pdf.internal.pageSize.getWidth();
-              const pageHeight = pdf.internal.pageSize.getHeight();
+              const pdfWidth = pdf.internal.pageSize.getWidth();
+              
+              // We grab all our pre-formatted explicit chunks
+              const pages = Array.from(doc.querySelectorAll('.page'));
 
-              const imgWidth = pageWidth;
-              const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-              let heightLeft = imgHeight;
-              let position = 0;
-
-              pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-              heightLeft -= pageHeight;
-
-              while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+              if (pages.length > 0) {
+                 for (let i = 0; i < pages.length; i++) {
+                   if (i > 0) pdf.addPage();
+                   
+                   const pageEl = pages[i];
+                   
+                   const canvas = await window.html2canvas(pageEl, {
+                     scale: 2,
+                     backgroundColor: "#ffffff",
+                     useCORS: true,
+                     logging: false,
+                     windowWidth: 1240, 
+                   });
+                   
+                   const imgData = canvas.toDataURL("image/png");
+                   const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+                   
+                   pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, imgHeight);
+                 }
               }
 
               pdf.save(safeName + ".pdf");
