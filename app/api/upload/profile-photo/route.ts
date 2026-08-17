@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const maxSize = 5 * 1024 * 1024;
+    const maxSize = 5 * 1024 * 1024; // 5MB
 
     if (file.size > maxSize) {
       return NextResponse.json(
@@ -48,9 +48,9 @@ export async function POST(req: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-
     const userId = user._id.toString();
 
+    // Safely build the path to the directory
     const uploadDir = path.join(
       process.cwd(),
       "public",
@@ -60,13 +60,19 @@ export async function POST(req: Request) {
       "profile"
     );
 
+    // Create the directory if it does not exist
     await mkdir(uploadDir, { recursive: true });
 
-    const fileName = `profile-${Date.now()}.webp`;
+    // FIX: Extract the actual extension from the uploaded file (e.g., .jpg, .png)
+    // Fallback to .jpg if no extension is found
+    const ext = path.extname(file.name) || ".jpg";
+    const fileName = `profile-${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, fileName);
 
+    // Save the file to the disk
     await writeFile(filePath, buffer);
 
+    // Save the public URL to the database
     const imageUrl = `/uploads/photo/${userId}/profile/${fileName}`;
 
     user.image = imageUrl;
