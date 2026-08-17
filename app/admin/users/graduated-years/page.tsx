@@ -364,7 +364,8 @@ export default async function AdminGraduatedYearsPage({
     .select("_id name email role degree department graduatedYear")
     .lean();
 
-  const normalUsers = users.filter((user) => user.role !== "admin");
+  // ONLY include exact users with role "user" (exclude staff, admin, etc.)
+  const normalUsers = users.filter((user) => user.role === "user");
 
   const degreeOptions = Array.from(
     new Set(
@@ -382,16 +383,15 @@ export default async function AdminGraduatedYearsPage({
 
   filteredUsers.forEach((user) => {
     const year = getGraduatedYear(user);
-    yearMap.set(year, (yearMap.get(year) || 0) + 1);
+    // Exclude unknown graduated years completely
+    if (year !== "Unknown") {
+      yearMap.set(year, (yearMap.get(year) || 0) + 1);
+    }
   });
 
   const graphItems: GraphItem[] = Array.from(yearMap.entries())
     .map(([label, value]) => ({ label, value }))
-    .sort((a, b) => {
-      if (a.label === "Unknown") return 1;
-      if (b.label === "Unknown") return -1;
-      return Number(a.label) - Number(b.label);
-    });
+    .sort((a, b) => Number(a.label) - Number(b.label));
 
   const title = selectedDegree ? `${selectedDegree} ${t.title}` : t.title;
   const csv = buildCsv(graphItems, t);
