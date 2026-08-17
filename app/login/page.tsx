@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/components/providers";
 
 // Define the default redirect path as a variable
-const DEFAULT_REDIRECT_URL = "https://ucshalumninetwork.netlify.app/feeds";
+const DEFAULT_REDIRECT_URL = "/feeds";
 
 type FocusState = {
   email: boolean;
