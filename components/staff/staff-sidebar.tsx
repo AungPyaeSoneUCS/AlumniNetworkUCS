@@ -186,7 +186,7 @@ export default function StaffSidebar({
 
   async function handleLogout() {
     await signOut({ redirect: false });
-    window.location.href = "https://ucshalumninetwork.netlify.app/staff/login";
+    window.location.href = "/staff/login";
   }
 
   return (
