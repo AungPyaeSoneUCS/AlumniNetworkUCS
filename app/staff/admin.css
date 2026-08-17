@@ -1,0 +1,132 @@
+/* file: app/admin/admin.css */
+
+.input-filter {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgb(226 232 240);
+  background: white;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 900;
+  color: rgb(15 23 42);
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.input-filter:focus {
+  border-color: #25c9c8;
+  background: white;
+  box-shadow: 0 0 0 4px rgb(37 201 200 / 0.12);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background: #0b67a3;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 900;
+  color: white;
+  transition: 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: #075080;
+  transform: translateY(-1px);
+}
+
+.btn-reset,
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 1rem;
+  background: rgb(241 245 249);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 900;
+  color: rgb(51 65 85);
+  transition: 0.2s ease;
+}
+
+.btn-reset:hover,
+.export-btn:hover {
+  background: rgb(226 232 240);
+  transform: translateY(-1px);
+}
+
+.graph-card {
+  overflow: hidden;
+  border-radius: 2rem;
+  border: 1px solid rgb(226 232 240);
+  background: white;
+  box-shadow: 0 10px 25px rgb(148 163 184 / 0.2);
+}
+
+/* Admin dark mode */
+.dark .input-filter {
+  border-color: rgb(30 41 59);
+  background: rgb(2 6 23);
+  color: white;
+}
+
+.dark .btn-reset,
+.dark .export-btn {
+  background: rgb(15 23 42);
+  color: rgb(226 232 240);
+}
+
+.dark .btn-reset:hover,
+.dark .export-btn:hover {
+  background: rgb(30 41 59);
+}
+
+.dark .graph-card {
+  border-color: rgb(30 41 59);
+  background: rgb(15 23 42);
+  box-shadow: none;
+}
+
+@media (max-width: 1023px) {
+  main,
+  [role="main"],
+  .admin-main-content {
+    padding-top: 3.5rem !important;
+  }
+
+  main > div > section,
+  .admin-main-content > div > section {
+    padding: 1rem 0.75rem !important;
+  }
+
+  main > div > section .space-y-6 > * + *,
+  main > div > section .space-y-5 > * + *,
+  main > div > section .space-y-4 > * + *,
+  main > div > section .space-y-3 > * + * {
+    margin-top: 0.75rem !important;
+  }
+
+  main > div > section .grid.gap-4 {
+    gap: 0.75rem !important;
+  }
+
+  main > div > section .grid.gap-3,
+  main > div > section .grid.gap-2 {
+    gap: 0.5rem !important;
+  }
+
+  main .p-5,
+  main .px-5,
+  main .py-5 {
+    padding: 1rem !important;
+  }
+
+  main .p-4,
+  main .px-4,
+  main .py-4 {
+    padding: 0.75rem !important;
+  }
+}

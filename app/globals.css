@@ -1,0 +1,330 @@
+@import "./user.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* =========================
+   FONT
+========================= */
+@font-face {
+  font-family: "Pyidaungsu";
+  src: url("/fonts/Pyidaungsu.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =========================
+   DESIGN TOKENS
+========================= */
+:root {
+  color-scheme: light;
+
+  --ucsh-bg: #eefefe;
+  --ucsh-bg-soft: #f8ffff;
+  --ucsh-primary: #25c9c8;
+  --ucsh-primary-dark: #0faaa9;
+  --ucsh-secondary: #42d3e2;
+  --ucsh-accent: #5be7f5;
+
+  --ucsh-card: #ffffff;
+  --ucsh-text: #0f172a;
+  --ucsh-muted: #64748b;
+  --ucsh-border: rgba(15, 23, 42, 0.1);
+
+  --ucsh-radius-sm: 12px;
+  --ucsh-radius-md: 18px;
+  --ucsh-radius-lg: 24px;
+  --ucsh-radius-xl: 32px;
+
+  --ucsh-space-xs: 6px;
+  --ucsh-space-sm: 10px;
+  --ucsh-space-md: 16px;
+  --ucsh-space-lg: 24px;
+  --ucsh-space-xl: 32px;
+
+  --ucsh-shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --ucsh-shadow-md: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --ucsh-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.16);
+
+  --ucsh-transition: 0.25s ease;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --ucsh-bg: #020617;
+  --ucsh-bg-soft: #0f172a;
+  --ucsh-card: #111827;
+  --ucsh-text: #f8fafc;
+  --ucsh-muted: #94a3b8;
+  --ucsh-border: rgba(255, 255, 255, 0.1);
+}
+
+/* =========================
+   RESET
+========================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100vh;
+  
+}
+
+/* =========================
+   GLOBAL FONT
+========================= */
+html,
+body,
+button,
+input,
+textarea,
+select {
+  font-family: "Pyidaungsu", sans-serif;
+}
+
+/* =========================
+   BASIC ELEMENTS
+========================= */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+.mm {
+  font-family: "Pyidaungsu", sans-serif;
+}
+
+/* =========================
+   REUSABLE LAYOUT
+========================= */
+.page-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  padding: var(--ucsh-space-lg);
+}
+
+.ucsh-container {
+  width: min(1180px, 100%);
+  margin-inline: auto;
+}
+
+.ucsh-section {
+  padding-block: 48px;
+}
+
+.ucsh-grid {
+  display: grid;
+  gap: var(--ucsh-space-lg);
+}
+
+.ucsh-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ucsh-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* =========================
+   CARD
+========================= */
+.glass-card,
+.ucsh-card {
+  border: 1px solid var(--ucsh-border);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px);
+  border-radius: var(--ucsh-radius-xl);
+  box-shadow: var(--ucsh-shadow-sm);
+  transition: transform var(--ucsh-transition), box-shadow var(--ucsh-transition);
+}
+
+.dark .glass-card,
+.dark .ucsh-card {
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.ucsh-card {
+  padding: var(--ucsh-space-lg);
+}
+
+.ucsh-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--ucsh-shadow-md);
+}
+
+/* =========================
+   BUTTONS
+========================= */
+.gradient-btn,
+.ucsh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--ucsh-radius-md);
+  padding: 12px 20px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(
+    135deg,
+    var(--ucsh-primary),
+    var(--ucsh-secondary),
+    var(--ucsh-accent)
+  );
+  box-shadow: 0 12px 30px rgba(37, 201, 200, 0.28);
+  transition:
+    transform var(--ucsh-transition),
+    box-shadow var(--ucsh-transition),
+    opacity var(--ucsh-transition);
+}
+
+.gradient-btn:hover,
+.ucsh-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 18px 42px rgba(37, 201, 200, 0.35);
+}
+
+.ucsh-btn:active {
+  transform: scale(0.98);
+}
+
+.ucsh-btn-outline {
+  color: var(--ucsh-primary-dark);
+  background: transparent;
+  border: 1px solid var(--ucsh-primary);
+  box-shadow: none;
+}
+
+.ucsh-btn-outline:hover {
+  background: rgba(37, 201, 200, 0.08);
+}
+
+/* =========================
+   INPUT
+========================= */
+.input,
+.ucsh-input {
+  width: 100%;
+  border-radius: var(--ucsh-radius-md);
+  border: 1px solid var(--ucsh-border);
+  background: var(--ucsh-card);
+  padding: 12px 16px;
+  color: var(--ucsh-text);
+  outline: none;
+  transition:
+    border-color var(--ucsh-transition),
+    box-shadow var(--ucsh-transition),
+    background var(--ucsh-transition);
+}
+
+.input:focus,
+.ucsh-input:focus {
+  border-color: var(--ucsh-primary);
+  box-shadow: 0 0 0 4px rgba(37, 201, 200, 0.14);
+}
+
+/* =========================
+   TEXT HELPERS
+========================= */
+.ucsh-title {
+  color: var(--ucsh-text);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.ucsh-muted {
+  color: var(--ucsh-muted);
+}
+
+.ucsh-gradient-text {
+  background: linear-gradient(135deg, var(--ucsh-primary-dark), var(--ucsh-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* =========================
+   ANIMATIONS
+========================= */
+@keyframes ucsh-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ucsh-animate {
+  animation: ucsh-fade-up 0.55s ease both;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .page-wrapper {
+    padding: var(--ucsh-space-md);
+  }
+
+  .ucsh-section {
+    padding-block: 32px;
+  }
+
+  .ucsh-grid-2,
+  .ucsh-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   SCROLLBAR
+========================= */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.65);
+}

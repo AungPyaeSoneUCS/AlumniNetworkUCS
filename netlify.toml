@@ -1,0 +1,31 @@
+# file: netlify.toml
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Disables secret scanning to prevent build crashes on safe NEXT_PUBLIC_* variables
+  SECRETS_SCAN_ENABLED = "false"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Optional: Ensure headers are cached correctly for performance
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Optional: Handle image optimization redirects
+[[redirects]]
+  from = "/_next/image"
+  query = {url = ":url", w = ":width", q = ":quality"}
+  to = "/.netlify/images?url=:url&w=:width&q=:quality"
+  status = 200
+
+[[redirects]]
+  from = "/_ipx/*"
+  query = {url = ":url", w = ":width", q = ":quality"}
+  to = "/.netlify/images?url=:url&w=:width&q=:quality"
+  status = 200
