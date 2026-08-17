@@ -327,7 +327,14 @@ export default function ImageUploadEditor({
         {compact ? (
           <>
             {image ? (
-              <Image src={image} alt={title} fill className="object-cover" />
+              <Image 
+                src={image} 
+                alt={title || "Profile photo"} 
+                fill 
+                sizes="(max-width: 768px) 100px, 150px"
+                priority
+                className="object-cover" 
+              />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-slate-400">
                 <ImagePlus size={30} />
@@ -346,7 +353,14 @@ export default function ImageUploadEditor({
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             <div className="relative h-32 w-32 overflow-hidden rounded-full bg-slate-100 shadow-xl dark:bg-slate-900">
               {image ? (
-                <Image src={image} alt={title} fill className="object-cover" />
+                <Image 
+                  src={image} 
+                  alt={title || "Profile photo"} 
+                  fill 
+                  sizes="(max-width: 768px) 100px, 150px"
+                  priority
+                  className="object-cover" 
+                />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-slate-400">
                   <ImagePlus size={38} />
