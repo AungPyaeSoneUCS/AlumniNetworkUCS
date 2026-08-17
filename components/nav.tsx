@@ -192,13 +192,17 @@ export default function Nav() {
               href={data?.user ? "/feeds" : "/"}
               className="flex min-w-0 items-center gap-2"
             >
-              <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/70 bg-white">
+              {/* --- LOGO STYLING --- */}
+              {/* 1. SIZE: Change 'h-10 w-10' to adjust the logo size (e.g., h-9 w-9 or h-12 w-12) */}
+              {/* 2. SHAPE: 'rounded-[10px]' or 'rounded-xl' matches the rounded square of the app icon to avoid white circular gaps */}
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/30 bg-transparent shadow-sm">
                 <Image
                   src="/logo/logo-250.png"
                   alt={t.brand}
                   fill
                   sizes="40px"
-                  className="object-contain p-0.5"
+                  // 3. ZOOM/CROP: 'object-cover' and 'scale-110' slightly zoom the image to completely cut off the outer white corners from the original file
+                  className="object-cover scale-110"
                   priority
                 />
               </span>

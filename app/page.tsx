@@ -58,8 +58,10 @@ export default function HomePage() {
   const isLoggedIn = !!session?.user;
 
   return (
-    <main className="min-h-[calc(100vh-65px)]  px-2 pb-6 pt-6 sm:px-3 ">
-      <section className="relative mx-auto max-w-7xl overflow-hidden rounded-2xl border border-white/20 shadow-md bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff]">
+    // Updated min-h to perfectly fit between the Nav (~60px) and Footer (~70px)
+    <main className="flex min-h-[calc(100vh-130px)] flex-col px-2 py-4 sm:px-3 sm:py-5">
+      {/* Added flex-grow so the section stretches to fill the remaining viewport space */}
+      <section className="relative mx-auto flex w-full max-w-7xl flex-grow flex-col overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
@@ -70,7 +72,8 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-r from-slate-950/82 via-slate-950/55 to-slate-950/25" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(241,205,114,0.25),transparent_32%),radial-gradient(circle_at_82%_15%,rgba(0,191,196,0.22),transparent_35%)]" />
 
-        <div className="relative z-10 flex min-h-[520px] items-center px-5 py-12 sm:min-h-[570px] sm:px-8 lg:px-12">
+        {/* Replaced fixed min-height with flex-grow to ensure it stays vertically centered in the stretched container */}
+        <div className="relative z-10 flex flex-grow items-center px-5 py-12 sm:px-8 lg:px-12">
           <div className="max-w-4xl">
             
             <h1 className="space-y-1 text-[25px] font-black leading-[1.08] tracking-tight sm:text-[33px] md:text-[55px] lg:text-[54px]">
@@ -96,7 +99,7 @@ export default function HomePage() {
               {content.slogan}
             </p>
 
-            <div className="animate-hero-7 mt-8 flex flex-col gap-3 sm:flex-row flex-wrap">
+            <div className="animate-hero-7 mt-8 flex flex-col flex-wrap gap-3 sm:flex-row">
               {!isLoggedIn ? (
                 <>
                   <Link
@@ -112,8 +115,6 @@ export default function HomePage() {
                   >
                     {content.login}
                   </Link>
-
-              
 
                   <Link
                     href="/staff"
@@ -135,7 +136,6 @@ export default function HomePage() {
                   >
                     {content.about}
                   </Link>
-
                 </>
               ) : (
                 <>
@@ -171,7 +171,7 @@ export default function HomePage() {
       </section>
 
       <style>{`
-       .hero-stroke-gold {
+        .hero-stroke-gold {
           text-shadow:
              2px  2px 0 #673a06,
              0px -2px 0 #061720,

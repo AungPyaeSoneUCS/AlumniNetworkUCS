@@ -179,8 +179,8 @@ function LoginContent() {
 
   if (status === "loading" || checkingSession) {
     return (
-      <main className="min-h-[calc(100vh-70px)] px-2 pb-6 pt-6 sm:px-3">
-        <section className="relative mx-auto flex min-h-[calc(100vh-112px)] max-w-7xl items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md">
+      <main className="flex min-h-[calc(100vh-130px)] flex-col px-2 py-4 sm:px-3 sm:py-5">
+        <section className="relative mx-auto flex w-full max-w-7xl flex-grow items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md">
           <BackgroundPhoto />
 
           <div className="relative z-10 flex items-center gap-3 rounded-2xl border border-white/25 bg-white/90 px-6 py-5 text-sm font-black text-[#008B8B] shadow-2xl backdrop-blur-2xl">
@@ -193,13 +193,13 @@ function LoginContent() {
   }
 
   return (
-    <main className="min-h-[calc(100vh-70px)] px-2 pb-6 pt-6 sm:px-3">
-      <section className="relative mx-auto grid max-w-7xl overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md lg:grid-cols-[0.95fr_1.05fr]">
+    <main className="flex min-h-[calc(100vh-130px)] flex-col px-2 py-4 sm:px-3 sm:py-5">
+      <section className="relative mx-auto grid w-full max-w-7xl flex-grow overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md lg:grid-cols-[0.95fr_1.05fr]">
         <BackgroundPhoto />
 
         {/* Left Column: Branding matching the Home Page Design Specification */}
-        {/* COMMENT: Changed from "flex" to "hidden lg:flex" to hide on mobile screens */}
-        <div className="relative z-10 hidden min-h-[calc(100vh-112px)] items-center px-5 py-10 sm:px-8 lg:flex lg:px-12">
+        {/* Changed from "flex" to "hidden lg:flex" to hide on mobile screens */}
+        <div className="relative z-10 hidden flex-grow items-center px-5 py-10 sm:px-8 lg:flex lg:px-12">
           {/* Gradient overlay positioned under text and over background photo */}
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/68 to-slate-950/25 lg:via-slate-950/55" />
 
@@ -246,11 +246,11 @@ function LoginContent() {
         </div>
 
         {/* Right Column: Glassmorphism Login Form */}
-        <div className="relative z-10 flex items-center px-5 pb-8 sm:px-8 lg:px-10 lg:py-10 mt-15 mb-10">
-          <div className="animate-card w-full rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-xl backdrop-blur-xl transition duration-300 sm:p-8 mt-12">
-            <div className="mb-6 text-center mt-10">
+        <div className="relative z-10 flex flex-grow items-center px-5 pb-8 sm:px-8 lg:px-10 lg:py-10 mt-5 lg:mt-0">
+          <div className="animate-card w-full rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-xl backdrop-blur-xl transition duration-300 sm:p-8">
+            <div className="mb-6 text-center">
               <h2 className="text-2xl font-black text-slate-900 sm:text-3xl">
-                {currentLang === "mm" ? "ဝင်ရောက်ရန်" : "Welcome Back"}
+                {currentLang === "mm" ? "ပြန်လည်ကြိုဆိုပါတယ်" : "Welcome Back!"}
               </h2>
 
               <p className="mt-2 text-sm font-bold text-slate-600">
@@ -356,17 +356,14 @@ function LoginContent() {
         }
 
         .hero-stroke-white {
-  -webkit-text-stroke: 0.4px rgba(174, 174, 174, 0.6);
-  
-  text-shadow:
-    
-     2px  2px 0 #f5f5f5,
-     0px -2px 0 #e6f6ff,
-     0px  2px 0 #00ffd9,
-    -2px  0px 0 #faffb7,
-     2px  0px 0 #9f9e9b;
-     
-}
+          -webkit-text-stroke: 0.4px rgba(174, 174, 174, 0.6);
+          text-shadow:
+             2px  2px 0 #f5f5f5,
+             0px -2px 0 #e6f6ff,
+             0px  2px 0 #00ffd9,
+            -2px  0px 0 #faffb7,
+             2px  0px 0 #9f9e9b;
+        }
 
         .hero-stroke-subtitle {
           -webkit-text-stroke: 0.0px rgba(0, 0, 0, 0.5);
@@ -432,8 +429,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-[calc(100vh-70px)] px-2 pb-6 pt-6 sm:px-3">
-          <section className="relative mx-auto flex min-h-[calc(100vh-112px)] max-w-7xl items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md">
+        <main className="flex min-h-[calc(100vh-130px)] flex-col px-2 py-4 sm:px-3 sm:py-5">
+          <section className="relative mx-auto flex w-full max-w-7xl flex-grow items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-[#3a6968] via-white to-[#eaffff] shadow-md">
             <BackgroundPhoto />
             <div className="relative z-10 flex items-center gap-3 rounded-2xl border border-white/25 bg-white/90 px-6 py-5 text-sm font-black text-[#008B8B] shadow-2xl backdrop-blur-2xl">
               <Loader2 className="h-5 w-5 animate-spin" />

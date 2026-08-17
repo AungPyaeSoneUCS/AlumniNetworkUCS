@@ -140,28 +140,33 @@ export default function AboutPage() {
   const content = text[currentLang];
 
   return (
-    <main className="min-h-[calc(100vh-70px)] px-2 pb-12 pt-6 sm:px-3">
+    <main className="flex min-h-[calc(100vh-130px)] flex-col px-2 py-4 sm:px-3 sm:py-5">
       
       {/* Explore Platform Cards Section */}
-      <section className="mx-auto mt-0 max-w-7xl rounded-3xl border border-white/60 bg-white/60 px-5 py-10 shadow-xl backdrop-blur-xl dark:border-slate-800/50 dark:bg-slate-900/50 sm:px-8 lg:px-12  bg-gradient-to-br from-[#d4f5f5] via-blue-100 to-[#eaffff] dark:from-slate-900 dark:via-slate-950 dark:to-cyan-950/20">
-        <div className="mb-5 mt-[-20px] text-center">
-         
-          <h2 className="animate-card mt-2 text-2xl font-black text-slate-900 dark:text-white sm:text-3xl md:text-4xl">
+      {/* Reduced py-10 to py-6 lg:py-8 to decrease overall height */}
+      <section className="mx-auto flex w-full max-w-7xl flex-grow flex-col justify-center rounded-[2rem] border border-white/60 bg-white/60 px-5 py-6 shadow-xl backdrop-blur-xl dark:border-slate-800/50 dark:bg-slate-900/50 sm:px-8 lg:px-12 lg:py-8 bg-gradient-to-br from-[#d4f5f5] via-blue-100 to-[#eaffff] dark:from-slate-900 dark:via-slate-950 dark:to-cyan-950/20">
+        
+        {/* Reduced margin bottom from mb-8 to mb-5/mb-6 and removed mt-2 from h2 to reduce upper margin */}
+        <div className="mb-5 text-center lg:mb-6">
+          <h2 className="animate-card text-2xl font-black text-slate-900 dark:text-white sm:text-3xl md:text-4xl">
             {content.sectionTitle}
           </h2>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Reduced gap from gap-5 to gap-4 to pull cards tighter together */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {content.cards.map((card, index) => {
             const Icon = card.icon;
             return (
               <Link
                 key={card.title}
                 href={card.href}
-                className="group animate-card rounded-2xl border border-white/80 bg-white/80 p-6 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[#25C9C8]/60 hover:bg-white hover:shadow-2xl dark:border-slate-800/80 dark:bg-slate-800/60 dark:hover:bg-slate-800"
+                // Reduced padding inside card from p-6 to p-5
+                className="group animate-card rounded-2xl border border-white/80 bg-white/80 p-5 shadow-sm transition duration-300 hover:-translate-y-2 hover:border-[#25C9C8]/60 hover:bg-white hover:shadow-2xl dark:border-slate-800/80 dark:bg-slate-800/60 dark:hover:bg-slate-800"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] text-white shadow-md transition duration-300 group-hover:rotate-6 group-hover:scale-110">
+                {/* Reduced bottom margin of icon from mb-5 to mb-3 */}
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] text-white shadow-md transition duration-300 group-hover:rotate-6 group-hover:scale-110">
                   <Icon size={24} />
                 </div>
 
@@ -171,11 +176,13 @@ export default function AboutPage() {
                     : `${content.whatIs} ${card.title}`}
                 </h3>
 
-                <p className="mt-2.5 min-h-[78px] text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-400">
+                {/* Reduced top margin and minimum height of description for space efficiency */}
+                <p className="mt-1.5 min-h-[60px] text-sm font-semibold leading-relaxed text-slate-600 dark:text-slate-400">
                   {card.description}
                 </p>
 
-                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-black text-[#008B8B] dark:text-[#00BFC4]">
+                {/* Reduced top margin of button text from mt-5 to mt-3 */}
+                <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-black text-[#008B8B] dark:text-[#00BFC4]">
                   {card.button}
                   <ArrowRight
                     size={16}
