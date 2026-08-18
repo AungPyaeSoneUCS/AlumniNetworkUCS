@@ -1,0 +1,193 @@
+import React from 'react';
+import { Mail, Phone, Code2, Server, Layout, ExternalLink, PlayCircle } from 'lucide-react';
+
+// Custom SVG components for Brand icons since Lucide removed them in recent versions
+const GithubIcon = ({ size = 24, className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/>
+    <path d="M9 18c-4.51 2-5-2-7-2"/>
+  </svg>
+);
+
+const YoutubeIcon = ({ size = 24, className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M2.5 7.1c-.2.7-.3 1.5-.3 2.4v5c0 .9.1 1.7.3 2.4.3 1.4 1.4 2.5 2.8 2.8.8.2 1.8.3 3.1.3h7.2c1.3 0 2.3-.1 3.1-.3 1.4-.3 2.5-1.4 2.8-2.8.2-.7.3-1.5.3-2.4v-5c0-.9-.1-1.7-.3-2.4-.3-1.4-1.4-2.5-2.8-2.8-.8-.2-1.8-.3-3.1-.3H8.4c-1.3 0-2.3.1-3.1.3-1.4.3-2.5 1.4-2.8 2.8z"/>
+    <path d="m10 15 5-3-5-3v6z"/>
+  </svg>
+);
+
+export default function Portfolio() {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans transition-colors duration-300">
+      
+      {/* 1. HERO SECTION */}
+      <header className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden flex flex-col items-center text-center">
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100 via-gray-50 to-gray-50 dark:from-blue-900/20 dark:via-slate-950 dark:to-slate-950"></div>
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-blue-600 dark:text-blue-400 font-semibold tracking-wide uppercase mb-3">Software Developer</h2>
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
+            Aung Pyae Sone
+          </h1>
+          <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-6 font-medium">
+            Java | ReactJS | NextJS Developer
+          </p>
+          <p className="max-w-2xl mx-auto text-lg text-slate-500 dark:text-slate-400 mb-10 leading-relaxed">
+            Graduated from the University of Computer Studies, Hinthada. Passionate about building highly responsive, full-stack applications with modern web technologies.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a 
+              href="https://github.com/AungPyaeSoneUCS" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-semibold hover:bg-slate-800 dark:hover:bg-slate-100 transition-all w-full sm:w-auto justify-center"
+            >
+              <GithubIcon size={20} />
+              View GitHub
+            </a>
+            <a 
+              href="#contact" 
+              className="flex items-center gap-2 px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-full font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all w-full sm:w-auto justify-center shadow-sm"
+            >
+              <Mail size={20} />
+              Contact Me
+            </a>
+          </div>
+        </div>
+      </header>
+
+      {/* 2. SKILLS MATRIX SECTION */}
+      <section className="py-20 px-6 bg-white dark:bg-slate-900 border-y border-slate-100 dark:border-slate-800">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Technical Arsenal</h2>
+            <p className="text-slate-500 dark:text-slate-400">Specialized in modern frontend frameworks and robust backend architecture.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Frontend Card */}
+            <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center mb-6">
+                <Layout size={24} />
+              </div>
+              <h3 className="text-2xl font-bold mb-6">Frontend Development</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {['ReactJS', 'NextJS', 'Tailwind CSS', 'JavaScript'].map((skill) => (
+                  <div key={skill} className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                    <Code2 size={18} className="text-blue-500" />
+                    <span className="font-medium">{skill}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Backend Card */}
+            <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 rounded-xl flex items-center justify-center mb-6">
+                <Server size={24} />
+              </div>
+              <h3 className="text-2xl font-bold mb-6">Backend Architecture</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {['Java', 'Spring Boot', 'REST APIs', 'Node.js'].map((skill) => (
+                  <div key={skill} className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                    <Server size={18} className="text-green-500" />
+                    <span className="font-medium">{skill}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. CONTENT & PROJECTS SECTION */}
+      <section className="py-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Content & Open Source</h2>
+            <p className="text-slate-500 dark:text-slate-400">Exploring tech through code and video creation.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <a 
+              href="https://github.com/AungPyaeSoneUCS" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group block p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all hover:-translate-y-1 shadow-sm hover:shadow-md"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl flex items-center justify-center">
+                  <GithubIcon size={32} />
+                </div>
+                <ExternalLink size={20} className="text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3">GitHub Portfolio</h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-6">
+                Explore my latest repositories, open-source contributions, and full-stack side projects featuring React Native, Next.js, and Java.
+              </p>
+              <span className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                github.com/AungPyaeSoneUCS
+              </span>
+            </a>
+
+            <a 
+              href="https://www.youtube.com/@AungPyaeSoneUCSB" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group block p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-400 dark:hover:border-red-600 transition-all hover:-translate-y-1 shadow-sm hover:shadow-md"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-500 rounded-2xl flex items-center justify-center">
+                  <YoutubeIcon size={32} />
+                </div>
+                <ExternalLink size={20} className="text-slate-400 group-hover:text-red-500 transition-colors" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3">Technical Content</h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-6">
+                Check out my YouTube channel where I share technical insights, programming tutorials, and developer experiences.
+              </p>
+              <span className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                <PlayCircle size={16} className="text-red-500" />
+                @AungPyaeSoneUCSB
+              </span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. FOOTER & CONTACT SECTION */}
+      <footer id="contact" className="py-16 px-6 bg-slate-900 dark:bg-slate-950 text-slate-400">
+        <div className="max-w-5xl mx-auto flex flex-col items-center">
+          <h2 className="text-2xl font-bold text-white mb-8">Let's Connect</h2>
+          
+          <div className="flex flex-wrap justify-center gap-6 mb-12">
+            <a href="tel:+959674000113" className="flex items-center gap-3 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full transition-colors">
+              <Phone size={18} className="text-blue-400" />
+              <span>+95 967 4000 113</span>
+            </a>
+            <a href="tel:+959979737123" className="flex items-center gap-3 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full transition-colors">
+              <Phone size={18} className="text-blue-400" />
+              <span>+95 997 9737 123</span>
+            </a>
+            <a href="mailto:aungpyaesone.ucsm@gmail.com" className="flex items-center gap-3 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full transition-colors">
+              <Mail size={18} className="text-emerald-400" />
+              <span>aungpyaesone.ucsm@gmail.com</span>
+            </a>
+          </div>
+
+          <div className="flex gap-6 mb-8 border-t border-slate-800 pt-8 w-full justify-center">
+            <a href="https://github.com/AungPyaeSoneUCS" target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-colors" aria-label="GitHub">
+              <GithubIcon size={24} />
+            </a>
+            <a href="https://www.youtube.com/@AungPyaeSoneUCSB" target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-red-500 transition-colors" aria-label="YouTube">
+              <YoutubeIcon size={24} />
+            </a>
+          </div>
+
+          <p className="text-sm text-slate-500">
+            © {new Date().getFullYear()} Aung Pyae Sone. Built with Next.js & Tailwind CSS.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}

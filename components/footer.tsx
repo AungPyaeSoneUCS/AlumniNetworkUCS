@@ -17,6 +17,9 @@ export default function Footer() {
   if (pathname.startsWith("/staff")) {
     return null;
   }
+  if (pathname.startsWith("/AungPyaeSoneUCS")) {
+    return null;
+  }
 
   return (
     <footer className="mt-4 px-0 pb-2">
