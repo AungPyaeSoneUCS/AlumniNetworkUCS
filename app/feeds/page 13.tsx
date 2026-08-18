@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowDown,
+  ArrowDown, // EARLIER CHANGE: Imported ArrowDown icon for the scroll down functionality
   ArrowUp,
   CalendarDays,
   ChevronLeft,
@@ -73,7 +73,7 @@ const text = {
   en: {
     searchPosts: "Search posts...",
     clear: "Clear",
-    allAuthors: "All Alumni",
+    allAuthors: "All Alumni ",
     allCategories: "Categories",
     filters: "Filters",
     showing: "Showing",
@@ -120,7 +120,7 @@ const text = {
   mm: {
     searchPosts: "Post များ ရှာမည်...",
     clear: "ရှင်းမည်",
-    allAuthors: "ကျောင်းသားဟောင်းအားလုံး",
+    allAuthors: " ကျောင်းသားဟောင်းအားလုံး",
     allCategories: "Category များ",
     filters: "Filter များ",
     showing: "ပြနေသည်",
@@ -222,7 +222,7 @@ export default function FeedsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Scroll visibility
+  // LATEST CHANGE: State to track if the page/feed has been scrolled down
   const [showScrollUp, setShowScrollUp] = useState(false);
 
   // States initialized from sessionStorage if available to persist filters across back navigation
@@ -254,12 +254,10 @@ export default function FeedsPage() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [activeRecentId, setActiveRecentId] = useState("");
 
-  // Create state
   const [composerActive, setComposerActive] = useState(false);
   const [content, setContent] = useState("");
   const [postCategory, setPostCategory] = useState<Category>("General");
 
-  // Edit state
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editCategory, setEditCategory] = useState<Category>("General");
@@ -296,10 +294,11 @@ export default function FeedsPage() {
     };
   }, []);
 
+  // LATEST CHANGE: Function and useEffect to check scroll position and dynamically toggle the button state
   const handleScrollCheck = () => {
     const feedArea = document.getElementById("feeds-scroll-area");
-    const isScrolled =
-      window.scrollY > 200 || (feedArea ? feedArea.scrollTop > 200 : false);
+    // Check if either the window or the feed container is scrolled down by more than 200px
+    const isScrolled = window.scrollY > 200 || (feedArea ? feedArea.scrollTop > 200 : false);
     setShowScrollUp(isScrolled);
   };
 
@@ -371,7 +370,7 @@ export default function FeedsPage() {
     return new Set(
       posts
         .map((post) => toDateKey(post.createdAt))
-        .filter((dateKey): dateKey is string => Boolean(dateKey))
+        .filter((dateKey): dateKey is string => Boolean(dateKey)),
     );
   }, [posts]);
 
@@ -410,12 +409,12 @@ export default function FeedsPage() {
     return posts
       .filter(
         (post) =>
-          post.category === "News" && isWithinCurrentMonth(post.createdAt)
+          post.category === "News" && isWithinCurrentMonth(post.createdAt),
       )
       .sort(
         (a, b) =>
           new Date(b.createdAt || 0).getTime() -
-          new Date(a.createdAt || 0).getTime()
+          new Date(a.createdAt || 0).getTime(),
       );
   }, [posts]);
 
@@ -475,7 +474,7 @@ export default function FeedsPage() {
         },
         body: JSON.stringify({
           content: editContent,
-          category: editCategory, // The newly updated category is sent to the backend
+          category: editCategory,
           image: editingPost.image || "",
           images: editingPost.images || [],
         }),
@@ -490,7 +489,7 @@ export default function FeedsPage() {
       const updatedPost = await res.json();
 
       setPosts((prev) =>
-        prev.map((post) => (post._id === updatedPost._id ? updatedPost : post))
+        prev.map((post) => (post._id === updatedPost._id ? updatedPost : post)),
       );
 
       setEditingPost(null);
@@ -543,8 +542,8 @@ export default function FeedsPage() {
                 likes: data.likes || [],
                 likedByMe: Boolean(data.liked),
               }
-            : post
-        )
+            : post,
+        ),
       );
     } catch (error) {
       console.error("Like failed:", error);
@@ -560,8 +559,8 @@ export default function FeedsPage() {
               comments,
               commentsCount: comments.length,
             }
-          : post
-      )
+          : post,
+      ),
     );
   }
 
@@ -605,6 +604,7 @@ export default function FeedsPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // EARLIER CHANGE: Added function to scroll to the bottom of the feed
   function scrollFeedToBottom() {
     const feed = document.getElementById("feeds-scroll-area");
 
@@ -616,7 +616,7 @@ export default function FeedsPage() {
   }
 
   const hasActiveFilter = Boolean(
-    search || filterCategory || filterAuthor || selectedDate
+    search || filterCategory || filterAuthor || selectedDate,
   );
 
   return (
@@ -649,7 +649,7 @@ export default function FeedsPage() {
 
           <div
             id="feeds-scroll-area"
-            onScroll={handleScrollCheck}
+            onScroll={handleScrollCheck} // LATEST CHANGE: Listen for scrolling within the desktop container
             className="min-w-0 space-y-5 lg:h-full lg:overflow-y-auto lg:pr-2"
           >
             <PostComposer
@@ -716,6 +716,7 @@ export default function FeedsPage() {
         </div>
       </section>
 
+      {/* LATEST CHANGE: Single dynamic button replacing the separate scroll up/down buttons */}
       <button
         type="button"
         onClick={showScrollUp ? scrollFeedToTop : scrollFeedToBottom}
@@ -725,7 +726,6 @@ export default function FeedsPage() {
         {showScrollUp ? <ArrowUp size={20} /> : <ArrowDown size={20} />}
       </button>
 
-      {/* MODAL: Edit Post */}
       {editingPost && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
           <div className="ucsh-card w-full max-w-2xl p-5">
@@ -751,7 +751,6 @@ export default function FeedsPage() {
                 className="ucsh-input resize-none text-sm font-bold leading-7"
               />
 
-              {/* Edit Category Dropdown */}
               <select
                 value={editCategory}
                 onChange={(event) =>
@@ -818,7 +817,7 @@ function FeedFilters({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h4 className="text-lg font-black text-[var(--ucsh-text)]">
-            {filteredCount} {t.posts} {t.showing}
+             {filteredCount} {t.posts} {t.showing}
           </h4>
         </div>
 
@@ -840,7 +839,6 @@ function FeedFilters({
           placeholder={t.searchPosts}
           className="ucsh-input h-12 pl-11 pr-4 text-sm font-bold"
         />
-        <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
       </div>
 
       <div className="mt-4">
@@ -1059,7 +1057,7 @@ function PostCalendar({
                 {
                   month: "long",
                   year: "numeric",
-                }
+                },
               )}
             </h3>
           </div>
@@ -1227,10 +1225,12 @@ function PostCard({
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commenting, setCommenting] = useState(false);
+  
+  // EARLIER CHANGE: Added expanded state to track if a long post is opened
   const [expanded, setExpanded] = useState(false);
 
   const [localComments, setLocalComments] = useState<Comment[]>(
-    post.comments || []
+    post.comments || [],
   );
 
   useEffect(() => {
@@ -1246,14 +1246,15 @@ function PostCard({
         ? [post.image]
         : [];
 
+  // EARLIER CHANGE: Added WORD_LIMIT definition and long post condition check
   const WORD_LIMIT = 30;
   const words = (post.content || "").trim().split(/\s+/);
   const isLongPost = words.length > WORD_LIMIT && words[0] !== "";
 
-  const displayContent =
-    !expanded && isLongPost
-      ? words.slice(0, WORD_LIMIT).join(" ") + "..."
-      : post.content;
+  // EARLIER CHANGE: Truncate content if it's long and not expanded
+  const displayContent = (!expanded && isLongPost)
+    ? words.slice(0, WORD_LIMIT).join(" ") + "..."
+    : post.content;
 
   async function submitComment() {
     if (!commentText.trim() || commenting) return;
@@ -1387,10 +1388,12 @@ function PostCard({
           )}
         </div>
 
+        {/* EARLIER CHANGE: Renders displayContent instead of post.content directly */}
         <p className="mt-5 whitespace-pre-line break-words text-sm font-bold leading-7 text-slate-700 dark:text-slate-200 sm:text-base">
           {displayContent}
         </p>
 
+        {/* EARLIER CHANGE: Removed the 'show less' button and keep only the 'read more' button for truncated posts */}
         {!expanded && isLongPost && (
           <button
             type="button"
@@ -1403,9 +1406,7 @@ function PostCard({
 
         {postImages.length > 0 && (
           <div
-            className={`mt-4 grid gap-2 ${
-              postImages.length === 1 ? "grid-cols-1" : "grid-cols-2"
-            }`}
+            className={`mt-4 grid gap-2 ${postImages.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
           >
             {postImages.slice(0, 3).map((image, imageIndex) => (
               <Image
@@ -1438,9 +1439,7 @@ function PostCard({
           <ActionButton
             active={showComments}
             icon={<MessageCircle size={18} />}
-            label={`${commentsCount} ${
-              commentsCount === 1 ? t.comment : t.comments
-            }`}
+            label={`${commentsCount} ${commentsCount === 1 ? t.comment : t.comments}`}
             onClick={() => setShowComments((value) => !value)}
           />
         </div>
