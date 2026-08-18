@@ -16,6 +16,7 @@ import {
   LogOut,
   Menu,
   Newspaper,
+  Settings, // <-- Added Settings Icon here
   TrendingUp,
   UserCircle,
   UserCog,
@@ -39,6 +40,7 @@ type ActivePage =
   | "posts"
   | "register-users"
   | "contact"
+  | "settings" // <-- Added settings type
   | "profile";
 
 type NavItem = {
@@ -135,6 +137,7 @@ export default function AdminSidebar({
         jobStatus: "Alumni Job Status",
         registerUsers: "Alumni Registration Lists",
         contact: "Contacts",
+        settings: "Settings", // <-- Added English label
         profile: "Profile ",
         logout: "Logout",
         english: "English",
@@ -157,6 +160,7 @@ export default function AdminSidebar({
         jobStatus: "ဘွဲ့ရအလုပ်အကိုင် အခြေအနေ",
         registerUsers: "စာရင်းသွင်းပြီးကျောင်းသားများ",
         contact: "ဆက်သွယ်ရန်",
+        settings: "ဆက်တင်များ", // <-- Added Myanmar label
         profile: "ပရိုဖိုင် ",
         logout: "ထွက်ရန်",
         english: "English",
@@ -201,6 +205,8 @@ export default function AdminSidebar({
   const bottomNavs: NavItem[] = [
     { key: "register-users", label: t.registerUsers, href: makeHref("/admin/register-users"), icon: FileSpreadsheet },
     { key: "contact", label: t.contact, href: makeHref("/admin/contact"), icon: Contact },
+    // <-- Settings menu item placed right above Profile
+    { key: "settings", label: t.settings, href: makeHref("/admin/settings"), icon: Settings },
     { key: "profile", label: t.profile, href: makeHref("/admin/profile"), icon: UserCircle },
   ];
 
