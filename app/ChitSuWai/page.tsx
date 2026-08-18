@@ -1,14 +1,13 @@
-// File: AungPyaeSonePortfolio.tsx
+// File: ChitSuWaiPortfolio.tsx
 import React from 'react';
 import { 
-  Mail, 
   Phone, 
   Code2, 
-  Server, 
+  Database, 
   Layout, 
   ExternalLink, 
-  PlayCircle, 
   Globe, 
+  GitBranch,
   GraduationCap
 } from 'lucide-react';
 
@@ -19,33 +18,26 @@ const GithubIcon = ({ size = 24, className = "" }) => (
   </svg>
 );
 
-const YoutubeIcon = ({ size = 24, className = "" }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M2.5 7.1c-.2.7-.3 1.5-.3 2.4v5c0 .9.1 1.7.3 2.4.3 1.4 1.4 2.5 2.8 2.8.8.2 1.8.3 3.1.3h7.2c1.3 0 2.3-.1 3.1-.3 1.4-.3 2.5-1.4 2.8-2.8.2-.7.3-1.5.3-2.4v-5c0-.9-.1-1.7-.3-2.4-.3-1.4-1.4-2.5-2.8-2.8-.8-.2-1.8-.3-3.1-.3H8.4c-1.3 0-2.3.1-3.1.3-1.4.3-2.5 1.4-2.8 2.8z"/>
-    <path d="m10 15 5-3-5-3v6z"/>
-  </svg>
-);
-
-export default function AungPyaeSonePortfolio() {
+export default function ChitSuWaiPortfolio() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans transition-colors duration-300">
       
       <header className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-6 overflow-hidden flex flex-col items-center text-center">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100 via-gray-50 to-gray-50 dark:from-blue-900/20 dark:via-slate-950 dark:to-slate-950"></div>
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-100 via-gray-50 to-gray-50 dark:from-indigo-900/20 dark:via-slate-950 dark:to-slate-950"></div>
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-blue-600 dark:text-blue-400 font-semibold tracking-wide uppercase mb-3">Software Developer</h2>
+          <h2 className="text-indigo-600 dark:text-indigo-400 font-semibold tracking-wide uppercase mb-3">Web Developer</h2>
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6">
-            Aung Pyae Sone
+            Chit Su Wai
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-6 font-medium">
-            Java | ReactJS | NextJS Developer
+            PHP | Web Development | MySQL
           </p>
           <p className="max-w-2xl mx-auto text-lg text-slate-500 dark:text-slate-400 mb-10 leading-relaxed">
-            Graduated from the University of Computer Studies, Hinthada (UCSH). Passionate about building highly responsive, full-stack applications with modern web technologies.
+            Passionate about building responsive, dynamic web applications. Experienced in crafting seamless user interfaces with HTML, CSS, JS, and robust backends using PHP and MySQL.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a 
-              href="https://github.com/AungPyaeSoneUCS" 
+              href="https://github.com/Chit-Su-Wai/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-semibold hover:bg-slate-800 dark:hover:bg-slate-100 transition-all w-full sm:w-auto justify-center"
@@ -57,7 +49,7 @@ export default function AungPyaeSonePortfolio() {
               href="#contact" 
               className="flex items-center gap-2 px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-full font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all w-full sm:w-auto justify-center shadow-sm"
             >
-              <Mail size={20} />
+              <Phone size={20} />
               Contact Me
             </a>
           </div>
@@ -68,19 +60,19 @@ export default function AungPyaeSonePortfolio() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Technical Arsenal</h2>
-            <p className="text-slate-500 dark:text-slate-400">Specialized in modern frontend frameworks and robust backend architecture.</p>
+            <p className="text-slate-500 dark:text-slate-400">Specialized in core web technologies and database management.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center mb-6">
+              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center mb-6">
                 <Layout size={24} />
               </div>
               <h3 className="text-2xl font-bold mb-6">Frontend Development</h3>
               <div className="grid grid-cols-2 gap-4">
-                {['ReactJS', 'NextJS', 'Tailwind CSS', 'JavaScript', 'React Native'].map((skill) => (
+                {['HTML5', 'CSS3', 'JavaScript', 'Responsive Design'].map((skill) => (
                   <div key={skill} className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                    <Code2 size={18} className="text-blue-500" />
+                    <Code2 size={18} className="text-indigo-500" />
                     <span className="font-medium">{skill}</span>
                   </div>
                 ))}
@@ -88,14 +80,14 @@ export default function AungPyaeSonePortfolio() {
             </div>
 
             <div className="p-8 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 rounded-xl flex items-center justify-center mb-6">
-                <Server size={24} />
+              <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center mb-6">
+                <Database size={24} />
               </div>
-              <h3 className="text-2xl font-bold mb-6">Backend Architecture</h3>
+              <h3 className="text-2xl font-bold mb-6">Backend & Tools</h3>
               <div className="grid grid-cols-2 gap-4">
-                {['Java', 'Spring Boot', 'Node.js', 'Supabase', 'Firebase', 'REST APIs'].map((skill) => (
+                {['PHP', 'MySQL', 'Git', 'GitHub'].map((skill) => (
                   <div key={skill} className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                    <Server size={18} className="text-green-500" />
+                    <Database size={18} className="text-emerald-500" />
                     <span className="font-medium">{skill}</span>
                   </div>
                 ))}
@@ -108,28 +100,28 @@ export default function AungPyaeSonePortfolio() {
       <section className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Work & Content</h2>
-            <p className="text-slate-500 dark:text-slate-400">Exploring tech through production code and video creation.</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Featured Code & Projects</h2>
+            <p className="text-slate-500 dark:text-slate-400">Bringing ideas to life through robust code and version control.</p>
           </div>
 
           <a 
             href="https://alumna.ucsh.edu.mm/" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="group block mb-8 p-8 rounded-3xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border border-blue-100 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-600 transition-all hover:-translate-y-1 shadow-sm hover:shadow-md"
+            className="group block mb-8 p-8 rounded-3xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 border border-indigo-100 dark:border-indigo-800 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all hover:-translate-y-1 shadow-sm hover:shadow-md"
           >
             <div className="flex justify-between items-start mb-6">
-              <div className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-md">
+              <div className="w-14 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-md">
                 <GraduationCap size={32} />
               </div>
-              <ExternalLink size={20} className="text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+              <ExternalLink size={20} className="text-indigo-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors" />
             </div>
             <h3 className="text-2xl font-bold mb-3 text-slate-900 dark:text-white">UCSH Alumni Network</h3>
             <p className="text-slate-600 dark:text-slate-300 mb-6 max-w-3xl">
               The official alumni networking platform for the University of Computer Studies, Hinthada. 
-              Architected and developed a full-stack web and mobile application utilizing React, Node.js, Supabase, Firebase, and React Native to connect graduates worldwide.
+              Collaborated to build robust web interfaces and secure, scalable database architectures utilizing HTML, CSS, JS, PHP, and MySQL.
             </p>
-            <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-2">
+            <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
               <Globe size={16} />
               alumna.ucsh.edu.mm
             </span>
@@ -137,7 +129,7 @@ export default function AungPyaeSonePortfolio() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <a 
-              href="https://github.com/AungPyaeSoneUCS" 
+              href="https://github.com/Chit-Su-Wai/" 
               target="_blank" 
               rel="noopener noreferrer"
               className="group block p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all hover:-translate-y-1 shadow-sm hover:shadow-md"
@@ -150,34 +142,29 @@ export default function AungPyaeSonePortfolio() {
               </div>
               <h3 className="text-xl font-bold mb-3">GitHub Portfolio</h3>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
-                Explore my latest repositories, open-source contributions, and full-stack side projects.
+                Explore my repositories, commits, and web development projects showcasing my skills in PHP, MySQL, HTML, CSS, and JS.
               </p>
               <span className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                github.com/AungPyaeSoneUCS
+                github.com/Chit-Su-Wai
               </span>
             </a>
 
-            <a 
-              href="https://www.youtube.com/@AungPyaeSoneUCSB" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="group block p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-red-400 dark:hover:border-red-600 transition-all hover:-translate-y-1 shadow-sm hover:shadow-md"
-            >
+            <div className="group block p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-600 transition-all hover:-translate-y-1 shadow-sm hover:shadow-md">
               <div className="flex justify-between items-start mb-6">
-                <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-500 rounded-2xl flex items-center justify-center">
-                  <YoutubeIcon size={32} />
+                <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center">
+                  <Globe size={32} />
                 </div>
-                <ExternalLink size={20} className="text-slate-400 group-hover:text-red-500 transition-colors" />
+                <GitBranch size={20} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
               </div>
-              <h3 className="text-xl font-bold mb-3">Technical Content</h3>
+              <h3 className="text-xl font-bold mb-3">Web Applications</h3>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
-                Check out my YouTube channel where I share technical insights, programming tutorials, and developer experiences.
+                Building functional, database-driven websites and dynamic single-page applications focused on clean code and great user experiences.
               </p>
               <span className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                <PlayCircle size={16} className="text-red-500" />
-                @AungPyaeSoneUCSB
+                <Code2 size={16} className="text-indigo-500" />
+                Full Stack Development
               </span>
-            </a>
+            </div>
           </div>
         </div>
       </section>
@@ -187,31 +174,20 @@ export default function AungPyaeSonePortfolio() {
           <h2 className="text-2xl font-bold text-white mb-8">Let's Connect</h2>
           
           <div className="flex flex-wrap justify-center gap-6 mb-12">
-            <a href="tel:+959674000113" className="flex items-center gap-3 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full transition-colors">
-              <Phone size={18} className="text-blue-400" />
-              <span>+95 967 4000 113</span>
-            </a>
-            <a href="tel:+959979737123" className="flex items-center gap-3 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full transition-colors">
-              <Phone size={18} className="text-blue-400" />
-              <span>+95 997 9737 123</span>
-            </a>
-            <a href="mailto:aungpyaesone.ucsm@gmail.com" className="flex items-center gap-3 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full transition-colors">
-              <Mail size={18} className="text-emerald-400" />
-              <span>aungpyaesone.ucsm@gmail.com</span>
+            <a href="tel:09699855353" className="flex items-center gap-3 px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-full transition-colors">
+              <Phone size={18} className="text-indigo-400" />
+              <span>09 699 855 353</span>
             </a>
           </div>
 
           <div className="flex gap-6 mb-8 border-t border-slate-800 pt-8 w-full justify-center">
-            <a href="https://github.com/AungPyaeSoneUCS" target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-colors" aria-label="GitHub">
+            <a href="https://github.com/Chit-Su-Wai/" target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-white transition-colors" aria-label="GitHub">
               <GithubIcon size={24} />
-            </a>
-            <a href="https://www.youtube.com/@AungPyaeSoneUCSB" target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 hover:text-red-500 transition-colors" aria-label="YouTube">
-              <YoutubeIcon size={24} />
             </a>
           </div>
 
           <p className="text-sm text-slate-500">
-            © {new Date().getFullYear()} Aung Pyae Sone. Built with Next.js & Tailwind CSS.
+            © {new Date().getFullYear()} Chit Su Wai. Built with Next.js & Tailwind CSS.
           </p>
         </div>
       </footer>
