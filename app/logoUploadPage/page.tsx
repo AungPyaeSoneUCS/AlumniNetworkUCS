@@ -70,7 +70,7 @@ export default function UploadLogoDynamic() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-6 text-2xl font-black text-[#008B8B]">Dynamic Logo Settings</h1>
+      <h1 className="mb-6 text-2xl font-black text-[#008B8B]">Dynamic Logo</h1>
       
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-sm font-bold text-slate-700">Current Logo</h2>
