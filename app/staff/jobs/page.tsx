@@ -468,7 +468,7 @@ function exportHtml(jobs: JobItem[], title: string, t: typeof text.en) {
         <th>ORGANIZATION</th>
         <th>TYPE</th>
         <th>LOCATION</th>
-        <th>SALARY</th>
+        <th>INCOME</th>
         <th>PHONE</th>
         <th>CONTACT</th>
         <th>DURATION</th>
