@@ -268,7 +268,7 @@ export default function StaffSidebar({
                     Alumni Network
                   </span>
                   <span className="truncate text-xs font-bold text-slate-500 dark:text-slate-400">
-                    Staff Portal
+                    Staff 
                   </span>
                 </div>
               )}
