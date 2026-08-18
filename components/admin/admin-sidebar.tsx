@@ -206,7 +206,7 @@ export default function AdminSidebar({
     { key: "register-users", label: t.registerUsers, href: makeHref("/admin/register-users"), icon: FileSpreadsheet },
     { key: "contact", label: t.contact, href: makeHref("/admin/contact"), icon: Contact },
     // <-- Settings menu item placed right above Profile
-    { key: "settings", label: t.settings, href: makeHref("/admin/settings"), icon: Settings },
+    
     { key: "profile", label: t.profile, href: makeHref("/admin/profile"), icon: UserCircle },
   ];
 
