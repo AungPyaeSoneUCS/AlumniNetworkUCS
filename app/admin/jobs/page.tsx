@@ -55,7 +55,7 @@ const text = {
   en: {
     title: "Jobs Management",
     subtitle: " ",
-    searchPlaceholder: "Search position, company, location, alumni...",
+    searchPlaceholder: "Search position, organization, location, alumni...",
     allCompanies: "All Companies",
     allLocations: "All Locations",
     allTypes: "All Types",
@@ -63,7 +63,7 @@ const text = {
     current: "Current",
     past: "Past",
     job: "Job",
-    company: "Company",
+    company: "Organization",
     type: "Type",
     location: "Location",
     salary: "Salary",
@@ -77,7 +77,7 @@ const text = {
     noJobsText: "Alumni job experience data will appear here.",
     unknownAlumni: "Unknown Alumni",
     positionNotProvided: "Position not provided",
-    companyNotProvided: "Company not provided",
+    companyNotProvided: "Organization not provided",
     notAvailable: "N/A",
     excel: "Excel (CSV)",
     print: "Print Report",
@@ -100,7 +100,7 @@ const text = {
     current: "လက်ရှိ",
     past: "ပြီးဆုံး",
     job: "အလုပ်အကိုင်",
-    company: "ကုမ္ပဏီ",
+    company: "အဖွဲ့အစည်း",
     type: "အမျိုးအစား",
     location: "နေရာ",
     salary: "လစာ",
@@ -114,7 +114,7 @@ const text = {
     noJobsText: "Alumni experience data ရှိလာပါက ဒီနေရာတွင် ပြပါမည်။",
     unknownAlumni: "အမည်မရှိသော Alumni",
     positionNotProvided: "ရာထူး မထည့်ထားပါ",
-    companyNotProvided: "ကုမ္ပဏီ မထည့်ထားပါ",
+    companyNotProvided: "အဖွဲ့အစည်း မထည့်ထားပါ",
     notAvailable: "မရှိပါ",
     excel: "Excel (CSV)",
     print: "Print ထုတ်ရန်",
@@ -465,7 +465,7 @@ function exportHtml(jobs: JobItem[], title: string, t: typeof text.en) {
       <tr>
         <th class="center">#</th>
         <th>JOB POSITION</th>
-        <th>COMPANY</th>
+        <th>ORGANIZATION</th>
         <th>TYPE</th>
         <th>LOCATION</th>
         <th>SALARY</th>
