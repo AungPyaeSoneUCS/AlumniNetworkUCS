@@ -80,6 +80,9 @@ export default function Nav() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [me, setMe] = useState<MeUser | null>(null);
+  
+  // NEW: State for the dynamic logo
+  const [logoSrc, setLogoSrc] = useState("/logo/logo-250.png");
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -98,6 +101,26 @@ export default function Nav() {
 
   const profileHref = me?._id ? `/profile/${me._id}` : "/settings";
   const editProfileHref = "/settings";
+
+  // NEW: Fetch global logo on mount
+  useEffect(() => {
+    let mounted = true;
+    async function loadLogo() {
+      try {
+        const res = await fetch("/api/settings/logo", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.logoUrl && mounted) {
+            setLogoSrc(data.logoUrl);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load logo:", error);
+      }
+    }
+    loadLogo();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     if (!data?.user) {
@@ -159,9 +182,7 @@ export default function Nav() {
 
   async function handleLogout() {
     if (loggingOut) return;
-
     setLoggingOut(true);
-
     try {
       await fetch("/api/auth/logout-mail", {
         method: "POST",
@@ -192,16 +213,13 @@ export default function Nav() {
               href={data?.user ? "/feeds" : "/"}
               className="flex min-w-0 items-center gap-2"
             >
-              {/* --- LOGO STYLING --- */}
-              {/* 1. SIZE: Change 'h-10 w-10' to adjust the logo size (e.g., h-9 w-9 or h-12 w-12) */}
-              {/* 2. SHAPE: 'rounded-[10px]' or 'rounded-xl' matches the rounded square of the app icon to avoid white circular gaps */}
               <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/30 bg-transparent shadow-sm">
+                {/* NEW: Use dynamic logoSrc state */}
                 <Image
-                  src="/logo/logo-250.png"
+                  src={logoSrc}
                   alt={t.brand}
                   fill
                   sizes="40px"
-                  // 3. ZOOM/CROP: 'object-cover' and 'scale-110' slightly zoom the image to completely cut off the outer white corners from the original file
                   className="object-cover scale-110"
                   priority
                 />
@@ -212,6 +230,7 @@ export default function Nav() {
               </span>
             </Link>
 
+            {/* Rest of the navbar remains identical */}
             {data?.user && (
               <div className="hidden items-center gap-1 rounded-xl border border-white/60 bg-white/65 p-0.5 shadow-sm backdrop-blur-xl lg:flex">
                 {links.map((link) => {
@@ -256,7 +275,6 @@ export default function Nav() {
                 </button>
               )}
 
-              
               <button
                 type="button"
                 onClick={toggleLang}
@@ -264,7 +282,7 @@ export default function Nav() {
               >
                 {currentLang === "en" ? "မြန်မာ" : "EN"}
               </button>
-              {/* Show About Network button before language switch (Only when Logged Out) */}
+
               {!data?.user && (
                 <Link
                   href="/about"
@@ -274,8 +292,6 @@ export default function Nav() {
                 </Link>
               )}
 
-
-              {/* Profile Dropdown Container */}
               {data?.user && (
                 <div className="relative hidden sm:block" ref={dropdownRef}>
                   <button
@@ -297,7 +313,6 @@ export default function Nav() {
                     )}
                   </button>
 
-                  {/* Profile Dropdown Menu */}
                   {profileOpen && (
                     <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-white/60 bg-white/95 p-1.5 shadow-lg backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100">
                       <div className="space-y-1">
@@ -421,7 +436,6 @@ export default function Nav() {
           )}
         </div>
       </nav>
-
       <div className="h-[58px] sm:h-[60px]" />
     </>
   );

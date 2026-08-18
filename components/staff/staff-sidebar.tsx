@@ -62,6 +62,9 @@ export default function StaffSidebar({
   const [collapsed, setCollapsed] = useState(false);
   const [loadedCollapsed, setLoadedCollapsed] = useState(false);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  
+  // NEW: State for the dynamic logo
+  const [logoSrc, setLogoSrc] = useState("/logo/logo-250.png");
 
   const urlLang = searchParams.get("lang");
   const currentLang: Lang = urlLang === "mm" ? "mm" : lang === "mm" ? "mm" : "en";
@@ -73,6 +76,26 @@ export default function StaffSidebar({
     active === "users-graduated-years" ||
     active === "users-salary-ranges" ||
     active === "users-job-status";
+
+  // NEW: Fetch global logo on mount
+  useEffect(() => {
+    let mounted = true;
+    async function loadLogo() {
+      try {
+        const res = await fetch("/api/settings/logo", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.logoUrl && mounted) {
+            setLogoSrc(data.logoUrl);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load logo:", error);
+      }
+    }
+    loadLogo();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
@@ -195,8 +218,9 @@ export default function StaffSidebar({
       <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 shadow-sm backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/90 lg:hidden">
         <div className="flex items-center gap-3">
           <span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#25C9C8]/50 bg-white shadow-sm">
+            {/* NEW: Use dynamic logoSrc state */}
             <Image
-              src="/logo/logo-250.png"
+              src={logoSrc}
               alt="Alumni Network Logo"
               fill
               sizes="40px"
@@ -252,8 +276,9 @@ export default function StaffSidebar({
               className="group flex items-center gap-3 text-left transition-all pointer-events-none lg:pointer-events-auto active:scale-95"
             >
               <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#25C9C8]/50 bg-white shadow-sm transition-transform lg:group-hover:scale-105 lg:group-hover:shadow-md">
+                {/* NEW: Use dynamic logoSrc state */}
                 <Image
-                  src="/logo/logo-250.png"
+                  src={logoSrc}
                   alt="Alumni Network Logo"
                   fill
                   sizes="44px"
