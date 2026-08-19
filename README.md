@@ -25,18 +25,20 @@ This project is built on a modern JavaScript/TypeScript ecosystem using the Next
 * **Database:** MongoDB (Document-Oriented NoSQL) with Mongoose ODM
 * **Authentication:** NextAuth.js, bcryptjs
 * **Real-time Engine:** Pusher
-* **Deployment:** Dokploy (Ubuntu Server) / Netlify
+* **Deployment:** Ubuntu Linux Virtual Machine / Dokploy / Netlify
 
 ---
 
 ## 📋 System Flow
 
 ### 👨‍🎓 Alumni Workflow
+
 1. **Registration:** Provide your UCSH student details and NRC.
 2. **Verification:** Verify your identity via an OTP sent to your email.
 3. **Engagement:** Once approved by an Admin, log in to update your professional profile, browse the directory, and interact with the community feeds.
 
 ### 🛡️ Administrative Workflow
+
 1. **Access:** University faculty log in via a protected administrative route.
 2. **Validation:** Cross-reference newly registered users with official university records.
 3. **Moderation:** Oversee platform data, manage the user base, and update public university contact information.
@@ -48,9 +50,10 @@ This project is built on a modern JavaScript/TypeScript ecosystem using the Next
 To run this project locally for development, ensure you have **Node.js** and **Git** installed.
 
 **1. Clone the repository:**
+
 ```bash
-git clone [https://github.com/AungPyaeSoneUCS/AlumniNetwork.git](https://github.com/AungPyaeSoneUCS/AlumniNetwork.git)
-cd AlumniNetwork
+git clone https://github.com/AungPyaeSoneUCS/AlumniNetworkUCS.git
+cd AlumniNetworkUCS
 
 ```
 
@@ -64,6 +67,11 @@ npm install
 **3. Configure Environment Variables:**
 Create a `.env` (or `.env.local`) file in the root directory. Add your specific configuration keys. *(Note: Never commit your actual passwords or secrets to GitHub).*
 
+```env
+MONGODB_URI="mongodb://127.0.0.1:27017/AlumniNetworkDB"
+NEXTAUTH_SECRET="your_secure_secret"
+NEXTAUTH_URL="http://localhost:3000"
+# Add other necessary variables (e.g., Pusher keys, Google OAuth credentials)
 
 ```
 
@@ -78,15 +86,228 @@ Navigate to `http://localhost:3000` in your browser to view the application.
 
 ---
 
+## 🌍 Complete Server Installation Guide (Ubuntu VM)
+
+The following guide outlines how to deploy the application for production on an Ubuntu Virtual Machine.
+
+### Step 1: Server Preparation
+
+Ensure your Ubuntu Virtual Machine has all the foundational packages required for a modern Node.js application.
+
+1. **Update the system and install core utilities:**
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl git nano ufw docker.io nginx
+
+```
+
+
+2. **Install Node.js and NPM:**
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+```
+
+
+3. **Install PM2 globally (Daemon process manager):**
+```bash
+sudo npm install -g pm2
+
+```
+
+
+
+### Step 2: Database Setup (MongoDB via Docker)
+
+Virtual Machine hypervisors often do not pass through AVX CPU instructions, causing standard native installations of MongoDB 5.0+ to crash immediately. Deploying MongoDB 4.4 using Docker is the most stable workaround for a VM environment.
+
+1. **Enable and start the Docker service:**
+```bash
+sudo systemctl enable --now docker
+
+```
+
+
+2. **Deploy the MongoDB Container:**
+```bash
+sudo docker run --name local-mongo -d -p 27017:27017 --restart always mongo:4.4
+
+```
+
+
+
+### Step 3: Application Deployment
+
+1. **Clone the Repository:**
+```bash
+cd ~
+git clone https://github.com/AungPyaeSoneUCS/AlumniNetworkUCS.git
+cd AlumniNetworkUCS
+
+```
+
+
+2. **Install Dependencies:**
+```bash
+npm install
+
+```
+
+
+3. **Configure Environment Variables:**
+```bash
+nano .env
+
+```
+
+
+*Ensure your database string points to the local Docker container (e.g., `MONGODB_URI="mongodb://127.0.0.1:27017/AlumniNetworkDB"`).*
+
+### Step 4: Folder Permissions
+
+For user uploads (like profile pictures) to work correctly, the web server needs explicit read and write access to your public directory.
+
+```bash
+sudo chmod -R 777 public/
+
+```
+
+*(Note: If you ever delete and recreate the public folder, you must run this command again).*
+
+### Step 5: Process Management (PM2)
+
+To avoid "ghost processes" and `EADDRINUSE` port 3000 conflicts, run the Next.js binary directly.
+
+1. **Build the production application:**
+```bash
+npm run build
+
+```
+
+
+2. **Start the application:**
+```bash
+pm2 start ./node_modules/next/dist/bin/next --name "next-app" -- start
+
+```
+
+
+3. **Save the active process list:**
+```bash
+pm2 save
+pm2 startup
+
+```
+
+
+
+### Step 6: Web Server & Reverse Proxy (NGINX)
+
+Configure NGINX to handle web traffic securely and serve uploaded files directly from the disk.
+
+1. **Create the NGINX Configuration:**
+```bash
+sudo nano /etc/nginx/sites-available/alumna.ucsh.edu.mm
+
+```
+
+
+2. **Paste the Server Block:**
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name alumna.ucsh.edu.mm;
+
+    # SSL Configuration 
+    ssl_certificate /etc/ssl/certs/ucsh_fullchain.crt;
+    ssl_certificate_key /etc/ssl/private/ucsh.key;
+
+    # Main Proxy to Next.js
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Serve user uploads directly from the disk for instant rendering
+    location /uploads/ {
+        alias /home/hinthadauser/AlumniNetworkUCS/public/uploads/;
+        access_log off;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
+}
+
+# HTTP to HTTPS Redirect
+server {
+    listen 80;
+    server_name alumna.ucsh.edu.mm;
+    return 301 https://$host$request_uri;
+}
+
+```
+
+
+3. **Enable and Restart NGINX:**
+```bash
+sudo ln -s /etc/nginx/sites-available/alumna.ucsh.edu.mm /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl restart nginx
+
+```
+
+
+
+---
+
+## 🔄 Standard Update Workflow
+
+Whenever new code is merged into the GitHub repository, follow this workflow to update the live server cleanly and prevent cache conflicts.
+
+1. **Navigate to the project directory:**
+```bash
+cd ~/AlumniNetworkUCS
+
+```
+
+
+2. **Pull the latest code:**
+```bash
+git pull origin main
+
+```
+
+
+*(Troubleshooting: If local files are overwritten, force the update with `git fetch --all` and `git reset --hard origin/main`).*
+3. **Clean the cache and rebuild:**
+```bash
+rm -rf .next
+npm run build
+
+```
+
+
+4. **Restart the application:**
+```bash
+pm2 restart next-app
+
+```
+
+
+
+---
+
 ## 📬 Contact Information
 
 We welcome your feedback, technical inquiries, and collaboration proposals. Please feel free to reach out through our official channels:
 
 ### 📧 Email Support
 
-* **General Information:** `info.alumninetwork[at]gmail.com`
-
-
+* **General Information:** `info.alumninetwork@gmail.com`
 
 ### 📞 Phone Support
 
