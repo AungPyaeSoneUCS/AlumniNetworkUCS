@@ -179,8 +179,8 @@ export default function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const graduatedYears = useMemo(() => {
-    const startYear = 2020;
-    const endYear = new Date().getFullYear() + 1;
+    const startYear = 2023;
+    const endYear = new Date().getFullYear() + 5;
     const years: string[] = [];
 
     for (let y = endYear; y >= startYear; y--) {
