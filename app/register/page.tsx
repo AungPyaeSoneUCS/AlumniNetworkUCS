@@ -180,7 +180,7 @@ export default function RegisterPage() {
 
   const graduatedYears = useMemo(() => {
     const startYear = 2023;
-    const endYear = new Date().getFullYear() + 5;
+    const endYear = new Date().getFullYear() + 4;
     const years: string[] = [];
 
     for (let y = endYear; y >= startYear; y--) {
