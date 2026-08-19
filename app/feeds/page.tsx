@@ -840,7 +840,7 @@ function FeedFilters({
           placeholder={t.searchPosts}
           className="ucsh-input h-12 pl-11 pr-4 text-sm font-bold"
         />
-        <Search className="absolute left-4 top-3.5 text-slate-400" size={18} />
+
       </div>
 
       <div className="mt-4">
