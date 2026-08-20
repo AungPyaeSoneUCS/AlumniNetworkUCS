@@ -85,12 +85,12 @@ const UserSchema = new Schema(
 
     role: {
       type: String,
-      enum: ["user", "admin", "staff"], // <-- Added "staff" to the enum
+      enum: ["user", "admin", "staff"], 
       default: "user",
       index: true,
     },
 
-    position: { // <-- Added root position field for Staff accounts
+    position: { 
       type: String,
       default: "",
     },
@@ -112,8 +112,8 @@ const UserSchema = new Schema(
     },
 
     graduatedYear: {
-      type: Number,
-      default: null,
+      type: String, // <-- Updated to String
+      default: "",  // <-- Updated to empty string default
     },
 
     degree: {

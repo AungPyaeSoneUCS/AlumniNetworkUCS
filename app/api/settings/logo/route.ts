@@ -2,31 +2,10 @@
 
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
-import { getServerSession } from "next-auth/next";
+import { connectDB } from "@/lib/mongodb";
+import { auth } from "@/auth";
 
-// 1. Database Connection Setup
-const MONGODB_URI = process.env.MONGODB_URI as string;
-
-async function dbConnect() {
-  // If already connected, do nothing
-  if (mongoose.connection.readyState >= 1) {
-    return;
-  }
-  
-  if (!MONGODB_URI) {
-    throw new Error("Please define the MONGODB_URI environment variable inside .env");
-  }
-  
-  try {
-    await mongoose.connect(MONGODB_URI);
-    console.log("Connected to MongoDB for Logo Settings");
-  } catch (error) {
-    console.error("MongoDB connection error:", error);
-    throw error;
-  }
-}
-
-// 2. Mongoose Schema Setup
+// Mongoose Schema Setup
 // We use a generic 'Setting' collection to store the logo, allowing you to add more settings later
 const settingSchema = new mongoose.Schema(
   {
@@ -39,10 +18,11 @@ const settingSchema = new mongoose.Schema(
 // Prevent mongoose from compiling the model multiple times in development
 const Setting = mongoose.models.Setting || mongoose.model("Setting", settingSchema);
 
-// 3. GET: Fetch the current logo for the Nav bar
+// GET: Fetch the current logo for the Nav bar
 export async function GET() {
   try {
-    await dbConnect();
+    // <-- Use centralized, cached database connection
+    await connectDB(); 
 
     // Look for the specific setting with the key "siteLogo"
     const logoSetting = await Setting.findOne({ key: "siteLogo" });
@@ -60,16 +40,17 @@ export async function GET() {
   }
 }
 
-// 4. POST: Save the newly uploaded dynamic logo
+// POST: Save the newly uploaded dynamic logo
 export async function POST(req: Request) {
   try {
-    // Optional: Protect this route using next-auth so only logged-in users/admins can change the logo
-    const session = await getServerSession();
+    // <-- Use NextAuth v5 pattern to match the rest of your app
+    const session = await auth(); 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
     }
 
-    await dbConnect();
+    // <-- Use centralized, cached database connection
+    await connectDB(); 
 
     const body = await req.json();
     const { logoUrl } = body;

@@ -61,7 +61,10 @@ const ProfileSchema = z.object({
   name: z.string().min(2).optional(),
   image: z.string().optional(),
   bio: z.string().optional(),
-  graduatedYear: z.number().optional().nullable(),
+  
+  // <-- Updated to accept string instead of number
+  // Using z.coerce.string() ensures that if the frontend still accidentally sends a number like 2026, it parses cleanly into "2026"
+  graduatedYear: z.union([z.string(), z.number()]).transform(val => String(val)).optional().nullable(),
 
   degree: z.enum(degreeValues).optional(),
 
@@ -196,7 +199,9 @@ function cleanProfileResponse(userObject: any) {
     email: userObject.email || "",
     image: userObject.image || "",
     bio: userObject.bio || "",
-    graduatedYear: userObject.graduatedYear || null,
+    
+    // <-- Safely parse to string or empty string
+    graduatedYear: userObject.graduatedYear ? String(userObject.graduatedYear) : "",
 
     degree: cleanDegree(userObject),
 
@@ -282,8 +287,9 @@ export async function PUT(req: Request) {
       updateData.bio = trimValue(data.bio);
     }
 
+    // <-- Updated to save as string or empty string
     if (data.graduatedYear !== undefined) {
-      updateData.graduatedYear = data.graduatedYear || null;
+      updateData.graduatedYear = data.graduatedYear === "null" || data.graduatedYear === null ? "" : data.graduatedYear;
     }
 
     if (data.degree !== undefined) {

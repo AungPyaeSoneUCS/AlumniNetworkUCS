@@ -17,17 +17,10 @@ const ApprovedStudentSchema = new mongoose.Schema(
     },
 
     graduatedYear: {
-      type: Number,
+      type: String, // <-- Changed from Number to String
       required: true,
-      min: [2020, "Graduated year must be at least 2020."],
-      validate: {
-        validator: function (value: number) {
-          const maxAllowedYear = new Date().getFullYear() + 1;
-          return value <= maxAllowedYear;
-        },
-        message: (props: { value: number }) =>
-          `Graduated year cannot be greater than ${new Date().getFullYear() + 1}.`,
-      },
+      trim: true,   // <-- Added trim for cleaner strings
+      // Note: Numeric min/max validation was removed to allow strings like "2027 (Junior)"
     },
 
     // Indicates the admin has approved/imported this data (eligible to register)

@@ -3,10 +3,9 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-// UPGRADE: Added `signIn` to automatically log the user in after OTP success
 import { useSession, signIn } from "next-auth/react";
 import {
   ArrowRight,
@@ -148,7 +147,11 @@ export default function RegisterPage() {
 
   const [name, setName] = useState("");
   const [fatherName, setFatherName] = useState("");
-  const [graduatedYear, setGraduatedYear] = useState("2026");
+  const [graduatedYear, setGraduatedYear] = useState("");
+  
+  // NEW: State to hold the dynamic list of years from the database
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [loadingYears, setLoadingYears] = useState(true);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -178,16 +181,26 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const graduatedYears = useMemo(() => {
-    const startYear = 2023;
-    const endYear = new Date().getFullYear() + 4;
-    const years: string[] = [];
-
-    for (let y = endYear; y >= startYear; y--) {
-      years.push(String(y));
+  // NEW: Fetch available graduated years from database on mount
+  useEffect(() => {
+    async function fetchYears() {
+      try {
+        const res = await fetch("/api/register/years");
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableYears(data.years || []);
+          // Auto-select the first year if available
+          if (data.years && data.years.length > 0) {
+            setGraduatedYear(data.years[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch years:", error);
+      } finally {
+        setLoadingYears(false);
+      }
     }
-
-    return years;
+    fetchYears();
   }, []);
 
   useEffect(() => {
@@ -219,12 +232,11 @@ export default function RegisterPage() {
     setApproved(false);
   }, [name, fatherName, graduatedYear]);
 
+  // UPDATED: Removed mathematical numeric validations
   const approvalValid =
     isNameValid(name) &&
     isFatherNameValid(fatherName) &&
-    graduatedYear.trim() &&
-    Number(graduatedYear) >= 2020 &&
-    Number(graduatedYear) <= new Date().getFullYear() + 1;
+    graduatedYear.trim().length > 0;
 
   const accountValid =
     email.trim() &&
@@ -274,7 +286,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name: name.trim(),
           fatherName: fatherName.trim(),
-          graduatedYear: Number(graduatedYear),
+          graduatedYear: graduatedYear.trim(), // UPDATED: Pass as string
           normalizedName: normalizeForMatch(name),
           normalizedFatherName: normalizeForMatch(fatherName),
           lang: currentLang,
@@ -348,7 +360,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           name: name.trim(),
           fatherName: fatherName.trim(),
-          graduatedYear: Number(graduatedYear),
+          graduatedYear: graduatedYear.trim(), // UPDATED: Pass as string
           normalizedName: normalizeForMatch(name),
           normalizedFatherName: normalizeForMatch(fatherName),
           email: email.trim().toLowerCase(),
@@ -412,7 +424,6 @@ export default function RegisterPage() {
     setVerifyingOtp(true);
 
     try {
-      // 1. Verify OTP and Create User
       const res = await fetch("/api/register/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -430,18 +441,15 @@ export default function RegisterPage() {
         return;
       }
 
-      // UPGRADE: 2. Automatically log the user in right after OTP is verified
       const signInResult = await signIn("credentials", {
         redirect: false,
         email: email.trim().toLowerCase(),
-        password: password, // The password they just typed in Step 2 is still in state!
+        password: password, 
       });
 
       if (signInResult?.error) {
-        // If automatic login fails for some reason, safely fallback to the normal redirect
         router.replace("/login");
       } else {
-        // Auto-login successful! Skip the login page entirely.
         router.replace(data.redirect || "/settings");
       }
     } catch {
@@ -592,11 +600,17 @@ export default function RegisterPage() {
                     value={graduatedYear}
                     onChange={setGraduatedYear}
                   >
-                    {graduatedYears.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
+                    {loadingYears ? (
+                      <option value="">Loading years...</option>
+                    ) : availableYears.length === 0 ? (
+                      <option value="">No years available</option>
+                    ) : (
+                      availableYears.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))
+                    )}
                   </Select>
                 </div>
 
@@ -972,7 +986,7 @@ function FieldError({ message }: { message: string }) {
 function FieldHint({ message }: { message: string }) {
   return (
     <p className="mt-1.5 animate-in-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-800 shadow-sm transition-all duration-300">
-      ⚠️ {message}
+       {message}
     </p>
   );
 }

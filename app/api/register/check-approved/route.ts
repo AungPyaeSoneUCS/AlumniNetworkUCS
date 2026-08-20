@@ -14,10 +14,10 @@ const CheckApprovedSchema = z.object({
   fatherName: z.string().min(1, "Father Name is required"),
   normalizedName: z.string().optional(),
   normalizedFatherName: z.string().optional(),
-  graduatedYear: z.coerce
-    .number()
-    .min(2020, "Invalid graduated year")
-    .max(2100, "Invalid graduated year"),
+  
+  // <-- Updated: validate graduatedYear as a string, removing number constraints
+  graduatedYear: z.string().min(1, "Graduated year is required"),
+  
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   lang: z.enum(["en", "mm"]).optional(),
 });
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
     const inputName = cleanValue(parsed.data.name);
     const inputFatherName = cleanValue(parsed.data.fatherName);
-    const inputGraduatedYear = parsed.data.graduatedYear;
+    const inputGraduatedYear = parsed.data.graduatedYear; // Now a string
     const inputEmail = normalizeEmail(parsed.data.email);
 
     // Fetch all approved students for the given year 

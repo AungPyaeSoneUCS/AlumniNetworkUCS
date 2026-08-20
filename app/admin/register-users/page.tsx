@@ -31,7 +31,7 @@ type Student = {
   _id: string;
   name: string;
   fatherName: string;
-  graduatedYear: number;
+  graduatedYear: string;
   createdAt: string;
   registered?: boolean;
 };
@@ -53,6 +53,7 @@ const text = {
     editStudent: "Edit Alumni",
     viewLists: "View Records",
     manualAdd: " ",  
+    no: "No",
     name: "Alumni Name",
     fatherName: "Father Name",
     graduatedYear: "Graduated Year",
@@ -103,6 +104,7 @@ const text = {
     editStudent: "အချက်အလက် ပြင်မည်",
     viewLists: "စာရင်းများ ကြည့်ရန်",
     manualAdd: " ",  
+    no: "စဉ်",
     name: "ကျောင်းသားဟောင်းအမည်",
     fatherName: "အဖအမည်",
     graduatedYear: "ဘွဲ့ရနှစ်",
@@ -191,7 +193,6 @@ function exportHtml(students: Student[], t: typeof text.en) {
               ${escapeHtml(student.registered ? t.registered : t.notRegistered)}
             </span>
           </td>
-          <td>${escapeHtml(formatDate(student.createdAt))}</td>
         </tr>`,
     )
     .join("");
@@ -429,12 +430,11 @@ function exportHtml(students: Student[], t: typeof text.en) {
   <table>
     <thead>
       <tr>
-        <th class="center">#</th>
+        <th class="center">${escapeHtml(t.no)}</th>
         <th>${escapeHtml(t.name)}</th>
         <th>${escapeHtml(t.fatherName)}</th>
         <th class="center">${escapeHtml(t.graduatedYear)}</th>
         <th class="center">${escapeHtml(t.status)}</th>
-        <th>${escapeHtml(t.created)}</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
@@ -505,26 +505,42 @@ export default function RegisterUserDataAddPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Options for the ADD form (allows adding new years up to next year)
   const formYearOptions = useMemo(() => {
+    const baseYears = [
+      "2020",
+      "2023",
+      "2024",
+      "2025",
+      "2026",
+      "2027 (Senior)",
+      "2027 (Junior)",
+      "2028 (Senior)",
+      "2028 (Junior)",
+      "2029",
+      "2030",
+    ];
+    
     const currentYear = new Date().getFullYear();
     const maxYear = currentYear + 1;
-    const years = [];
-    for (let y = 2020; y <= maxYear; y++) {
-      years.push(y);
+    
+    if (maxYear > 2030) {
+      for (let y = 2031; y <= maxYear; y++) {
+        baseYears.push(String(y));
+      }
     }
-    return years.reverse(); // Newest first
+    
+    return baseYears.reverse(); 
   }, []);
 
-  // Options for the FILTER dropdown (ONLY dynamically sourced from the DB's actual data)
+  // <-- UPDATED: Convert to string BEFORE adding to the Set to prevent duplicate keys
   const filterYearOptions = useMemo(() => {
     const uniqueYears = new Set(
       students
-        .map((s) => s.graduatedYear)
-        .filter((y) => y != null && !Number.isNaN(y))
+        .map((s) => String(s.graduatedYear || "").trim())
+        .filter((y) => Boolean(y) && y !== "undefined" && y !== "null")
     );
-    // Convert back to an array and sort descending
-    return Array.from(uniqueYears).sort((a, b) => b - a);
+    // Sort strings descending
+    return Array.from(uniqueYears).sort((a, b) => b.localeCompare(a));
   }, [students]);
 
   async function performSubmit() {
@@ -541,7 +557,7 @@ export default function RegisterUserDataAddPage() {
         body: JSON.stringify({
           name: name.trim(),
           fatherName: fatherName.trim(),
-          graduatedYear: Number(graduatedYear),
+          graduatedYear: graduatedYear.trim(),
         }),
       });
 
@@ -710,13 +726,10 @@ export default function RegisterUserDataAddPage() {
   }
 
   function validateForm() {
-    const year = Number(graduatedYear);
     return (
-      name.trim() &&
-      fatherName.trim() &&
-      graduatedYear.trim() &&
-      !Number.isNaN(year) &&
-      year >= 2020
+      name.trim().length > 0 &&
+      fatherName.trim().length > 0 &&
+      graduatedYear.trim().length > 0
     );
   }
 
@@ -767,9 +780,29 @@ export default function RegisterUserDataAddPage() {
   function exportTemplate() {
     const rows = [
       {
-        name: "MgMg",
-        fatherName: "U Mya Hlaing",
-        graduatedYear: 2026,
+        name: "Kyaw Kyaw",
+        fatherName: "U Tun",
+        graduatedYear: "2026",
+      },
+      {
+        name: "Su Su",
+        fatherName: "U Aung Aung",
+        graduatedYear: "2027 (Senior)",
+      },
+      {
+        name: "Zaw Zaw",
+        fatherName: "U Hla",
+        graduatedYear: "2027 (Junior)",
+      },
+      {
+        name: "Mya Mya",
+        fatherName: "U Bo Bo",
+        graduatedYear: "2028 (Senior)",
+      },
+      {
+        name: "Hla Hla",
+        fatherName: "U Nyi Nyi",
+        graduatedYear: "2028 (Junior)",
       },
     ];
 
@@ -872,7 +905,7 @@ export default function RegisterUserDataAddPage() {
         .map((row) => ({
           name: cleanText(row.name || row.Name),
           fatherName: cleanText(row.fatherName || row["Father Name"]),
-          graduatedYear: Number(row.graduatedYear || row["Graduated Year"]),
+          graduatedYear: cleanText(String(row.graduatedYear || row["Graduated Year"] || "")),
         }))
         .filter(
           (student) =>
@@ -1118,6 +1151,7 @@ export default function RegisterUserDataAddPage() {
                         <table className="min-w-full text-left text-sm">
                           <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400 dark:bg-slate-900/80 dark:text-slate-500">
                             <tr>
+                              <TableHead>{t.no}</TableHead>
                               <SortableTableHead
                                 label={t.name}
                                 sortKey="name"
@@ -1142,22 +1176,19 @@ export default function RegisterUserDataAddPage() {
                                 currentSort={sortConfig}
                                 onSort={handleSort}
                               />
-                              <SortableTableHead
-                                label={t.created}
-                                sortKey="createdAt"
-                                currentSort={sortConfig}
-                                onSort={handleSort}
-                              />
                               <TableHead>{t.actions}</TableHead>
                             </tr>
                           </thead>
 
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                            {paginatedStudents.map((student) => (
+                            {paginatedStudents.map((student, index) => (
                               <tr
                                 key={student._id}
                                 className="transition-colors hover:bg-cyan-50/40 dark:hover:bg-[#008B8B]/10"
                               >
+                                <td className="px-5 py-3.5 font-bold text-slate-500 dark:text-slate-400">
+                                  {startIndex + index + 1}
+                                </td>
                                 <td className="px-5 py-3.5 font-black text-slate-900 dark:text-white">
                                   {student.name}
                                 </td>
@@ -1173,9 +1204,6 @@ export default function RegisterUserDataAddPage() {
                                     approvedText={t.registered}
                                     notApprovedText={t.notRegistered}
                                   />
-                                </td>
-                                <td className="px-5 py-3.5 font-semibold text-slate-500 dark:text-slate-400">
-                                  {formatDate(student.createdAt)}
                                 </td>
                                 
                                 <td className="px-5 py-3.5">

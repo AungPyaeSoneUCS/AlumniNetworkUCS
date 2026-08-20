@@ -59,9 +59,12 @@ export async function POST(req: Request) {
     // We now rely on name, fatherName, and graduatedYear attached to the OTP record during step 2
     const recordName = clean(record.name);
     const recordFatherName = clean(record.fatherName);
-    const recordGraduatedYear = Number(record.graduatedYear);
+    
+    // <-- UPDATED: Parse as a string instead of a Number
+    const recordGraduatedYear = String(record.graduatedYear || "").trim();
 
-    if (!recordName || !recordFatherName || !Number.isFinite(recordGraduatedYear)) {
+    // <-- UPDATED: Check if string is empty instead of Number.isFinite
+    if (!recordName || !recordFatherName || !recordGraduatedYear) {
       return NextResponse.json(
         {
           error: msg(
@@ -77,7 +80,7 @@ export async function POST(req: Request) {
     const approvedStudent = await ApprovedStudent.findOne({
       name: recordName,
       fatherName: recordFatherName,
-      graduatedYear: recordGraduatedYear,
+      graduatedYear: recordGraduatedYear, // Now querying with the string
       approved: true,
     }).lean();
 
@@ -113,7 +116,7 @@ export async function POST(req: Request) {
     const existingAlumniUser = await User.findOne({ 
       name: recordName, 
       fatherName: recordFatherName, 
-      graduatedYear: recordGraduatedYear 
+      graduatedYear: recordGraduatedYear // Now querying with the string
     }).select("_id").lean();
 
     if (existingAlumniUser) {
@@ -132,7 +135,7 @@ export async function POST(req: Request) {
     const user = await User.create({
       name: clean(approvedStudent.name),
       fatherName: clean(approvedStudent.fatherName),
-      graduatedYear: approvedStudent.graduatedYear,
+      graduatedYear: approvedStudent.graduatedYear, // Saves as string to User model
       email,
       password: record.password,
       role: "user",

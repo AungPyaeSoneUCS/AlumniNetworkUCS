@@ -70,7 +70,9 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
     const name = body.name.trim();
     const fatherName = body.fatherName.trim();
-    const graduatedYear = Number(body.graduatedYear);
+    
+    // <-- Updated: Parse as string instead of Number
+    const graduatedYear = String(body.graduatedYear).trim(); 
 
     // Prevent editing into an exact duplicate of another existing record
     const existingStudent = await ApprovedStudent.findOne({

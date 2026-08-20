@@ -1,4 +1,5 @@
 // file: lib/mongodb.ts
+
 import mongoose from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI!;
@@ -7,21 +8,26 @@ if (!MONGODB_URI) {
   throw new Error("Please add MONGODB_URI to your environment variables");
 }
 
-type Cached = {
+interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
-};
+}
 
-const globalWithMongoose = global as typeof globalThis & {
-  mongooseCache?: Cached;
-};
+// Ensure TypeScript knows about the global cache variable
+declare global {
+  // eslint-disable-next-line no-var
+  var mongooseCache: MongooseCache;
+}
 
-const cached =
-  globalWithMongoose.mongooseCache ||
-  (globalWithMongoose.mongooseCache = { conn: null, promise: null });
+// Initialize the cache globally
+let cached = global.mongooseCache;
+
+if (!cached) {
+  cached = global.mongooseCache = { conn: null, promise: null };
+}
 
 export async function connectDB() {
-  // FIX: Only return the cached connection if it is actually connected (readyState 1)
+  // Return the cached connection if it exists and is fully connected (readyState 1)
   if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }

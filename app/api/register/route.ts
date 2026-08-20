@@ -18,10 +18,8 @@ const RegisterSchema = z.object({
   name: z.string().min(1, "Name is required"),
   fatherName: z.string().min(1, "Father Name is required"),
 
-  graduatedYear: z.coerce
-    .number()
-    .min(2020, "Invalid graduated year")
-    .max(2100, "Invalid graduated year"),
+  // <-- Updated to validate as a string instead of a number
+  graduatedYear: z.string().min(1, "Graduated year is required"),
 
   email: z.string().email("Invalid email address"),
 
@@ -90,7 +88,7 @@ export async function POST(req: Request) {
 
     const input = parsed.data;
     const email = normalizeEmail(input.email);
-    const graduatedYear = input.graduatedYear;
+    const graduatedYear = input.graduatedYear; // Now safely a string
 
     // 1. Check if email is already registered in User model
     const existingUser = await User.findOne({ email }).select("_id email").lean();
@@ -109,6 +107,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Retrieve approved students for the specified graduated year
+    // This will now correctly query the database using the string format
     const approvedStudentsInYear = await ApprovedStudent.find({
       graduatedYear,
       approved: true,
@@ -161,7 +160,7 @@ export async function POST(req: Request) {
     await Otp.create({
       name: clean(approvedStudent.name),
       fatherName: clean(approvedStudent.fatherName),
-      graduatedYear: approvedStudent.graduatedYear,
+      graduatedYear: approvedStudent.graduatedYear, // Saves the string
 
       email,
       password: hashedPassword,

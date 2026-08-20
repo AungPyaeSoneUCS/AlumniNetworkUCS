@@ -26,8 +26,8 @@ const OtpSchema = new Schema(
     },
 
     graduatedYear: {
-      type: Number,
-      default: null,
+      type: String, // <-- Updated from Number to String
+      default: "",  // <-- Updated from null to empty string
     },
 
     // Register only

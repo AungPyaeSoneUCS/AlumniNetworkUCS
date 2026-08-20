@@ -14,7 +14,7 @@ type StaffCheckResult =
 type NormalizedStudent = {
   name: string;
   fatherName: string;
-  graduatedYear: number;
+  graduatedYear: string; // <-- Updated to string
 };
 
 async function checkStaffOrAdmin(): Promise<StaffCheckResult> {
@@ -41,11 +41,6 @@ function cleanValue(value: unknown) {
   return typeof value === "string" ? value.trim() : String(value || "").trim();
 }
 
-function cleanYear(value: unknown) {
-  const year = Number(cleanValue(value));
-  return Number.isFinite(year) ? year : 0;
-}
-
 function normalizeStudent(row: any): NormalizedStudent {
   const name = cleanValue(row.name || row.Name);
 
@@ -56,7 +51,8 @@ function normalizeStudent(row: any): NormalizedStudent {
       row["father name"],
   );
 
-  const graduatedYear = cleanYear(
+  // <-- Updated: Parse directly to a string without Number conversions
+  const graduatedYear = cleanValue(
     row.graduatedYear ||
       row.graduated_year ||
       row["Graduated Year"] ||
@@ -71,12 +67,11 @@ function normalizeStudent(row: any): NormalizedStudent {
 }
 
 function isValidStudent(student: NormalizedStudent) {
-  const currentYear = new Date().getFullYear();
+  // <-- Updated: Removed numeric min/max checks to allow strings like "2027 (Junior)"
   return (
     Boolean(student.name) &&
     Boolean(student.fatherName) &&
-    student.graduatedYear >= 2020 &&
-    student.graduatedYear <= currentYear + 1
+    Boolean(student.graduatedYear)
   );
 }
 
@@ -196,7 +191,7 @@ export async function POST(req: Request) {
     const createdStudent = await ApprovedStudent.create({
       name: student.name,
       fatherName: student.fatherName,
-      graduatedYear: student.graduatedYear,
+      graduatedYear: student.graduatedYear, // Saves as string
       approved: true,
     });
 
