@@ -7,17 +7,17 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import ApprovedStudent from "@/models/ApprovedStudent";
 
-type AdminCheckResult =
+type StaffCheckResult =
   | { ok: true }
   | { ok?: false; error: string; status: number };
 
 type NormalizedStudent = {
   name: string;
   fatherName: string;
-  graduatedYear: number;
+  graduatedYear: string; // <-- Updated to string
 };
 
-async function checkAdmin(): Promise<AdminCheckResult> {
+async function checkStaffOrAdmin(): Promise<StaffCheckResult> {
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -26,11 +26,11 @@ async function checkAdmin(): Promise<AdminCheckResult> {
 
   await connectDB();
 
-  const admin = await User.findOne({ email: session.user.email })
+  const user = await User.findOne({ email: session.user.email })
     .select("role")
     .lean();
 
-  if (!admin || admin.role !== "admin") {
+  if (!user || (user.role !== "admin" && user.role !== "staff")) {
     return { error: "Forbidden", status: 403 };
   }
 
@@ -39,11 +39,6 @@ async function checkAdmin(): Promise<AdminCheckResult> {
 
 function cleanValue(value: unknown) {
   return typeof value === "string" ? value.trim() : String(value || "").trim();
-}
-
-function cleanYear(value: unknown) {
-  const year = Number(cleanValue(value));
-  return Number.isFinite(year) ? year : 0;
 }
 
 function normalizeStudent(row: any): NormalizedStudent {
@@ -56,7 +51,8 @@ function normalizeStudent(row: any): NormalizedStudent {
       row["father name"],
   );
 
-  const graduatedYear = cleanYear(
+  // <-- Updated: Parse directly to a string without Number conversions
+  const graduatedYear = cleanValue(
     row.graduatedYear ||
       row.graduated_year ||
       row["Graduated Year"] ||
@@ -71,12 +67,11 @@ function normalizeStudent(row: any): NormalizedStudent {
 }
 
 function isValidStudent(student: NormalizedStudent) {
-  const currentYear = new Date().getFullYear();
+  // <-- Updated: Removed numeric min/max checks to allow strings like "2027 (Junior)"
   return (
     Boolean(student.name) &&
     Boolean(student.fatherName) &&
-    student.graduatedYear >= 2020 &&
-    student.graduatedYear <= currentYear + 1
+    Boolean(student.graduatedYear)
   );
 }
 
@@ -105,12 +100,12 @@ async function findExistingStudent(student: NormalizedStudent) {
 
 export async function GET() {
   try {
-    const adminCheck = await checkAdmin();
+    const staffCheck = await checkStaffOrAdmin();
 
-    if (!adminCheck.ok) {
+    if (!staffCheck.ok) {
       return NextResponse.json(
-        { error: adminCheck.error },
-        { status: adminCheck.status },
+        { error: staffCheck.error },
+        { status: staffCheck.status },
       );
     }
 
@@ -127,12 +122,12 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const adminCheck = await checkAdmin();
+    const staffCheck = await checkStaffOrAdmin();
 
-    if (!adminCheck.ok) {
+    if (!staffCheck.ok) {
       return NextResponse.json(
-        { error: adminCheck.error },
-        { status: adminCheck.status },
+        { error: staffCheck.error },
+        { status: staffCheck.status },
       );
     }
 
@@ -196,7 +191,7 @@ export async function POST(req: Request) {
     const createdStudent = await ApprovedStudent.create({
       name: student.name,
       fatherName: student.fatherName,
-      graduatedYear: student.graduatedYear,
+      graduatedYear: student.graduatedYear, // Saves as string
       approved: true,
     });
 

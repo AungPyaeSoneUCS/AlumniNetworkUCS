@@ -11,11 +11,11 @@ type RouteContext = {
   params: Promise<{ id: string }> | { id: string };
 };
 
-type AdminCheckResult =
+type StaffCheckResult =
   | { ok: true }
   | { ok?: false; error: string; status: number };
 
-async function checkAdmin(): Promise<AdminCheckResult> {
+async function checkStaffOrAdmin(): Promise<StaffCheckResult> {
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -24,12 +24,12 @@ async function checkAdmin(): Promise<AdminCheckResult> {
 
   await connectDB();
 
-  const admin = await User.findOne({ email: session.user.email })
+  const user = await User.findOne({ email: session.user.email })
     .select("role")
     .lean();
 
-  if (!admin || admin.role !== "admin") {
-    return { error: "Admin access only.", status: 403 };
+  if (!user || (user.role !== "admin" && user.role !== "staff")) {
+    return { error: "Staff or Admin access only.", status: 403 };
   }
 
   return { ok: true };
@@ -41,12 +41,12 @@ function isValidMongoId(id: string) {
 
 export async function PUT(req: Request, { params }: RouteContext) {
   try {
-    const adminCheck = await checkAdmin();
+    const staffCheck = await checkStaffOrAdmin();
 
-    if (!adminCheck.ok) {
+    if (!staffCheck.ok) {
       return NextResponse.json(
-        { error: adminCheck.error },
-        { status: adminCheck.status },
+        { error: staffCheck.error },
+        { status: staffCheck.status },
       );
     }
 
@@ -70,7 +70,9 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
     const name = body.name.trim();
     const fatherName = body.fatherName.trim();
-    const graduatedYear = Number(body.graduatedYear);
+    
+    // <-- Updated: Parse as string instead of Number
+    const graduatedYear = String(body.graduatedYear).trim(); 
 
     // Prevent editing into an exact duplicate of another existing record
     const existingStudent = await ApprovedStudent.findOne({
@@ -141,12 +143,12 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
 export async function DELETE(req: Request, { params }: RouteContext) {
   try {
-    const adminCheck = await checkAdmin();
+    const staffCheck = await checkStaffOrAdmin();
 
-    if (!adminCheck.ok) {
+    if (!staffCheck.ok) {
       return NextResponse.json(
-        { error: adminCheck.error },
-        { status: adminCheck.status },
+        { error: staffCheck.error },
+        { status: staffCheck.status },
       );
     }
 
