@@ -90,8 +90,7 @@ export async function POST(req: Request) {
       const normName = normalizeForMatch(name);
       const normFatherName = normalizeForMatch(fatherName);
 
-      const approvedStudents = await ApprovedStudent.find({ graduatedYear });
-      const approvedRecord = approvedStudents.find(
+      const approvedStudents = await ApprovedStudent.find({ graduatedYear: String(graduatedYear) });      const approvedRecord = approvedStudents.find(
         (s) =>
           normalizeForMatch(s.name) === normName &&
           normalizeForMatch(s.fatherName) === normFatherName,
