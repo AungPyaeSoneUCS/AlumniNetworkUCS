@@ -65,7 +65,10 @@ export async function POST(req: Request) {
     for (const row of body.users) {
       const name = String(row.name || "").trim();
       const fatherName = String(row.fatherName || "").trim();
-      const graduatedYear = Number(row.graduatedYear);
+      
+      // <-- UPDATED: Convert to string instead of Number
+      const graduatedYear = String(row.graduatedYear || "").trim(); 
+      
       const email = String(row.email || "").trim().toLowerCase();
       const password = String(row.password || "");
 
@@ -118,7 +121,7 @@ export async function POST(req: Request) {
         isBlocked: false,
         isProfilePublic: true,
         fatherName,
-        graduatedYear,
+        graduatedYear, // Saves safely as string
       });
 
       // Mark student record as registered

@@ -31,7 +31,7 @@ type Student = {
   _id: string;
   name: string;
   fatherName: string;
-  graduatedYear: number;
+  graduatedYear: string; // <-- Updated to string
   registered?: boolean;
   createdAt: string;
 };
@@ -43,6 +43,7 @@ const text = {
     exportExample: "Download Template",
     importExcel: "Bulk Create (Excel)",
     singleCreate: "Create Single Account",
+    no: "No",
     name: "Alumni Name",
     fatherName: "Father Name",
     graduatedYear: "Graduated Year",
@@ -83,6 +84,7 @@ const text = {
     exportExample: "နမူနာဖိုင် ဒေါင်းရန်",
     importExcel: "အများအပြား ဖွင့်မည် (Excel)",
     singleCreate: "အကောင့်တစ်ခု ဖွင့်ရန်",
+    no: "စဉ်",
     name: "ကျောင်းသားဟောင်းအမည်",
     fatherName: "အဖအမည်",
     graduatedYear: "ဘွဲ့ရနှစ်",
@@ -158,14 +160,32 @@ export default function AdminCreateUserPage() {
     direction: "asc" | "desc";
   } | null>(null);
 
+  // <-- UPDATED: Fixed string list of specific years dynamically generated past 2030
   const yearOptions = useMemo(() => {
+    const baseYears = [
+      "2020",
+      "2023",
+      "2024",
+      "2025",
+      "2026",
+      "2027 (Senior)",
+      "2027 (Junior)",
+      "2028 (Senior)",
+      "2028 (Junior)",
+      "2029",
+      "2030",
+    ];
+    
     const currentYear = new Date().getFullYear();
     const maxYear = currentYear + 1;
-    const years = [];
-    for (let y = 2020; y <= maxYear; y++) {
-      years.push(y);
+    
+    if (maxYear > 2030) {
+      for (let y = 2031; y <= maxYear; y++) {
+        baseYears.push(String(y));
+      }
     }
-    return years.reverse();
+    
+    return baseYears.reverse(); 
   }, []);
 
   // Fetch approved students list
@@ -248,14 +268,13 @@ export default function AdminCreateUserPage() {
   }
 
   function validateForm() {
-    const year = Number(graduatedYear);
+    // <-- UPDATED: Removed Number.isNaN() check
     return (
-      name.trim() &&
-      fatherName.trim() &&
-      graduatedYear.trim() &&
-      email.trim() &&
-      password.trim() &&
-      !Number.isNaN(year)
+      name.trim().length > 0 &&
+      fatherName.trim().length > 0 &&
+      graduatedYear.trim().length > 0 &&
+      email.trim().length > 0 &&
+      password.trim().length > 0
     );
   }
 
@@ -298,7 +317,7 @@ export default function AdminCreateUserPage() {
         body: JSON.stringify({
           name: name.trim(),
           fatherName: fatherName.trim(),
-          graduatedYear: Number(graduatedYear),
+          graduatedYear: graduatedYear.trim(), // <-- Pass as string
           email: email.trim().toLowerCase(),
           password,
         }),
@@ -325,10 +344,24 @@ export default function AdminCreateUserPage() {
   function exportTemplate() {
     const rows = [
       {
-        Name: "MgMg",
-        "Father Name": "U Mya Hlaing",
-        "Graduated Year": 2026,
-        Email: "mgmg@ucsh.edu.mm",
+        Name: "Kyaw Kyaw",
+        "Father Name": "U Tun",
+        "Graduated Year": "2026",
+        Email: "kyawkyaw@ucsh.edu.mm",
+        Password: "Alumni@2026",
+      },
+      {
+        Name: "Su Su",
+        "Father Name": "U Aung Aung",
+        "Graduated Year": "2027 (Senior)",
+        Email: "susu@ucsh.edu.mm",
+        Password: "Alumni@2026",
+      },
+      {
+        Name: "Zaw Zaw",
+        "Father Name": "U Hla",
+        "Graduated Year": "2027 (Junior)",
+        Email: "zawzaw@ucsh.edu.mm",
         Password: "Alumni@2026",
       },
     ];
@@ -398,7 +431,8 @@ export default function AdminCreateUserPage() {
         .map((row) => ({
           name: cleanText(row.name || row.Name),
           fatherName: cleanText(row.fatherName || row["Father Name"]),
-          graduatedYear: Number(row.graduatedYear || row["Graduated Year"]),
+          // <-- UPDATED: Convert graduatedYear to string to prevent bulk failures
+          graduatedYear: cleanText(String(row.graduatedYear || row["Graduated Year"] || "")),
           email: cleanText(row.email || row.Email).toLowerCase(),
           password: cleanText(row.password || row.Password || "Alumni@2026"), // Fallback default
         }))
@@ -639,6 +673,8 @@ export default function AdminCreateUserPage() {
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400 dark:bg-slate-900/80 dark:text-slate-500">
                       <tr>
+                        {/* <-- UPDATED: Added 'No' Column --> */}
+                        <TableHead>{t.no}</TableHead>
                         <SortableTableHead label={t.name} sortKey="name" currentSort={sortConfig} onSort={handleSort} />
                         <SortableTableHead label={t.fatherName} sortKey="fatherName" currentSort={sortConfig} onSort={handleSort} />
                         <SortableTableHead label={t.graduatedYear} sortKey="graduatedYear" currentSort={sortConfig} onSort={handleSort} />
@@ -647,11 +683,15 @@ export default function AdminCreateUserPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                      {filteredAndSortedStudents.map((student) => (
+                      {filteredAndSortedStudents.map((student, index) => (
                         <tr
                           key={student._id}
                           className="transition-colors hover:bg-cyan-50/40 dark:hover:bg-[#008B8B]/10"
                         >
+                          {/* <-- UPDATED: Added Index number td --> */}
+                          <td className="px-5 py-3.5 font-bold text-slate-500 dark:text-slate-400">
+                            {index + 1}
+                          </td>
                           <td className="px-5 py-3.5 font-black text-slate-900 dark:text-white">
                             {student.name}
                           </td>
@@ -659,7 +699,7 @@ export default function AdminCreateUserPage() {
                             {student.fatherName}
                           </td>
                           <td className="px-5 py-3.5 font-bold text-slate-700 dark:text-slate-200">
-                            {student.graduatedYear}
+                            {student.graduatedYear || "-"}
                           </td>
                           <td className="px-5 py-3.5">
                             <span
@@ -742,6 +782,10 @@ function SortableTableHead({
       </div>
     </th>
   );
+}
+
+function TableHead({ children }: { children: React.ReactNode }) {
+  return <th className="px-5 py-3.5 font-black">{children}</th>;
 }
 
 function ActionButton({

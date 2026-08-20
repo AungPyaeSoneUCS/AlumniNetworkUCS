@@ -53,7 +53,10 @@ export async function POST(req: Request) {
     const body = await req.json();
     const name = String(body.name || "").trim();
     const fatherName = String(body.fatherName || "").trim();
-    const graduatedYear = Number(body.graduatedYear);
+    
+    // <-- UPDATED: Parse graduatedYear as a string instead of a Number
+    const graduatedYear = String(body.graduatedYear || "").trim(); 
+    
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
 
@@ -125,7 +128,7 @@ export async function POST(req: Request) {
       isBlocked: false,
       isProfilePublic: true,
       fatherName,
-      graduatedYear,
+      graduatedYear, // Saves safely as string now
     });
 
     // 5. Update ApprovedStudent status to registered
