@@ -297,6 +297,67 @@ pm2 restart next-app
 
 ```
 
+## Update Project From Git to Server
+### Step 1: Navigate to Your Project Folder
+
+Log into your server via PuTTY and move into your application directory:
+
+```bash
+cd ~/AlumniNetworkUCS
+
+```
+
+### Step 2: Pull the Latest Code from GitHub
+
+Download the new files you just uploaded to your repository:
+
+```bash
+git pull origin main
+
+```
+
+*(If your primary branch is named something else like `master`, use `git pull origin master` instead).*
+
+### Step 3: Update Dependencies (Optional but Recommended)
+
+If you added any new packages or libraries to your `package.json` file, you must install them on the server:
+
+```bash
+npm install
+
+```
+
+### Step 4: Clean and Rebuild the Application
+
+To ensure Next.js doesn't use old, cached versions of your pages, it is best practice to delete the old build folder and compile a fresh one:
+
+```bash
+rm -rf .next
+npm run build
+
+```
+
+### Step 5: Restart the Live Server
+
+Tell PM2 to restart your application so it starts serving the newly built code:
+
+```bash
+pm2 restart next-app
+
+```
+
+### Step 6: Verify the Update
+
+Check your process list to ensure the app is running smoothly and hasn't crashed (the `↺` restart counter should remain stable):
+
+```bash
+pm2 ls
+
+```
+
+Once `pm2 ls` shows the app is `online`, go to your live website and press **`Ctrl + F5`** to do a hard refresh. Your new code and files will now be live!
+
+Did the build process complete successfully without any errors?
 
 
 ---
