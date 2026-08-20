@@ -1,4 +1,3 @@
-// file: app/api/admin/create-users/bulk/route.ts
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
@@ -7,11 +6,11 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import ApprovedStudent from "@/models/ApprovedStudent";
 
-type AdminCheckResult =
+type StaffCheckResult =
   | { ok: true }
   | { ok?: false; error: string; status: number };
 
-async function checkAdmin(): Promise<AdminCheckResult> {
+async function checkStaff(): Promise<StaffCheckResult> {
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -20,11 +19,12 @@ async function checkAdmin(): Promise<AdminCheckResult> {
 
   await connectDB();
 
-  const admin = await User.findOne({ email: session.user.email })
+  const user = await User.findOne({ email: session.user.email })
     .select("role")
     .lean();
 
-  if (!admin || admin.role !== "admin") {
+  // Allow either staff or admin to perform this action
+  if (!user || (user.role !== "staff" && user.role !== "admin")) {
     return { error: "Forbidden", status: 403 };
   }
 
@@ -41,12 +41,12 @@ function isEmailValid(email: string) {
 
 export async function POST(req: Request) {
   try {
-    const adminCheck = await checkAdmin();
+    const staffCheck = await checkStaff();
 
-    if (!adminCheck.ok) {
+    if (!staffCheck.ok) {
       return NextResponse.json(
-        { error: adminCheck.error },
-        { status: adminCheck.status },
+        { error: staffCheck.error },
+        { status: staffCheck.status },
       );
     }
 
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       const name = String(row.name || "").trim();
       const fatherName = String(row.fatherName || "").trim();
       
-      // <-- UPDATED: Convert to string instead of Number
+      // Converted to string to fix TypeScript error
       const graduatedYear = String(row.graduatedYear || "").trim(); 
       
       const email = String(row.email || "").trim().toLowerCase();
@@ -90,7 +90,9 @@ export async function POST(req: Request) {
       const normName = normalizeForMatch(name);
       const normFatherName = normalizeForMatch(fatherName);
 
-      const approvedStudents = await ApprovedStudent.find({ graduatedYear: String(graduatedYear) });      const approvedRecord = approvedStudents.find(
+      // FIXED: Passed as String
+      const approvedStudents = await ApprovedStudent.find({ graduatedYear: String(graduatedYear) });      
+      const approvedRecord = approvedStudents.find(
         (s) =>
           normalizeForMatch(s.name) === normName &&
           normalizeForMatch(s.fatherName) === normFatherName,
