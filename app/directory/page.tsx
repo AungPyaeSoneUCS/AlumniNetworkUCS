@@ -26,7 +26,7 @@ type User = {
   profileImage?: string;
   googleImage?: string;
   googleProfileImage?: string;
-  graduatedYear?: number | null;
+  graduatedYear?: string; // <-- Updated to string
   degree?: string;
   department?: string;
   contactInfo?: {
@@ -160,12 +160,15 @@ function DirectoryContent() {
     );
   }, [allUsers]);
 
+  // <-- UPDATED: Convert to string before adding to Set and sort as strings
   const registeredYears = useMemo(() => {
-    const years = allUsers
-      .map((user) => user.graduatedYear)
-      .filter(Boolean) as number[];
-
-    return [...new Set(years)].sort((a, b) => b - a);
+    const uniqueYears = new Set(
+      allUsers
+        .map((user) => String(user.graduatedYear || "").trim())
+        .filter((y) => Boolean(y) && y !== "undefined" && y !== "null")
+    );
+    // Sort strings descending
+    return Array.from(uniqueYears).sort((a, b) => b.localeCompare(a));
   }, [allUsers]);
 
   const loadUsers = useCallback(async () => {
