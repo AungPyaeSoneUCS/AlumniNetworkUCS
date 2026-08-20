@@ -34,7 +34,9 @@ function cleanUser(user: any) {
     email: cleanText(user.email),
     image: cleanText(user.image),
     bio: cleanText(user.bio),
-    graduatedYear: user.graduatedYear || null,
+    
+    // <-- UPDATED: Ensure graduatedYear always returns as a safe string
+    graduatedYear: user.graduatedYear ? String(user.graduatedYear) : "",
 
     degree: cleanDegree(user),
 
@@ -128,8 +130,9 @@ export async function GET(req: Request) {
       ];
     }
 
-    if (year && !Number.isNaN(Number(year))) {
-      query.graduatedYear = Number(year);
+    // <-- UPDATED: Removed Number.isNaN() check to support strings like "2027 (Junior)"
+    if (year) {
+      query.graduatedYear = year;
     }
 
     if (degree) {

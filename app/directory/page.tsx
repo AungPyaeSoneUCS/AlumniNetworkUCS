@@ -21,12 +21,12 @@ type User = {
   _id: string;
   name: string;
   email: string;
-  role?: string; // <-- Added role to handle admin checks
+  role?: string; 
   image?: string;
   profileImage?: string;
   googleImage?: string;
   googleProfileImage?: string;
-  graduatedYear?: string; // <-- Updated to string
+  graduatedYear?: string; // Safely typed as string
   degree?: string;
   department?: string;
   contactInfo?: {
@@ -141,7 +141,6 @@ function DirectoryContent() {
     [],
   );
 
-  const [users, setUsers] = useState<User[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -160,61 +159,65 @@ function DirectoryContent() {
     );
   }, [allUsers]);
 
-  // <-- UPDATED: Convert to string before adding to Set and sort as strings
   const registeredYears = useMemo(() => {
     const uniqueYears = new Set(
       allUsers
         .map((user) => String(user.graduatedYear || "").trim())
         .filter((y) => Boolean(y) && y !== "undefined" && y !== "null")
     );
-    // Sort strings descending
+    // Sort strings descending alphabetically
     return Array.from(uniqueYears).sort((a, b) => b.localeCompare(a));
   }, [allUsers]);
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (search.trim()) params.set("q", search.trim());
-      if (degree) params.set("degree", degree);
-      if (year) params.set("year", year);
-
-      const res = await fetch(`/api/users?${params.toString()}`, {
-        cache: "no-store",
-      });
-
-      if (res.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-
-      const data = await res.json();
-      setUsers(filterNonAdmins(data)); // <-- Filtered out admins
-    } catch (error) {
-      console.error("Load users failed:", error);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [search, degree, year]);
-
+  // Fetch all data once on mount
   useEffect(() => {
     async function loadAllUsers() {
       try {
         const res = await fetch("/api/users", { cache: "no-store" });
+        
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+
         if (!res.ok) return;
 
         const data = await res.json();
-        setAllUsers(filterNonAdmins(data)); // <-- Filtered out admins
+        setAllUsers(filterNonAdmins(data));
       } catch (error) {
         console.error("Load all users failed:", error);
         setAllUsers([]);
+      } finally {
+        setLoading(false);
       }
     }
 
     loadAllUsers();
   }, []);
 
+  // CLIENT-SIDE FILTERING (Fast & avoids API casting errors)
+  const filteredUsers = useMemo(() => {
+    return allUsers.filter((user) => {
+      // Search matching
+      const q = search.trim().toLowerCase();
+      const matchSearch =
+        q === "" ||
+        user.name.toLowerCase().includes(q) ||
+        user.email.toLowerCase().includes(q);
+
+      // Degree matching
+      const userDegree = String(user.degree || user.department || "").trim();
+      const matchDegree = degree === "" || userDegree === degree;
+
+      // Year matching (Safe string comparison)
+      const userYear = String(user.graduatedYear || "").trim();
+      const matchYear = year === "" || userYear === year;
+
+      return matchSearch && matchDegree && matchYear;
+    });
+  }, [allUsers, search, degree, year]);
+
+  // Sync state to URL and SessionStorage
   useEffect(() => {
     const filters: SavedFilters = { search, degree, year };
     sessionStorage.setItem(
@@ -232,11 +235,7 @@ function DirectoryContent() {
     });
   }, [search, degree, year, pathname, router]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(loadUsers, 300);
-    return () => window.clearTimeout(timer);
-  }, [loadUsers]);
-
+  // Restore scroll position
   useEffect(() => {
     window.addEventListener("beforeunload", saveScrollPosition);
     return () => {
@@ -257,7 +256,7 @@ function DirectoryContent() {
         behavior: "auto",
       });
     });
-  }, [loading, users.length]);
+  }, [loading, filteredUsers.length]);
 
   function clearFilters() {
     setSearch("");
@@ -316,11 +315,11 @@ function DirectoryContent() {
         </div>
         {loading ? (
           <EmptyState title={t.loading} />
-        ) : users.length === 0 ? (
+        ) : filteredUsers.length === 0 ? (
           <EmptyState title={t.empty} description={t.emptyText} />
         ) : (
           <div className="grid gap-3 pb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {users.map((user, index) => (
+            {filteredUsers.map((user, index) => (
               <DirectoryCard
                 key={user._id}
                 user={user}
