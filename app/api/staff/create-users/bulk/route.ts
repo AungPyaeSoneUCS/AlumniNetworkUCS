@@ -65,7 +65,10 @@ export async function POST(req: Request) {
     for (const row of body.users) {
       const name = String(row.name || "").trim();
       const fatherName = String(row.fatherName || "").trim();
-      const graduatedYear = Number(row.graduatedYear);
+      
+      // FIXED: Convert graduatedYear to a string to satisfy TypeScript
+      const graduatedYear = String(row.graduatedYear || "").trim(); 
+      
       const email = String(row.email || "").trim().toLowerCase();
       const password = String(row.password || "");
 

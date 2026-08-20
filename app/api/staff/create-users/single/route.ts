@@ -1,4 +1,4 @@
-// file: app/api/admin/create-users/single/route.ts
+// file: app/api/staff/create-users/single/route.ts
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
@@ -7,11 +7,11 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import ApprovedStudent from "@/models/ApprovedStudent";
 
-type AdminCheckResult =
+type StaffCheckResult =
   | { ok: true }
   | { ok?: false; error: string; status: number };
 
-async function checkAdmin(): Promise<AdminCheckResult> {
+async function checkStaff(): Promise<StaffCheckResult> {
   const session = await auth();
 
   if (!session?.user?.email) {
@@ -20,11 +20,12 @@ async function checkAdmin(): Promise<AdminCheckResult> {
 
   await connectDB();
 
-  const admin = await User.findOne({ email: session.user.email })
+  const user = await User.findOne({ email: session.user.email })
     .select("role")
     .lean();
 
-  if (!admin || admin.role !== "admin") {
+  // Allow both staff and admin to use this route
+  if (!user || (user.role !== "staff" && user.role !== "admin")) {
     return { error: "Forbidden", status: 403 };
   }
 
@@ -41,19 +42,22 @@ function isEmailValid(email: string) {
 
 export async function POST(req: Request) {
   try {
-    const adminCheck = await checkAdmin();
+    const staffCheck = await checkStaff();
 
-    if (!adminCheck.ok) {
+    if (!staffCheck.ok) {
       return NextResponse.json(
-        { error: adminCheck.error },
-        { status: adminCheck.status },
+        { error: staffCheck.error },
+        { status: staffCheck.status },
       );
     }
 
     const body = await req.json();
     const name = String(body.name || "").trim();
     const fatherName = String(body.fatherName || "").trim();
-    const graduatedYear = Number(body.graduatedYear);
+    
+    // FIXED: Parse graduatedYear as a string instead of a Number
+    const graduatedYear = String(body.graduatedYear || "").trim(); 
+    
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
 
@@ -83,7 +87,7 @@ export async function POST(req: Request) {
     const normName = normalizeForMatch(name);
     const normFatherName = normalizeForMatch(fatherName);
 
-    const approvedStudents = await ApprovedStudent.find({ graduatedYear });
+    const approvedStudents = await ApprovedStudent.find({ graduatedYear });    
     const approvedRecord = approvedStudents.find(
       (s) =>
         normalizeForMatch(s.name) === normName &&
@@ -125,7 +129,7 @@ export async function POST(req: Request) {
       isBlocked: false,
       isProfilePublic: true,
       fatherName,
-      graduatedYear,
+      graduatedYear, // Saves safely as string now
     });
 
     // 5. Update ApprovedStudent status to registered
