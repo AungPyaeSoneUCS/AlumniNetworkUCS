@@ -97,6 +97,23 @@ function getGraduatedYear(item: any) {
   return item?.graduatedYear ? String(item.graduatedYear) : "Unknown";
 }
 
+// Custom sorting helper for years with Senior/Junior suffixes
+function sortYearsHelper(a: { label: string }, b: { label: string }) {
+  const getVal = (str: string) => {
+    // Extract base year (e.g. "2027")
+    const num = parseInt(str.replace(/\D/g, "")) || 0;
+    
+    // Add sorting weight: Senior comes before Junior
+    let weight = 0;
+    const lower = str.toLowerCase();
+    if (lower.includes("senior")) weight = 1;
+    else if (lower.includes("junior")) weight = 2;
+    
+    return num * 10 + weight; 
+  };
+  return getVal(a.label) - getVal(b.label);
+}
+
 export default async function StaffDashboardPage({
   searchParams,
 }: {
@@ -185,7 +202,7 @@ export default async function StaffDashboardPage({
   });
   const usersChartData = Array.from(userYearsMap.entries())
     .map(([label, value]) => ({ label, value }))
-    .sort((a, b) => Number(a.label) - Number(b.label))
+    .sort(sortYearsHelper) // UPDATED SORTING
     .slice(-10);
 
   // Chart 2: Jobs by Year (Employed vs Unemployed)
@@ -205,7 +222,7 @@ export default async function StaffDashboardPage({
       value1: data.employed,
       value2: data.total - data.employed,
     }))
-    .sort((a, b) => Number(a.label) - Number(b.label))
+    .sort(sortYearsHelper) // UPDATED SORTING
     .slice(-10);
 
   // Chart 3: Posts by Category
@@ -236,7 +253,7 @@ export default async function StaffDashboardPage({
       value1: data.registered,
       value2: data.total - data.registered,
     }))
-    .sort((a, b) => Number(a.label) - Number(b.label))
+    .sort(sortYearsHelper) // UPDATED SORTING
     .slice(-10);
 
   return (
@@ -448,7 +465,8 @@ function SimpleBarChart({
                 </div>
               </div>
 
-              <p className="mt-1.5 shrink-0 line-clamp-2 w-full px-1 text-xs sm:text-sm font-black uppercase tracking-wider text-slate-500 transition-colors group-hover:text-slate-900 dark:group-hover:text-white">
+              {/* UPDATED: Reduced font size to text-[10px] sm:text-xs, keeping line-clamp-2 and adding leading-tight */}
+              <p className="mt-1.5 shrink-0 line-clamp-2 leading-tight w-full px-1 text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-500 transition-colors group-hover:text-slate-900 dark:group-hover:text-white">
                 {item.label}
               </p>
             </div>
@@ -530,7 +548,8 @@ function GroupedBarChart({
                 </div>
               </div>
 
-              <p className="mt-1.5 shrink-0 line-clamp-1 text-xs sm:text-sm font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {/* UPDATED: Reduced font size to text-[10px] sm:text-xs, added line-clamp-2, leading-tight and text-center */}
+              <p className="mt-1.5 w-full shrink-0 line-clamp-2 leading-tight text-center text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 {item.label}
               </p>
             </div>
