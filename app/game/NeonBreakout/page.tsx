@@ -2,7 +2,8 @@
 
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import Link from "next/link";
 
 // --- Game Constants ---
 const CANVAS_WIDTH = 800;
@@ -50,10 +51,13 @@ interface Brick {
 }
 
 export default function NeonBreakout() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const [gameState, setGameState] = useState<GameState>("start");
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Mutable engine state (avoids React re-render lag)
   const engine = useRef({
@@ -65,6 +69,25 @@ export default function NeonBreakout() {
     score: 0,
     animationId: 0,
   });
+
+  // Fullscreen Listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const initBricks = () => {
     const bricks: Brick[] = [];
@@ -95,7 +118,7 @@ export default function NeonBreakout() {
     }
   };
 
-  const startGame = () => {
+  const startGame = useCallback((keepScore: boolean = false) => {
     engine.current = {
       ...engine.current,
       paddle: { x: CANVAS_WIDTH / 2 - PADDLE_WIDTH / 2 },
@@ -107,11 +130,11 @@ export default function NeonBreakout() {
       },
       bricks: initBricks(),
       particles: [],
-      score: 0,
+      score: keepScore ? engine.current.score : 0,
     };
-    setScore(0);
+    setScore(engine.current.score);
     setGameState("playing");
-  };
+  }, []);
 
   const endGame = (status: "gameover" | "win") => {
     setGameState(status);
@@ -276,7 +299,7 @@ export default function NeonBreakout() {
     }
 
     return () => cancelAnimationFrame(engine.current.animationId);
-  }, [gameState]);
+  }, [gameState, highScore]);
 
   // Keyboard Controls
   useEffect(() => {
@@ -286,7 +309,9 @@ export default function NeonBreakout() {
       
       if (e.code === "Space") {
         e.preventDefault();
-        if (gameState !== "playing") startGame();
+        if (gameState !== "playing") {
+          startGame(gameState === "win"); // Keep score if starting next level
+        }
       }
     };
     
@@ -301,7 +326,7 @@ export default function NeonBreakout() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [gameState]);
+  }, [gameState, startGame]);
 
   // Touch / Mouse Tracking for Mobile/Desktop Paddle Control
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -321,63 +346,100 @@ export default function NeonBreakout() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 font-mono p-4 touch-none select-none">
-      <div className="max-w-4xl w-full flex flex-col items-center">
+    <div className="flex flex-col items-center justify-center h-[100dvh] w-full bg-slate-950 font-mono p-2 sm:p-4 touch-none select-none overflow-hidden">
+      <div className="w-full flex flex-col items-center max-w-6xl h-full justify-center">
         
+        {/* Back to Menu Navigation */}
+        <div className="w-full mb-2 sm:mb-4 px-2 shrink-0 max-w-[800px]">
+          <Link 
+            href="/game" 
+            className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-slate-500 hover:text-cyan-400 transition-colors group"
+          >
+            <svg 
+              className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            BACK TO ARCADE
+          </Link>
+        </div>
+
         {/* Header */}
-        <div className="mb-4 flex flex-col items-center w-full max-w-[800px]">
-          <h1 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-rose-400 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">
-            Neon Breakout
-          </h1>
-          <div className="flex justify-between w-full mt-4 px-2">
-            <span className="text-cyan-400 font-bold">SCORE: {score}</span>
-            <span className="text-rose-400 font-bold">HIGH: {highScore}</span>
+        <div className="mb-2 sm:mb-4 flex flex-col items-center w-full max-w-[800px] shrink-0">
+          <div className="w-full flex justify-between items-end px-2">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-rose-400 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+              Neon Breakout
+            </h1>
+
+            {/* Full Screen Toggle Button */}
+            <button 
+              onClick={toggleFullScreen}
+              className="bg-slate-900 border border-slate-700 hover:bg-slate-800 hover:border-slate-500 text-slate-300 p-2 rounded-lg flex items-center justify-center transition-all shadow-md active:scale-95"
+              title="Toggle Fullscreen"
+            >
+              {isFullscreen ? (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+              ) : (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              )}
+            </button>
+          </div>
+          
+          <div className="flex justify-between w-full mt-3 sm:mt-4 px-2">
+            <span className="text-cyan-400 font-bold text-sm sm:text-lg">SCORE: {score}</span>
+            <span className="text-rose-400 font-bold text-sm sm:text-lg">HIGH: {highScore}</span>
           </div>
         </div>
 
         {/* Game Container */}
         <div 
-          className="relative w-full aspect-[4/3] max-w-[800px] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.15)] ring-4 ring-slate-800 cursor-none bg-slate-900"
+          ref={containerRef}
+          className={`relative w-full aspect-[4/3] max-w-[min(100%,80vh)] sm:max-w-[min(800px,80vh)] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.15)] ring-4 ring-slate-800 cursor-none bg-slate-900 shrink-0 ${isFullscreen ? 'h-screen rounded-none ring-0 max-w-none' : ''}`}
           onPointerMove={handlePointerMove}
           onPointerDown={(e) => {
             e.preventDefault();
-            if (gameState !== "playing") startGame();
+            if (gameState !== "playing") startGame(gameState === "win");
           }}
         >
           <canvas
             ref={canvasRef}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
-            className="w-full h-full block"
+            className="w-full h-full object-contain block"
           />
 
           {/* Start Screen Overlay */}
           {gameState === "start" && (
-            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-              <p className="text-slate-300 mb-6 text-center text-sm px-4">
-                Use <strong className="text-white">Arrows/A-D</strong> or <strong className="text-white">Drag/Touch</strong> to move the paddle.<br/>Break all the blocks.
-              </p>
-              <button 
-                onClick={(e) => { e.stopPropagation(); startGame(); }}
-                className="px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xl rounded-full transition-transform hover:scale-105 shadow-[0_0_20px_rgba(6,182,212,0.5)] active:scale-95 cursor-pointer"
-              >
-                INITIALIZE
-              </button>
+            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4">
+              <div className="bg-slate-950/90 p-6 sm:p-8 rounded-3xl border border-cyan-500/30 text-center shadow-2xl w-full max-w-md">
+                <p className="text-slate-300 mb-6 text-sm sm:text-base">
+                  Use <strong className="text-cyan-400">Arrows/A-D</strong> or <strong className="text-cyan-400">Drag/Touch</strong> to move the paddle.<br/>Break all the blocks.
+                </p>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); startGame(); }}
+                  className="px-8 py-3 sm:py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xl sm:text-2xl rounded-full transition-transform hover:scale-105 shadow-[0_0_20px_rgba(6,182,212,0.5)] active:scale-95 cursor-pointer w-full"
+                >
+                  INITIALIZE
+                </button>
+              </div>
             </div>
           )}
 
           {/* Game Over Overlay */}
           {gameState === "gameover" && (
-            <div className="absolute inset-0 bg-rose-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-              <h2 className="text-4xl md:text-5xl font-black text-rose-500 mb-2 drop-shadow-[0_0_15px_rgba(244,63,94,0.8)]">
+            <div className="absolute inset-0 bg-rose-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4">
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-rose-500 mb-2 drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] text-center">
                 SIGNAL LOST
               </h2>
-              <p className="text-white text-lg mb-8">
+              <p className="text-white text-lg sm:text-xl mb-8">
                 Final Score: <span className="font-bold text-cyan-400">{score}</span>
               </p>
               <button 
                 onClick={(e) => { e.stopPropagation(); startGame(); }}
-                className="px-8 py-4 bg-white hover:bg-slate-200 text-rose-900 font-black text-xl rounded-full transition-transform hover:scale-105 shadow-xl active:scale-95 cursor-pointer"
+                className="px-8 sm:px-10 py-3 sm:py-4 bg-white hover:bg-slate-200 text-rose-900 font-black text-xl sm:text-2xl rounded-full transition-transform hover:scale-105 shadow-xl active:scale-95 cursor-pointer"
               >
                 REBOOT SYSTEM
               </button>
@@ -386,16 +448,16 @@ export default function NeonBreakout() {
 
           {/* Victory Overlay */}
           {gameState === "win" && (
-            <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-              <h2 className="text-4xl md:text-5xl font-black text-emerald-400 mb-2 drop-shadow-[0_0_15px_rgba(16,185,129,0.8)]">
+            <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4">
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-emerald-400 mb-2 drop-shadow-[0_0_15px_rgba(16,185,129,0.8)] text-center">
                 SYSTEM CLEARED
               </h2>
-              <p className="text-white text-lg mb-8">
+              <p className="text-white text-lg sm:text-xl mb-8 text-center">
                 Flawless Execution. Score: <span className="font-bold text-cyan-400">{score}</span>
               </p>
               <button 
-                onClick={(e) => { e.stopPropagation(); startGame(); }}
-                className="px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black text-xl rounded-full transition-transform hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-95 cursor-pointer"
+                onClick={(e) => { e.stopPropagation(); startGame(true); }}
+                className="px-8 sm:px-10 py-3 sm:py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black text-xl sm:text-2xl rounded-full transition-transform hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-95 cursor-pointer"
               >
                 NEXT LEVEL
               </button>

@@ -1,8 +1,9 @@
-// file: app/typing/page.tsx
+// file: app/game/NeonPong/page.tsx
 
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import Link from 'next/link';
 
 // Game Constants
 const CANVAS_WIDTH = 400;
@@ -32,10 +33,13 @@ interface Trail {
 }
 
 export default function NeonPong() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
   const [gameState, setGameState] = useState<GameState>('start');
   const [playerScore, setPlayerScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Mutable game engine to prevent 60FPS React re-render lag
   const engine = useRef({
@@ -50,6 +54,25 @@ export default function NeonPong() {
     volleyCount: 0,
     animationId: 0,
   });
+
+  // Fullscreen Listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   const spawnParticles = (x: number, y: number, color: string, count: number) => {
     for (let i = 0; i < count; i++) {
@@ -74,7 +97,7 @@ export default function NeonPong() {
     engine.current.trails = [];
   };
 
-  const startGame = () => {
+  const startGame = useCallback(() => {
     setPlayerScore(0);
     setAiScore(0);
     
@@ -85,7 +108,7 @@ export default function NeonPong() {
     
     resetBall(true);
     setGameState('playing');
-  };
+  }, []);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
@@ -141,7 +164,6 @@ export default function NeonPong() {
       ctx.shadowBlur = 0;
 
       // --- 3. Update AI Paddle Position (Lerp tracking) ---
-      // AI smoothly follows the ball based on its center
       const aiCenter = state.aiX + PADDLE_WIDTH / 2;
       const targetX = state.ball.x;
       // Lerp (Linear Interpolation) factor. Increase for harder AI.
@@ -326,7 +348,7 @@ export default function NeonPong() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [gameState]);
+  }, [gameState, startGame]);
 
   // Touch/Mouse paddle tracking
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -334,7 +356,7 @@ export default function NeonPong() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
+    const scaleX = CANVAS_WIDTH / rect.width;
     const relativeX = (e.clientX - rect.left) * scaleX;
 
     if (relativeX > 0 && relativeX < CANVAS_WIDTH) {
@@ -343,42 +365,78 @@ export default function NeonPong() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 font-sans p-4 select-none touch-none">
-      <div className="w-full flex flex-col items-center max-w-[400px]">
+    <div className="flex flex-col items-center justify-center h-[100dvh] w-full bg-slate-950 font-sans p-2 sm:p-4 touch-none select-none overflow-hidden">
+      <div className="w-full flex flex-col items-center max-w-[600px] h-full justify-center">
         
-        {/* Header */}
-        <div className="w-full flex justify-between items-end mb-4">
-          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 uppercase tracking-widest drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
-            Neon Pong
-          </h1>
+        {/* Back to Menu Navigation */}
+        <div className="w-full mb-2 sm:mb-4 px-2 shrink-0 max-w-[400px]">
+          <Link 
+            href="/game" 
+            className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-slate-500 hover:text-cyan-400 transition-colors group"
+          >
+            <svg 
+              className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            BACK TO ARCADE
+          </Link>
         </div>
 
-        {/* HUD */}
-        <div className="w-full flex justify-between px-1 mb-2 text-sm font-bold tracking-wider">
-          <span className="text-pink-500 shadow-pink-500/50 drop-shadow-md">AI: {aiScore}</span>
-          <span className="text-cyan-400 shadow-cyan-400/50 drop-shadow-md">PLAYER: {playerScore}</span>
+        {/* Header */}
+        <div className="mb-2 sm:mb-4 flex flex-col items-center w-full max-w-[400px] shrink-0">
+          <div className="w-full flex justify-between items-end px-2">
+            <h1 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400 uppercase tracking-widest drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+              Neon Pong
+            </h1>
+
+            {/* Full Screen Toggle Button */}
+            <button 
+              onClick={toggleFullScreen}
+              className="bg-slate-900 border border-slate-700 hover:bg-slate-800 hover:border-slate-500 text-slate-300 p-2 rounded-lg flex items-center justify-center transition-all shadow-md active:scale-95"
+              title="Toggle Fullscreen"
+            >
+              {isFullscreen ? (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+              ) : (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              )}
+            </button>
+          </div>
+
+          {/* HUD */}
+          <div className="w-full flex justify-between px-2 mt-3 sm:mt-4 text-sm font-bold tracking-wider">
+            <span className="text-pink-500 shadow-pink-500/50 drop-shadow-md">AI: {aiScore}</span>
+            <span className="text-cyan-400 shadow-cyan-400/50 drop-shadow-md">PLAYER: {playerScore}</span>
+          </div>
         </div>
 
         {/* Canvas Container */}
-        <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.15)] ring-4 ring-slate-800 bg-slate-900 touch-none">
+        <div 
+          ref={containerRef}
+          className={`relative w-full aspect-[4/5] max-w-[min(100%,80vh)] sm:max-w-[min(400px,80vh)] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.15)] ring-4 ring-slate-800 bg-slate-900 touch-none shrink-0 ${isFullscreen ? 'h-screen rounded-none ring-0 max-w-none' : ''}`}
+        >
           <canvas
             ref={canvasRef}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
             onPointerMove={handlePointerMove}
-            className="w-full h-full block cursor-none"
+            className="w-full h-full object-contain block cursor-none"
           />
 
           {/* Start Screen */}
           {gameState === 'start' && (
-            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-              <div className="bg-slate-900/90 border border-cyan-500/30 p-6 rounded-2xl text-center max-w-[85%] shadow-2xl">
-                <p className="text-slate-300 mb-6 text-sm">
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4">
+              <div className="bg-slate-900/90 border border-cyan-500/30 p-6 sm:p-8 rounded-3xl text-center max-w-[90%] sm:max-w-[85%] shadow-2xl">
+                <p className="text-slate-300 mb-6 text-sm sm:text-base">
                   First to <strong className="text-emerald-400">{WIN_SCORE}</strong> points wins.<br/><br/>Use <strong className="text-cyan-400">Arrows / A-D</strong> or <strong className="text-cyan-400">Touch & Drag</strong> to defend your sector.
                 </p>
                 <button 
                   onClick={startGame}
-                  className="px-8 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xl rounded-full transition-transform hover:scale-105 shadow-[0_0_20px_rgba(6,182,212,0.5)] active:scale-95 w-full"
+                  className="px-6 sm:px-8 py-3 sm:py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xl sm:text-2xl rounded-full transition-transform hover:scale-105 shadow-[0_0_20px_rgba(6,182,212,0.5)] active:scale-95 w-full"
                 >
                   START MATCH
                 </button>
@@ -388,19 +446,21 @@ export default function NeonPong() {
 
           {/* Game Over Screen */}
           {gameState === 'gameover' && (
-            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center z-10">
-              <h2 className={`text-5xl font-black mb-2 drop-shadow-lg ${playerScore > aiScore ? 'text-cyan-400 shadow-cyan-500/50' : 'text-pink-500 shadow-pink-500/50'}`}>
-                {playerScore > aiScore ? 'VICTORY' : 'DEFEATED'}
-              </h2>
-              <p className="text-white text-lg mb-8">
-                Final Score: <span className="font-bold text-emerald-400">{playerScore} - {aiScore}</span>
-              </p>
-              <button 
-                onClick={startGame}
-                className="px-10 py-4 bg-white text-slate-950 hover:bg-slate-200 font-bold text-xl rounded-full transition-all shadow-xl active:scale-95 hover:scale-105"
-              >
-                REMATCH
-              </button>
+            <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center z-10 p-4">
+              <div className="bg-slate-900/90 border border-slate-800 p-6 sm:p-8 rounded-3xl text-center shadow-2xl w-full max-w-[90%] sm:max-w-[85%]">
+                <h2 className={`text-4xl sm:text-5xl md:text-6xl font-black mb-2 drop-shadow-lg ${playerScore > aiScore ? 'text-cyan-400 shadow-cyan-500/50' : 'text-pink-500 shadow-pink-500/50'}`}>
+                  {playerScore > aiScore ? 'VICTORY' : 'DEFEATED'}
+                </h2>
+                <p className="text-white text-lg sm:text-xl mb-8">
+                  Final Score: <span className="font-bold text-emerald-400">{playerScore} - {aiScore}</span>
+                </p>
+                <button 
+                  onClick={startGame}
+                  className="px-8 sm:px-10 py-3 sm:py-4 bg-white text-slate-950 hover:bg-slate-200 font-bold text-xl sm:text-2xl rounded-full transition-all shadow-xl active:scale-95 hover:scale-105 w-full"
+                >
+                  REMATCH
+                </button>
+              </div>
             </div>
           )}
         </div>

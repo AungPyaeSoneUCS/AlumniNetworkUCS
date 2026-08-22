@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
-// Mapping exactly to your folder structure from the image
+// Mapping exactly to your folder structure from image_0036a8.png
 const GAMES = [
   {
     id: "endless-runner",
@@ -16,6 +16,16 @@ const GAMES = [
     color: "from-emerald-400 to-cyan-400",
     shadow: "hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]",
     border: "hover:border-emerald-500",
+  },
+  {
+    id: "full-stack-flash",
+    name: "Full-Stack Flash",
+    path: "/game/FullStackFlash",
+    description: "Rapid-fire technical quiz testing modern web development knowledge.",
+    icon: "⚡",
+    color: "from-cyan-400 to-purple-500",
+    shadow: "hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]",
+    border: "hover:border-purple-500",
   },
   {
     id: "guess-puzzle",
@@ -56,6 +66,16 @@ const GAMES = [
     color: "from-cyan-400 to-blue-500",
     shadow: "hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]",
     border: "hover:border-cyan-500",
+  },
+  {
+    id: "neon-outpost",
+    name: "Neon Outpost",
+    path: "/game/NeonOutpost",
+    description: "Turn-based base building. Gather, defend, and survive the alien swarm.",
+    icon: "🏢",
+    color: "from-fuchsia-500 to-cyan-500",
+    shadow: "hover:shadow-[0_0_30px_rgba(217,70,239,0.4)]",
+    border: "hover:border-fuchsia-500",
   },
   {
     id: "neon-pong",
@@ -119,34 +139,13 @@ export default function GameMenu() {
 
   return (
     <div className="relative min-h-screen bg-slate-950 font-sans overflow-hidden selection:bg-cyan-500/30">
-      
+
       {/* Background Animated Grid */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20 animate-[pulse_4s_ease-in-out_infinite]" />
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-16 md:py-24">
-        
-        {/* Header Section */}
-        <div 
-          className={`flex flex-col items-center text-center mb-16 transition-all duration-1000 transform ${
-            mounted ? "translate-y-0 opacity-100" : "-translate-y-10 opacity-0"
-          }`}
-        >
-          <div className="inline-flex items-center justify-center p-2 mb-4 rounded-full bg-slate-900 border border-slate-800 shadow-inner">
-            <span className="px-3 py-1 text-xs font-bold tracking-widest text-slate-400 uppercase">
-              System Online
-            </span>
-            <span className="w-2 h-2 ml-2 rounded-full bg-emerald-500 animate-pulse" />
-          </div>
-          
-          <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 tracking-tighter drop-shadow-2xl mb-4">
-            NEON <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">ARCADE</span>
-          </h1>
-          <p className="max-w-xl text-slate-400 md:text-lg">
-            Select a module to initiate gameplay. All systems optimized for maximum retro performance.
-          </p>
-        </div>
 
         {/* Game Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
@@ -161,7 +160,7 @@ export default function GameMenu() {
               } ${game.border} ${game.shadow} hover:-translate-y-2`}
               style={{ transitionDelay: `${index * 50}ms` }}
             >
-              
+
               {/* Card Hover Gradient Background Effect */}
               <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${game.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
 
@@ -205,7 +204,7 @@ export default function GameMenu() {
           }`}
         >
           <p className="text-xs font-mono text-slate-600 tracking-widest">
-            © {new Date().getFullYear()} CYBER_STUDIOS // v1.0.0
+            © {new Date().getFullYear()} AUNG PYAE SONE
           </p>
         </div>
 

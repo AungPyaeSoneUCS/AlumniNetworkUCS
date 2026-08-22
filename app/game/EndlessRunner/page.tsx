@@ -1,4 +1,4 @@
-// file: app/typing/page.tsx
+// file: app/game/EndlessRunner/page.tsx
 
 "use client";
 
@@ -47,10 +47,13 @@ interface Star {
 }
 
 export default function EndlessRunner() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
   const [gameState, setGameState] = useState<GameState>('start');
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Mutable engine state to bypass React renders for 60FPS performance
   const engine = useRef({
@@ -73,6 +76,25 @@ export default function EndlessRunner() {
     stars: [] as Star[],
     animationId: 0,
   });
+
+  // Fullscreen Listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   // Initialize background stars once
   useEffect(() => {
@@ -524,47 +546,65 @@ export default function EndlessRunner() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 font-mono p-4 touch-none select-none">
-      <div className="max-w-5xl w-full flex flex-col items-center">
+    <div className="flex flex-col items-center justify-center w-full min-h-screen bg-slate-950 font-mono p-2 sm:p-4 touch-none select-none overflow-hidden">
+      <div className="w-full flex flex-col items-center max-w-6xl flex-1 justify-center">
         
-        {/* Header */}
-        <div className="mb-4 flex flex-col items-center w-full max-w-[800px]">
-          <h1 className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">
+        {/* Header & Controls */}
+        <div className="mb-4 flex flex-col items-center w-full max-w-[1200px]">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">
             Neon Runner
           </h1>
-          <div className="flex justify-between w-full mt-4 px-4">
-            <span className="text-emerald-400 font-bold text-lg">SCORE: {score}</span>
-            <span className="text-cyan-400 font-bold text-lg">HIGH: {highScore}</span>
+          
+          <div className="flex justify-between items-center w-full mt-4 px-2 sm:px-4">
+            <div className="flex gap-4">
+              <span className="text-emerald-400 font-bold text-sm sm:text-lg md:text-xl">SCORE: {score}</span>
+              <span className="text-cyan-400 font-bold text-sm sm:text-lg md:text-xl">HIGH: {highScore}</span>
+            </div>
+
+            {/* Full Screen Toggle Button */}
+            <button 
+              onClick={toggleFullScreen}
+              className="bg-slate-900 border border-slate-700 hover:bg-slate-800 hover:border-slate-500 text-slate-300 p-2 rounded-lg flex items-center justify-center transition-all shadow-md active:scale-95"
+              title="Toggle Fullscreen"
+            >
+              {isFullscreen ? (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+              ) : (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Game Container */}
+        {/* Dynamic Responsive Game Container */}
         <div 
-          className="relative w-full aspect-[20/9] max-w-[800px] rounded-xl overflow-hidden shadow-[0_0_50px_rgba(16,185,129,0.2)] ring-4 ring-slate-800 cursor-pointer bg-slate-900"
+          ref={containerRef}
+          className={`relative w-full bg-slate-900 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(16,185,129,0.2)] ring-4 ring-slate-800 cursor-pointer flex items-center justify-center ${isFullscreen ? 'h-screen rounded-none ring-0 max-w-none' : 'max-w-[1200px] h-[35vh] sm:h-[45vh] md:h-[55vh] lg:h-[70vh] max-h-[800px]'}`}
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
         >
+          {/* Object-contain handles flawless scaling without breaking canvas coordinate math */}
           <canvas
             ref={canvasRef}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
-            className="w-full h-full block"
+            className="w-full h-full aspect-[20/9] object-contain block"
           />
 
           {/* Start Screen Overlay */}
           {gameState === 'start' && (
-            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-              <div className="bg-slate-950/90 p-8 rounded-3xl border border-emerald-500/30 text-center shadow-2xl max-w-md mx-4">
-                <p className="text-slate-300 mb-3 text-lg">
+            <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4">
+              <div className="bg-slate-950/90 p-6 sm:p-8 rounded-3xl border border-emerald-500/30 text-center shadow-2xl w-full max-w-md">
+                <p className="text-slate-300 mb-3 text-sm sm:text-lg">
                   Press <strong className="text-emerald-400">SPACE</strong> or <strong className="text-emerald-400">TAP</strong> to jump.
                 </p>
-                <p className="text-slate-400 mb-8 text-sm">
+                <p className="text-slate-400 mb-6 sm:mb-8 text-xs sm:text-sm">
                   Hold <strong className="text-cyan-400">SPACE + ➡️</strong> (or hold right-screen) in mid-air to <strong className="text-cyan-400">Air-Walk</strong>.
                 </p>
                 <button 
                   onClick={(e) => { e.stopPropagation(); startGame(); }}
-                  className="px-10 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-2xl rounded-full transition-transform hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-95 w-full"
+                  className="px-6 sm:px-10 py-3 sm:py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xl sm:text-2xl rounded-full transition-transform hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.5)] active:scale-95 w-full"
                 >
                   INITIALIZE
                 </button>
@@ -574,16 +614,16 @@ export default function EndlessRunner() {
 
           {/* Game Over Overlay */}
           {gameState === 'gameover' && (
-            <div className="absolute inset-0 bg-rose-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-              <h2 className="text-5xl md:text-6xl font-black text-rose-500 mb-2 drop-shadow-[0_0_15px_rgba(244,63,94,0.8)]">
+            <div className="absolute inset-0 bg-rose-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4">
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-rose-500 mb-2 drop-shadow-[0_0_15px_rgba(244,63,94,0.8)] text-center">
                 SYSTEM FAILURE
               </h2>
-              <p className="text-white text-xl mb-10">
+              <p className="text-white text-lg sm:text-xl mb-8 sm:mb-10 text-center">
                 Run Score: <span className="font-bold text-emerald-400">{score}</span>
               </p>
               <button 
                 onClick={(e) => { e.stopPropagation(); startGame(); }}
-                className="px-10 py-4 bg-white hover:bg-slate-200 text-rose-900 font-black text-2xl rounded-full transition-transform hover:scale-105 shadow-xl active:scale-95"
+                className="px-8 sm:px-10 py-3 sm:py-4 bg-white hover:bg-slate-200 text-rose-900 font-black text-xl sm:text-2xl rounded-full transition-transform hover:scale-105 shadow-xl active:scale-95"
               >
                 REBOOT SYSTEM
               </button>
