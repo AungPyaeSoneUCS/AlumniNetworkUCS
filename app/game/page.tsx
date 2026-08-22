@@ -18,14 +18,34 @@ const GAMES = [
     border: "hover:border-emerald-500",
   },
   {
-    id: "neon-snake",
-    name: "Neon Snake",
-    path: "/game/NeonSnake",
-    description: "Classic snake mechanics with cyberpunk visuals and speed scaling.",
-    icon: "🐍",
-    color: "from-green-400 to-emerald-500",
-    shadow: "hover:shadow-[0_0_30px_rgba(52,211,153,0.4)]",
-    border: "hover:border-green-500",
+    id: "guess-puzzle",
+    name: "Life Hacker",
+    path: "/game/GuessPuzzle",
+    description: "Decode 100 levels of daily life challenges before time runs out.",
+    icon: "🔐",
+    color: "from-rose-400 to-orange-400",
+    shadow: "hover:shadow-[0_0_30px_rgba(244,63,94,0.4)]",
+    border: "hover:border-rose-500",
+  },
+  {
+    id: "memory-match",
+    name: "Neon Match",
+    path: "/game/MemoryMatch",
+    description: "Synchronize memory arrays by finding matching data modules.",
+    icon: "🧠",
+    color: "from-violet-400 to-fuchsia-400",
+    shadow: "hover:shadow-[0_0_30px_rgba(167,139,250,0.4)]",
+    border: "hover:border-violet-500",
+  },
+  {
+    id: "myanmar-typing",
+    name: "Myanmar Typing",
+    path: "/game/MyanmarTyping",
+    description: "Master Myanmar Unicode typing speed and accuracy.",
+    icon: "⌨️",
+    color: "from-amber-400 to-yellow-500",
+    shadow: "hover:shadow-[0_0_30px_rgba(251,191,36,0.4)]",
+    border: "hover:border-amber-500",
   },
   {
     id: "neon-breakout",
@@ -48,14 +68,24 @@ const GAMES = [
     border: "hover:border-fuchsia-500",
   },
   {
-    id: "guess-puzzle",
-    name: "Life Hacker",
-    path: "/game/GuessPuzzle",
-    description: "Decode 100 levels of daily life challenges before time runs out.",
-    icon: "🔐",
-    color: "from-rose-400 to-orange-400",
-    shadow: "hover:shadow-[0_0_30px_rgba(244,63,94,0.4)]",
-    border: "hover:border-rose-500",
+    id: "neon-snake",
+    name: "Neon Snake",
+    path: "/game/NeonSnake",
+    description: "Classic snake mechanics with cyberpunk visuals and speed scaling.",
+    icon: "🐍",
+    color: "from-green-400 to-emerald-500",
+    shadow: "hover:shadow-[0_0_30px_rgba(52,211,153,0.4)]",
+    border: "hover:border-green-500",
+  },
+  {
+    id: "neon-tic-tac-toe",
+    name: "Neon TTT",
+    path: "/game/NeonTicTacToe",
+    description: "Challenge a smart AI or a friend in glowing grid combat.",
+    icon: "❌",
+    color: "from-cyan-400 to-pink-500",
+    shadow: "hover:shadow-[0_0_30px_rgba(236,72,153,0.4)]",
+    border: "hover:border-pink-500",
   },
   {
     id: "sliding-tile",
@@ -63,19 +93,19 @@ const GAMES = [
     path: "/game/SlidingTilePuzzle",
     description: "Test your logic by sliding tiles back into perfect order.",
     icon: "🧩",
-    color: "from-violet-400 to-purple-500",
-    shadow: "hover:shadow-[0_0_30px_rgba(139,92,246,0.4)]",
-    border: "hover:border-violet-500",
+    color: "from-blue-400 to-indigo-500",
+    shadow: "hover:shadow-[0_0_30px_rgba(99,102,241,0.4)]",
+    border: "hover:border-indigo-500",
   },
   {
-    id: "myanmar-typing",
-    name: "Myanmar Typing",
-    path: "/game/MyanmarTyping",
-    description: "Master Myanmar Unicode typing speed and accuracy.",
-    icon: "⌨️",
-    color: "from-amber-400 to-yellow-500",
-    shadow: "hover:shadow-[0_0_30px_rgba(251,191,36,0.4)]",
-    border: "hover:border-amber-500",
+    id: "sys-breach",
+    name: "Sys Breach",
+    path: "/game/SysBreach",
+    description: "A deckbuilder roguelike. Deploy combat algorithms to crack ICE.",
+    icon: "🃏",
+    color: "from-red-400 to-rose-600",
+    shadow: "hover:shadow-[0_0_30px_rgba(225,29,72,0.4)]",
+    border: "hover:border-rose-500",
   },
 ];
 
@@ -129,7 +159,7 @@ export default function GameMenu() {
                   ? "translate-y-0 opacity-100" 
                   : "translate-y-16 opacity-0"
               } ${game.border} ${game.shadow} hover:-translate-y-2`}
-              style={{ transitionDelay: `${index * 100}ms` }}
+              style={{ transitionDelay: `${index * 50}ms` }}
             >
               
               {/* Card Hover Gradient Background Effect */}
@@ -170,7 +200,7 @@ export default function GameMenu() {
 
         {/* Footer */}
         <div 
-          className={`mt-24 text-center transition-all duration-1000 delay-1000 ${
+          className={`mt-24 text-center transition-all duration-1000 delay-700 ${
             mounted ? "opacity-100" : "opacity-0"
           }`}
         >
