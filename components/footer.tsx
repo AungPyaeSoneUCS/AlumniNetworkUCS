@@ -23,6 +23,10 @@ export default function Footer() {
   if (pathname.startsWith("/ChitSuWai")) {
     return null;
   }
+    if (pathname.startsWith("/game")) {
+    return null;
+  }
+
 
   return (
     <footer className="mt-4 px-0 pb-2">
