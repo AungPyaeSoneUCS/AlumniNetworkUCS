@@ -1,7 +1,8 @@
-// app/api/me/route.ts
+// file: app/api/me/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
+import { exec } from "child_process";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -210,7 +211,9 @@ function cleanProfileResponse(userObject: any) {
   };
 }
 
-// Dual Authentication Helper (Web Cookies or Mobile Headers)
+// ----------------------------------------------------
+// DUAL AUTHENTICATION HELPER (Web Cookies or Mobile Headers)
+// ----------------------------------------------------
 async function getAuthenticatedUser(req: Request) {
   await connectDB();
 
@@ -280,7 +283,13 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
+
     const parsed = ProfileSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -373,6 +382,18 @@ export async function PUT(req: Request) {
     if (!updatedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    // --- PM2 RESTART LOGIC ---
+    // Delay the restart by 1.5 seconds so the client successfully receives the 200 OK response first.
+    setTimeout(() => {
+      exec("pm2 restart next-app", (error, stdout, stderr) => {
+        if (error) {
+          console.error("Failed to restart PM2:", error);
+          return;
+        }
+        console.log("PM2 Restart Triggered Successfully after profile update:", stdout);
+      });
+    }, 1500);
 
     return NextResponse.json(cleanProfileResponse(updatedUser), { status: 200 });
   } catch (error) {

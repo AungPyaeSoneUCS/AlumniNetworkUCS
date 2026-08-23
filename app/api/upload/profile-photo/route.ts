@@ -1,8 +1,9 @@
 // file: app/api/upload/profile-photo/route.ts
-
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { exec } from "child_process";
+import { Types } from "mongoose";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -10,15 +11,24 @@ import User from "@/models/User";
 
 export async function POST(req: Request) {
   try {
+    // --- DUAL AUTHENTICATION (WEB & MOBILE) ---
     const session = await auth();
+    const mobileUserId = req.headers.get("x-user-id") || req.headers.get("authorization")?.split(" ")[1];
 
-    if (!session?.user?.email) {
+    if (!session?.user?.email && !mobileUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
-    const user = await User.findOne({ email: session.user.email });
+    // Identify current user either by Mobile Header ID or Web Session Email
+    let user: any = null;
+    
+    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
+      user = await User.findById(mobileUserId);
+    } else if (session?.user?.email) {
+      user = await User.findOne({ email: session.user.email });
+    }
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -63,8 +73,7 @@ export async function POST(req: Request) {
     // Create the directory if it does not exist
     await mkdir(uploadDir, { recursive: true });
 
-    // FIX: Extract the actual extension from the uploaded file (e.g., .jpg, .png)
-    // Fallback to .jpg if no extension is found
+    // Extract the actual extension from the uploaded file (e.g., .jpg, .png)
     const ext = path.extname(file.name) || ".jpg";
     const fileName = `profile-${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, fileName);
@@ -78,9 +87,22 @@ export async function POST(req: Request) {
     user.image = imageUrl;
     await user.save();
 
+    // --- PM2 RESTART LOGIC ---
+    // We use setTimeout to ensure the success response reaches the user's device FIRST.
+    // If we restart immediately, the connection drops and the app throws a network error.
+    setTimeout(() => {
+      exec("pm2 restart next-app", (error, stdout, stderr) => {
+        if (error) {
+          console.error("Failed to restart PM2:", error);
+          return;
+        }
+        console.log("PM2 Restart Triggered Successfully:", stdout);
+      });
+    }, 1500);
+
     return NextResponse.json(
       {
-        message: "Profile photo uploaded successfully",
+        message: "Profile photo uploaded successfully. Server is restarting.",
         image: imageUrl,
       },
       { status: 200 }

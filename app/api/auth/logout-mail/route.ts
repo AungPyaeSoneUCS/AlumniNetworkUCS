@@ -1,6 +1,6 @@
 // file: app/api/auth/logout-mail/route.ts
-
 import { NextResponse } from "next/server";
+import { Types } from "mongoose";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -10,22 +10,29 @@ import { logoutTemplate } from "@/lib/emailTemplates";
 
 import User from "@/models/User";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
+    // --- DUAL AUTHENTICATION (WEB & MOBILE) ---
     const session = await auth();
+    const mobileUserId = req.headers.get("x-user-id") || req.headers.get("authorization")?.split(" ")[1];
 
-    if (!session?.user?.email) {
-      return NextResponse.json({ ok: false }, { status: 401 });
+    if (!session?.user?.email && !mobileUserId) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
-    const user = await User.findOne({
-      email: session.user.email,
-    });
+    // Identify current user either by Mobile Header ID or Web Session Email
+    let user: any = null;
+    
+    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
+      user = await User.findById(mobileUserId);
+    } else if (session?.user?.email) {
+      user = await User.findOne({ email: session.user.email });
+    }
 
     if (!user) {
-      return NextResponse.json({ ok: false }, { status: 404 });
+      return NextResponse.json({ ok: false, error: "User not found" }, { status: 404 });
     }
 
     const lang = user.languagePreference === "mm" ? "mm" : "en";
@@ -52,6 +59,6 @@ export async function POST() {
   } catch (error) {
     console.error("Logout email failed:", error);
 
-    return NextResponse.json({ ok: false }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "Failed to send logout email" }, { status: 500 });
   }
 }
