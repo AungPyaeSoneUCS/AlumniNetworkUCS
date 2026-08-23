@@ -1,40 +1,80 @@
-// file: app/api/posts/upload/route.ts
-
+// app/api/posts/upload/route.ts
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import mongoose from "mongoose";
 
 import { auth } from "@/auth";
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/User";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const allowedTypes = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
+
+// Dual Authentication Helper: Web Cookie Session OR Mobile Header
+async function getAuthenticatedUser(req: Request) {
+  await connectDB();
+
+  // 1. Check Mobile App Headers
+  const mobileHeaderId =
+    req.headers.get("x-user-id") ||
+    req.headers.get("authorization")?.replace("Bearer ", "").trim();
+
+  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
+    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+    if (user) return user;
+  }
+
+  // 2. Check NextAuth Web Session
+  try {
+    const session = await auth();
+    if (session?.user?.email) {
+      const user = await User.findOne({ email: session.user.email })
+        .select("_id email")
+        .lean();
+      if (user) return user;
+    }
+  } catch (err) {
+    // No active web session
+  }
+
+  return null;
+}
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
+    const currentUser = await getAuthenticatedUser(req);
 
-    if (!session?.user?.email) {
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const formData = await req.formData();
     const file = formData.get("file");
 
-    if (!(file instanceof File)) {
+    if (!(file instanceof Blob)) {
       return NextResponse.json(
         { error: "Image file is required" },
         { status: 400 }
       );
     }
 
-    if (!allowedTypes.includes(file.type)) {
+    // MIME type check
+    if (file.type && !allowedTypes.includes(file.type.toLowerCase())) {
       return NextResponse.json(
-        { error: "Only JPG, PNG, WEBP, GIF allowed" },
+        { error: "Only JPG, PNG, WEBP, and GIF allowed" },
         { status: 400 }
       );
     }
 
+    // Size limit check
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: "Image must be under 5MB" },
@@ -45,7 +85,17 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    // Determine extension safely
+    const originalName = (file as File).name || "";
+    let ext = originalName.split(".").pop()?.toLowerCase() || "";
+
+    if (!ext || ext === originalName) {
+      if (file.type === "image/png") ext = "png";
+      else if (file.type === "image/webp") ext = "webp";
+      else if (file.type === "image/gif") ext = "gif";
+      else ext = "jpg";
+    }
+
     const fileName = `post-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}.${ext}`;
@@ -61,9 +111,12 @@ export async function POST(req: Request) {
     await mkdir(uploadDir, { recursive: true });
     await writeFile(path.join(uploadDir, fileName), buffer);
 
-    return NextResponse.json({
-      url: `/photo/posts/upload/${fileName}`,
-    });
+    return NextResponse.json(
+      {
+        url: `/photo/posts/upload/${fileName}`,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("POST /api/posts/upload error:", error);
     return NextResponse.json(

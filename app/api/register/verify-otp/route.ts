@@ -1,4 +1,4 @@
-// file: app/api/register/verify-otp/route.ts
+// app/api/register/verify-otp/route.ts
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message || "Invalid OTP." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -50,37 +50,33 @@ export async function POST(req: Request) {
     if (!record) {
       return NextResponse.json(
         { error: "Invalid or expired OTP." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     const lang: Lang = record.lang === "mm" ? "mm" : "en";
     
-    // We now rely on name, fatherName, and graduatedYear attached to the OTP record during step 2
     const recordName = clean(record.name);
     const recordFatherName = clean(record.fatherName);
-    
-    // <-- UPDATED: Parse as a string instead of a Number
     const recordGraduatedYear = String(record.graduatedYear || "").trim();
 
-    // <-- UPDATED: Check if string is empty instead of Number.isFinite
     if (!recordName || !recordFatherName || !recordGraduatedYear) {
       return NextResponse.json(
         {
           error: msg(
             lang,
             "OTP record is missing required student information. Please register again.",
-            "OTP record တွင် အချက်အလက်များ မပြည့်စုံပါ။ Register ပြန်လုပ်ပါ။",
+            "OTP record တွင် အချက်အလက်များ မပြည့်စုံပါ။ Register ပြန်လုပ်ပါ။"
           ),
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     const approvedStudent = await ApprovedStudent.findOne({
       name: recordName,
       fatherName: recordFatherName,
-      graduatedYear: recordGraduatedYear, // Now querying with the string
+      graduatedYear: recordGraduatedYear,
       approved: true,
     }).lean();
 
@@ -90,10 +86,10 @@ export async function POST(req: Request) {
           error: msg(
             lang,
             "Approved register data was not found. Please contact admin.",
-            "Approved register data မတွေ့ပါ။ Admin ကို ဆက်သွယ်ပါ။",
+            "Approved register data မတွေ့ပါ။ Admin ကို ဆက်သွယ်ပါ။"
           ),
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -105,18 +101,17 @@ export async function POST(req: Request) {
           error: msg(
             lang,
             "This email is already registered. Please login instead.",
-            "ဤ Email သည် စာရင်းသွင်းပြီးသား ဖြစ်ပါသည်။ Login ဝင်ပါ။",
+            "ဤ Email သည် စာရင်းသွင်းပြီးသား ဖြစ်ပါသည်။ Login ဝင်ပါ။"
           ),
         },
-        { status: 409 },
+        { status: 409 }
       );
     }
 
-    // Check if an account already exists for this exact alumni combination
     const existingAlumniUser = await User.findOne({ 
       name: recordName, 
       fatherName: recordFatherName, 
-      graduatedYear: recordGraduatedYear // Now querying with the string
+      graduatedYear: recordGraduatedYear 
     }).select("_id").lean();
 
     if (existingAlumniUser) {
@@ -125,17 +120,17 @@ export async function POST(req: Request) {
           error: msg(
             lang,
             "An account has already been created for this alumni record. Please login instead.",
-            "ဤ ကျောင်းသားအချက်အလက်ဖြင့် အကောင့်ပြုလုပ်ပြီးသား ဖြစ်ပါသည်။ Login ဝင်ပါ။",
+            "ဤ ကျောင်းသားအချက်အလက်ဖြင့် အကောင့်ပြုလုပ်ပြီးသား ဖြစ်ပါသည်။ Login ဝင်ပါ။"
           ),
         },
-        { status: 409 },
+        { status: 409 }
       );
     }
 
     const user = await User.create({
       name: clean(approvedStudent.name),
       fatherName: clean(approvedStudent.fatherName),
-      graduatedYear: approvedStudent.graduatedYear, // Saves as string to User model
+      graduatedYear: approvedStudent.graduatedYear,
       email,
       password: record.password,
       role: "user",
@@ -150,8 +145,7 @@ export async function POST(req: Request) {
       socialLinks: {},
     });
 
-    // UPDATE ADMIN TABLE STATUS
-    // Flag this record as successfully registered so it shows the green badge in the Admin Panel
+    // Flag this record as successfully registered in the Admin Panel
     await ApprovedStudent.updateOne(
       { _id: approvedStudent._id },
       { $set: { registered: true } }
@@ -159,26 +153,26 @@ export async function POST(req: Request) {
 
     await Otp.deleteMany({ email, purpose: "register" });
 
+    // Prepare safe user object for mobile auto-login
+    const userObject = user.toObject();
+    delete userObject.password;
+
     return NextResponse.json({
       success: true,
       redirect: "/settings",
       message: msg(
         lang,
         "Account verified and created successfully.",
-        "အကောင့် အတည်ပြုပြီး ဖန်တီးပြီးပါပြီ။",
+        "အကောင့် အတည်ပြုပြီး ဖန်တီးပြီးပါပြီ။"
       ),
-      user: {
-        id: String(user._id),
-        name: user.name,
-        email: user.email,
-      },
+      user: userObject, // Send the full safe user object for React Native SecureStore
     });
   } catch (error: any) {
     console.error("Verify OTP error:", error);
 
     return NextResponse.json(
       { error: "Verification failed." },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

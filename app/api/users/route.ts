@@ -1,6 +1,6 @@
-// file: app/api/users/route.ts
-
+// app/api/users/route.ts
 import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -35,7 +35,6 @@ function cleanUser(user: any) {
     image: cleanText(user.image),
     bio: cleanText(user.bio),
     
-    // <-- UPDATED: Ensure graduatedYear always returns as a safe string
     graduatedYear: user.graduatedYear ? String(user.graduatedYear) : "",
 
     degree: cleanDegree(user),
@@ -86,22 +85,42 @@ function cleanUser(user: any) {
   };
 }
 
-export async function GET(req: Request) {
+// Dual Authentication Helper (Web Cookies or Mobile Headers)
+async function getAuthenticatedUser(req: Request) {
+  await connectDB();
+
+  // 1. Check Mobile App Headers (x-user-id or Authorization)
+  const mobileHeaderId =
+    req.headers.get("x-user-id") ||
+    req.headers.get("authorization")?.replace("Bearer ", "").trim();
+
+  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
+    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+    if (user) return user;
+  }
+
+  // 2. Check NextAuth Web Session
   try {
     const session = await auth();
-
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session?.user?.email) {
+      const user = await User.findOne({ email: session.user.email })
+        .select("_id email")
+        .lean();
+      if (user) return user;
     }
+  } catch (err) {
+    // No active web session
+  }
 
-    await connectDB();
+  return null;
+}
 
-    const currentUser = await User.findOne({
-      email: session.user.email,
-    }).select("_id");
+export async function GET(req: Request) {
+  try {
+    const currentUser: any = await getAuthenticatedUser(req);
 
     if (!currentUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -113,7 +132,7 @@ export async function GET(req: Request) {
     );
 
     const query: any = {
-      _id: { $ne: currentUser._id },
+      _id: { $ne: currentUser._id }, // Don't show the logged-in user in the directory
       $or: [{ isProfilePublic: true }, { isProfilePublic: { $exists: false } }],
     };
 
@@ -130,7 +149,6 @@ export async function GET(req: Request) {
       ];
     }
 
-    // <-- UPDATED: Removed Number.isNaN() check to support strings like "2027 (Junior)"
     if (year) {
       query.graduatedYear = year;
     }
@@ -151,7 +169,7 @@ export async function GET(req: Request) {
       .sort({ createdAt: -1 })
       .lean();
 
-    return NextResponse.json(users.map(cleanUser));
+    return NextResponse.json(users.map(cleanUser), { status: 200 });
   } catch (error) {
     console.error("GET /api/users error:", error);
 

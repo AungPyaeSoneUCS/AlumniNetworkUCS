@@ -1,7 +1,7 @@
-// file: app/api/me/route.ts
-
+// app/api/me/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import mongoose from "mongoose";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -61,13 +61,12 @@ const ProfileSchema = z.object({
   name: z.string().min(2).optional(),
   image: z.string().optional(),
   bio: z.string().optional(),
-  
-  // <-- Updated to accept string instead of number
-  // Using z.coerce.string() ensures that if the frontend still accidentally sends a number like 2026, it parses cleanly into "2026"
-  graduatedYear: z.union([z.string(), z.number()]).transform(val => String(val)).optional().nullable(),
-
+  graduatedYear: z
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
+    .optional()
+    .nullable(),
   degree: z.enum(degreeValues).optional(),
-
   contactInfo: ContactInfoSchema.optional(),
   experiences: z.array(ExperienceSchema).optional(),
   socialLinks: SocialLinksSchema.optional(),
@@ -83,10 +82,8 @@ function trimValue(value?: string | null) {
 
 function removeBase64Image(image?: string) {
   const cleanImage = trimValue(image);
-
   if (!cleanImage) return "";
   if (cleanImage.startsWith("data:")) return "";
-
   return cleanImage;
 }
 
@@ -199,20 +196,13 @@ function cleanProfileResponse(userObject: any) {
     email: userObject.email || "",
     image: userObject.image || "",
     bio: userObject.bio || "",
-    
-    // <-- Safely parse to string or empty string
     graduatedYear: userObject.graduatedYear ? String(userObject.graduatedYear) : "",
-
     degree: cleanDegree(userObject),
-
     contactInfo: cleanContactInfo(userObject.contactInfo),
-
     experiences: Array.isArray(userObject.experiences)
       ? cleanExperiences(userObject.experiences)
       : [],
-
     socialLinks: cleanSocialLinks(userObject.socialLinks),
-
     isProfilePublic: true,
     profileVisibility: "public",
     languagePreference: userObject.languagePreference || "en",
@@ -220,17 +210,48 @@ function cleanProfileResponse(userObject: any) {
   };
 }
 
-export async function GET() {
+// Dual Authentication Helper (Web Cookies or Mobile Headers)
+async function getAuthenticatedUser(req: Request) {
+  await connectDB();
+
+  // 1. Check Mobile App Headers (x-user-id or Authorization)
+  const mobileHeaderId =
+    req.headers.get("x-user-id") ||
+    req.headers.get("authorization")?.replace("Bearer ", "").trim();
+
+  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
+    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+    if (user) return user;
+  }
+
+  // 2. Check NextAuth Web Session
   try {
     const session = await auth();
+    if (session?.user?.email) {
+      const user = await User.findOne({ email: session.user.email })
+        .select("_id email")
+        .lean();
+      if (user) return user;
+    }
+  } catch (err) {
+    // No active web session
+  }
 
-    if (!session?.user?.email) {
+  return null;
+}
+
+// ==========================================
+// 1. GET: Fetch Logged-in User Profile
+// ==========================================
+export async function GET(req: Request) {
+  try {
+    const currentUser: any = await getAuthenticatedUser(req);
+
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
-    const user = await User.findOne({ email: session.user.email })
+    const user = await User.findById(currentUser._id)
       .select("-password")
       .lean();
 
@@ -238,10 +259,9 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(cleanProfileResponse(user));
+    return NextResponse.json(cleanProfileResponse(user), { status: 200 });
   } catch (error) {
     console.error("GET /api/me error:", error);
-
     return NextResponse.json(
       { error: "Failed to load profile" },
       { status: 500 }
@@ -249,11 +269,14 @@ export async function GET() {
   }
 }
 
+// ==========================================
+// 2. PUT: Update Logged-in User Profile
+// ==========================================
 export async function PUT(req: Request) {
   try {
-    const session = await auth();
+    const currentUser: any = await getAuthenticatedUser(req);
 
-    if (!session?.user?.email) {
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -270,8 +293,6 @@ export async function PUT(req: Request) {
       );
     }
 
-    await connectDB();
-
     const data = parsed.data;
     const updateData: Record<string, any> = {};
 
@@ -287,9 +308,11 @@ export async function PUT(req: Request) {
       updateData.bio = trimValue(data.bio);
     }
 
-    // <-- Updated to save as string or empty string
     if (data.graduatedYear !== undefined) {
-      updateData.graduatedYear = data.graduatedYear === "null" || data.graduatedYear === null ? "" : data.graduatedYear;
+      updateData.graduatedYear =
+        data.graduatedYear === "null" || data.graduatedYear === null
+          ? ""
+          : data.graduatedYear;
     }
 
     if (data.degree !== undefined) {
@@ -333,8 +356,8 @@ export async function PUT(req: Request) {
       unsetData["contactInfo.viber"] = "";
     }
 
-    const user = await User.findOneAndUpdate(
-      { email: session.user.email },
+    const updatedUser = await User.findByIdAndUpdate(
+      currentUser._id,
       {
         $set: updateData,
         $unset: unsetData,
@@ -347,14 +370,13 @@ export async function PUT(req: Request) {
       .select("-password")
       .lean();
 
-    if (!user) {
+    if (!updatedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(cleanProfileResponse(user));
+    return NextResponse.json(cleanProfileResponse(updatedUser), { status: 200 });
   } catch (error) {
     console.error("PUT /api/me error:", error);
-
     return NextResponse.json(
       { error: "Failed to update profile" },
       { status: 500 }

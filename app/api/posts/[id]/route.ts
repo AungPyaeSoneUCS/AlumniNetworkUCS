@@ -1,7 +1,7 @@
-// file: app/api/posts/[id]/route.ts
-
+// app/api/posts/[id]/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import mongoose from "mongoose";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -17,24 +17,20 @@ type Props = {
 const UpdatePostSchema = z.object({
   content: z.string().trim().min(1, "Post content is required").max(3000),
   category: z
-    .enum(["General", "Job", "Event", "Announcement", "Question"])
+    .enum(["General", "Job", "Event", "News"])
     .default("General"),
-
-  // old single image support
   image: z.string().optional(),
-
-  // new 1 to 3 photos support
   images: z.array(z.string()).max(3, "Maximum 3 photos allowed").optional(),
 });
 
 function cleanComment(comment: any) {
-  const author = comment.author || {};
+  const author = comment?.author || {};
 
   return {
-    _id: String(comment._id || ""),
-    content: comment.content || "",
-    createdAt: comment.createdAt || null,
-    updatedAt: comment.updatedAt || null,
+    _id: String(comment?._id || ""),
+    content: comment?.content || "",
+    createdAt: comment?.createdAt || null,
+    updatedAt: comment?.updatedAt || null,
 
     author: {
       _id: String(author._id || ""),
@@ -90,25 +86,50 @@ function cleanPost(post: any, currentUserId?: string) {
   };
 }
 
+// Dual Authentication Helper (Web Cookies or Mobile Headers)
+async function getAuthenticatedUser(req: Request) {
+  await connectDB();
+
+  // 1. Check Mobile App Headers (x-user-id or Authorization)
+  const mobileHeaderId =
+    req.headers.get("x-user-id") ||
+    req.headers.get("authorization")?.replace("Bearer ", "").trim();
+
+  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
+    const user = await User.findById(mobileHeaderId).select("_id email role").lean();
+    if (user) return user;
+  }
+
+  // 2. Check NextAuth Web Session
+  try {
+    const session = await auth();
+    if (session?.user?.email) {
+      const user = await User.findOne({ email: session.user.email })
+        .select("_id email role")
+        .lean();
+      if (user) return user;
+    }
+  } catch (err) {
+    // No active web session
+  }
+
+  return null;
+}
+
+// ==========================================
+// 1. PUT: Update Post
+// ==========================================
 export async function PUT(req: Request, { params }: Props) {
   try {
     const { id } = await params;
-    const session = await auth();
+    const currentUser: any = await getAuthenticatedUser(req);
 
-    if (!session?.user?.email) {
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
-    const currentUser: any = await User.findOne({
-      email: session.user.email,
-    })
-      .select("_id")
-      .lean();
-
-    if (!currentUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
     }
 
     const post: any = await Post.findById(id).select("author").lean();
@@ -117,7 +138,11 @@ export async function PUT(req: Request, { params }: Props) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    if (String(post.author) !== String(currentUser._id)) {
+    // Ownership check (author or admin can edit)
+    const isOwner = String(post.author) === String(currentUser._id);
+    const isAdmin = currentUser.role === "admin";
+
+    if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: "You can only edit your own post" },
         { status: 403 }
@@ -139,7 +164,7 @@ export async function PUT(req: Request, { params }: Props) {
 
     const images =
       parsed.data.images && parsed.data.images.length > 0
-        ? parsed.data.images.slice(0, 3)
+        ? parsed.data.images.slice(0, 3).filter(Boolean)
         : parsed.data.image
           ? [parsed.data.image]
           : [];
@@ -164,10 +189,11 @@ export async function PUT(req: Request, { params }: Props) {
       .populate("comments.author", "name image department graduatedYear")
       .lean();
 
-    return NextResponse.json(cleanPost(updatedPost, String(currentUser._id)));
+    return NextResponse.json(cleanPost(updatedPost, String(currentUser._id)), {
+      status: 200,
+    });
   } catch (error) {
     console.error("PUT /api/posts/[id] error:", error);
-
     return NextResponse.json(
       { error: "Failed to update post" },
       { status: 500 }
@@ -175,25 +201,20 @@ export async function PUT(req: Request, { params }: Props) {
   }
 }
 
-export async function DELETE(_req: Request, { params }: Props) {
+// ==========================================
+// 2. DELETE: Delete Post
+// ==========================================
+export async function DELETE(req: Request, { params }: Props) {
   try {
     const { id } = await params;
-    const session = await auth();
+    const currentUser: any = await getAuthenticatedUser(req);
 
-    if (!session?.user?.email) {
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
-    const currentUser: any = await User.findOne({
-      email: session.user.email,
-    })
-      .select("_id")
-      .lean();
-
-    if (!currentUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
     }
 
     const post: any = await Post.findById(id).select("author").lean();
@@ -202,7 +223,11 @@ export async function DELETE(_req: Request, { params }: Props) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    if (String(post.author) !== String(currentUser._id)) {
+    // Ownership check (author or admin can delete)
+    const isOwner = String(post.author) === String(currentUser._id);
+    const isAdmin = currentUser.role === "admin";
+
+    if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: "You can only delete your own post" },
         { status: 403 }
@@ -211,13 +236,15 @@ export async function DELETE(_req: Request, { params }: Props) {
 
     await Post.findByIdAndDelete(id);
 
-    return NextResponse.json({
-      success: true,
-      deletedId: id,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        deletedId: id,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("DELETE /api/posts/[id] error:", error);
-
     return NextResponse.json(
       { error: "Failed to delete post" },
       { status: 500 }

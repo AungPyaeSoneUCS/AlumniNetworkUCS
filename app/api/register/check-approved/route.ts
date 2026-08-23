@@ -1,5 +1,4 @@
-// file: app/api/register/check-approved/route.ts
-
+// app/api/register/check-approved/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -14,10 +13,7 @@ const CheckApprovedSchema = z.object({
   fatherName: z.string().min(1, "Father Name is required"),
   normalizedName: z.string().optional(),
   normalizedFatherName: z.string().optional(),
-  
-  // <-- Updated: validate graduatedYear as a string, removing number constraints
   graduatedYear: z.string().min(1, "Graduated year is required"),
-  
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   lang: z.enum(["en", "mm"]).optional(),
 });
@@ -45,7 +41,7 @@ function getRequiredMessage(lang: Lang) {
   return msg(
     lang,
     "Please fill Alumni Name, Father Name, and Graduated Year.",
-    "Alumni Name, Father Name, နှင့် Graduated Year ဖြည့်ပါ။",
+    "Alumni Name, Father Name, နှင့် Graduated Year ဖြည့်ပါ။"
   );
 }
 
@@ -53,7 +49,7 @@ function getMismatchMessage(lang: Lang) {
   return msg(
     lang,
     "Not approved. Register data and admin approved data do not match.",
-    "အတည်ပြုမထားပါ။ Register data နှင့် Admin approved data မကိုက်ညီပါ။",
+    "အတည်ပြုမထားပါ။ Register data နှင့် Admin approved data မကိုက်ညီပါ။"
   );
 }
 
@@ -73,13 +69,13 @@ export async function POST(req: Request) {
           emailAvailable: false,
           message: parsed.error.issues[0]?.message || getRequiredMessage(lang),
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     const inputName = cleanValue(parsed.data.name);
     const inputFatherName = cleanValue(parsed.data.fatherName);
-    const inputGraduatedYear = parsed.data.graduatedYear; // Now a string
+    const inputGraduatedYear = parsed.data.graduatedYear;
     const inputEmail = normalizeEmail(parsed.data.email);
 
     // Fetch all approved students for the given year 
@@ -116,7 +112,7 @@ export async function POST(req: Request) {
         message: msg(
           lang,
           "This approved register data is already registered with an account.",
-          "ဤ approved register data ဖြင့် account ပြုလုပ်ပြီးသား ဖြစ်ပါသည်။",
+          "ဤ approved register data ဖြင့် account ပြုလုပ်ပြီးသား ဖြစ်ပါသည်။"
         ),
         duplicate: {
           alumni: true,
@@ -138,7 +134,7 @@ export async function POST(req: Request) {
         message: msg(
           lang,
           "This approved register data is already registered with an account.",
-          "ဤ approved register data ဖြင့် account ပြုလုပ်ပြီးသား ဖြစ်ပါသည်။",
+          "ဤ approved register data ဖြင့် account ပြုလုပ်ပြီးသား ဖြစ်ပါသည်။"
         ),
         duplicate: {
           alumni: true,
@@ -159,7 +155,7 @@ export async function POST(req: Request) {
           message: msg(
             lang,
             "Approved data matched, but this email is already registered.",
-            "Approved data ကိုက်ညီပါသည်။ သို့သော် ဤ Email သည် register လုပ်ပြီးသား ဖြစ်ပါသည်။",
+            "Approved data ကိုက်ညီပါသည်။ သို့သော် ဤ Email သည် register လုပ်ပြီးသား ဖြစ်ပါသည်။"
           ),
           duplicate: {
             email: true,
@@ -181,7 +177,7 @@ export async function POST(req: Request) {
       message: msg(
         lang,
         "Approved. Register data matches admin approved data.",
-        "အတည်ပြုပြီးပါပြီ။ Register data သည် Admin approved data နှင့် ကိုက်ညီပါသည်။",
+        "အတည်ပြုပြီးပါပြီ။ Register data သည် Admin approved data နှင့် ကိုက်ညီပါသည်။"
       ),
       student: {
         id: String(approvedStudent._id),
@@ -199,7 +195,7 @@ export async function POST(req: Request) {
         emailAvailable: false,
         message: "Server error.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

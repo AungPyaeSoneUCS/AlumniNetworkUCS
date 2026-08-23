@@ -1,5 +1,4 @@
-// file: app/api/users/[id]/route.ts
-
+// app/api/users/[id]/route.ts
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 
@@ -88,7 +87,9 @@ function cleanUser(user: any, sessionEmail?: string | null) {
     email: cleanText(user.email),
     image: cleanText(user.image),
     bio: cleanText(user.bio),
-    graduatedYear: user.graduatedYear || null,
+    
+    // Convert to a safe string to prevent mobile FlatList parsing errors
+    graduatedYear: user.graduatedYear ? String(user.graduatedYear) : "",
 
     degree: cleanDegree(user),
 
@@ -104,6 +105,34 @@ function cleanUser(user: any, sessionEmail?: string | null) {
   };
 }
 
+// Dual Authentication Helper (Web Cookies or Mobile Headers)
+async function getAuthenticatedUser(req: Request) {
+  // 1. Check Mobile App Headers (x-user-id or Authorization)
+  const mobileHeaderId =
+    req.headers.get("x-user-id") ||
+    req.headers.get("authorization")?.replace("Bearer ", "").trim();
+
+  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
+    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+    if (user) return user;
+  }
+
+  // 2. Check NextAuth Web Session
+  try {
+    const session = await auth();
+    if (session?.user?.email) {
+      const user = await User.findOne({ email: session.user.email })
+        .select("_id email")
+        .lean();
+      if (user) return user;
+    }
+  } catch (err) {
+    // No active web session
+  }
+
+  return null;
+}
+
 export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -111,7 +140,7 @@ export async function GET(
   try {
     await connectDB();
 
-    const session = await auth();
+    const currentUser: any = await getAuthenticatedUser(req);
     const { id } = await context.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -128,7 +157,7 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(cleanUser(user, session?.user?.email));
+    return NextResponse.json(cleanUser(user, currentUser?.email), { status: 200 });
   } catch (error) {
     console.error("GET /api/users/[id] error:", error);
 

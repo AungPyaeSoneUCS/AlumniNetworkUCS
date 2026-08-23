@@ -1,5 +1,4 @@
-// file: app/api/register/route.ts
-
+// app/api/register/route.ts
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -15,14 +14,10 @@ import ApprovedStudent from "@/models/ApprovedStudent";
 type Lang = "en" | "mm";
 
 const RegisterSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  fatherName: z.string().min(1, "Father Name is required"),
-
-  // <-- Updated to validate as a string instead of a number
-  graduatedYear: z.string().min(1, "Graduated year is required"),
-
-  email: z.string().email("Invalid email address"),
-
+  name: z.string().trim().min(1, "Name is required"),
+  fatherName: z.string().trim().min(1, "Father Name is required"),
+  graduatedYear: z.string().trim().min(1, "Graduated year is required"),
+  email: z.string().trim().email("Invalid email address"),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -30,7 +25,6 @@ const RegisterSchema = z.object({
     .regex(/[A-Z]/, "Password must include uppercase letter")
     .regex(/[0-9]/, "Password must include number")
     .regex(/[^A-Za-z0-9]/, "Password must include symbol"),
-
   lang: z.enum(["en", "mm"]).optional(),
 });
 
@@ -64,15 +58,12 @@ function generateOtp() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-
     const lang: Lang = body?.lang === "mm" ? "mm" : "en";
 
     const parsed = RegisterSchema.safeParse(body);
 
     if (!parsed.success) {
-      const firstError =
-        parsed.error.issues[0]?.message || "Invalid input.";
-
+      const firstError = parsed.error.issues[0]?.message || "Invalid input.";
       return NextResponse.json(
         {
           error:
@@ -80,7 +71,7 @@ export async function POST(req: Request) {
               ? "အချက်အလက်မှားနေသည်။ Email နှင့် Password ကိုစစ်ပါ။"
               : firstError,
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -88,7 +79,7 @@ export async function POST(req: Request) {
 
     const input = parsed.data;
     const email = normalizeEmail(input.email);
-    const graduatedYear = input.graduatedYear; // Now safely a string
+    const graduatedYear = input.graduatedYear; 
 
     // 1. Check if email is already registered in User model
     const existingUser = await User.findOne({ email }).select("_id email").lean();
@@ -99,15 +90,14 @@ export async function POST(req: Request) {
           error: msg(
             lang,
             "Email is already registered. Please login instead.",
-            "ဤ Email သည် စာရင်းသွင်းပြီးသား ဖြစ်ပါသည်။ Login ဝင်ပါ။",
+            "ဤ Email သည် စာရင်းသွင်းပြီးသား ဖြစ်ပါသည်။ Login ဝင်ပါ။"
           ),
         },
-        { status: 409 },
+        { status: 409 }
       );
     }
 
     // 2. Retrieve approved students for the specified graduated year
-    // This will now correctly query the database using the string format
     const approvedStudentsInYear = await ApprovedStudent.find({
       graduatedYear,
       approved: true,
@@ -117,7 +107,7 @@ export async function POST(req: Request) {
     const approvedStudent = approvedStudentsInYear.find(
       (student) =>
         loose(student.name) === loose(input.name) &&
-        loose(student.fatherName) === loose(input.fatherName),
+        loose(student.fatherName) === loose(input.fatherName)
     );
 
     if (!approvedStudent) {
@@ -126,10 +116,10 @@ export async function POST(req: Request) {
           error: msg(
             lang,
             "Cannot register. Your information is not approved by admin.",
-            "Register လုပ်၍မရပါ။ သင့်အချက်အလက်များသည် Admin data နှင့် မကိုက်ညီပါ။",
+            "Register လုပ်၍မရပါ။ သင့်အချက်အလက်များသည် Admin data နှင့် မကိုက်ညီပါ။"
           ),
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -140,10 +130,10 @@ export async function POST(req: Request) {
           error: msg(
             lang,
             "An account has already been registered with this alumni information.",
-            "ဤ အချက်အလက်ဖြင့် အကောင့်ပြုလုပ်ပြီးသား ဖြစ်ပါသည်။",
+            "ဤ အချက်အလက်ဖြင့် အကောင့်ပြုလုပ်ပြီးသား ဖြစ်ပါသည်။"
           ),
         },
-        { status: 409 },
+        { status: 409 }
       );
     }
 
@@ -160,15 +150,12 @@ export async function POST(req: Request) {
     await Otp.create({
       name: clean(approvedStudent.name),
       fatherName: clean(approvedStudent.fatherName),
-      graduatedYear: approvedStudent.graduatedYear, // Saves the string
-
+      graduatedYear: approvedStudent.graduatedYear,
       email,
       password: hashedPassword,
-
       otp,
       purpose: "register",
       lang,
-
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes expiry
     });
 
@@ -179,7 +166,6 @@ export async function POST(req: Request) {
         lang === "mm"
           ? "Alumni Network OTP အတည်ပြုကုဒ်"
           : "Verify your Alumni Network Email",
-
       html: otpTemplate({
         name: approvedStudent.name,
         otp,
@@ -191,17 +177,19 @@ export async function POST(req: Request) {
       }),
     });
 
-    return NextResponse.json({
-      success: true,
-      approved: true,
-      email,
-
-      message: msg(
-        lang,
-        "OTP sent to your email.",
-        "OTP ကို သင့် Email သို့ ပို့ပြီးပါပြီ။",
-      ),
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        approved: true,
+        email,
+        message: msg(
+          lang,
+          "OTP sent to your email.",
+          "OTP ကို သင့် Email သို့ ပို့ပြီးပါပြီ."
+        ),
+      },
+      { status: 200 }
+    );
   } catch (error: any) {
     console.error("Register OTP send error:", error);
 
@@ -210,7 +198,7 @@ export async function POST(req: Request) {
         {
           error: "Duplicate data found. Email may already exist.",
         },
-        { status: 409 },
+        { status: 409 }
       );
     }
 
@@ -218,7 +206,7 @@ export async function POST(req: Request) {
       {
         error: "Failed to send OTP.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

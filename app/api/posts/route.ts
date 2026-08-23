@@ -1,7 +1,7 @@
-// file: app/api/posts/route.ts
-
+// app/api/posts/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import mongoose from "mongoose";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -13,23 +13,17 @@ const PostSchema = z.object({
   category: z
     .enum(["General", "Job", "Event", "News"])
     .default("General"),
-
-  // old single image support
   image: z.string().optional(),
-
-  // new 1 to 3 photos support
   images: z.array(z.string()).max(3, "Maximum 3 photos allowed").optional(),
 });
 
 function cleanComment(comment: any) {
-  const author = comment.author || {};
-
+  const author = comment?.author || {};
   return {
-    _id: String(comment._id || ""),
-    content: comment.content || "",
-    createdAt: comment.createdAt || null,
-    updatedAt: comment.updatedAt || null,
-
+    _id: String(comment?._id || ""),
+    content: comment?.content || "",
+    createdAt: comment?.createdAt || null,
+    updatedAt: comment?.updatedAt || null,
     author: {
       _id: String(author._id || ""),
       name: author.name || "Unknown Alumni",
@@ -50,34 +44,25 @@ function cleanPost(post: any, currentUserId?: string) {
   const author = post?.author || {};
   const comments = Array.isArray(post?.comments) ? post.comments : [];
   const likes = Array.isArray(post?.likes) ? post.likes.map(String) : [];
-
   const images = Array.isArray(post?.images)
     ? post.images.filter(Boolean)
     : post?.image
-      ? [post.image]
-      : [];
+    ? [post.image]
+    : [];
 
   return {
     _id: String(post?._id || ""),
     content: post?.content || "",
     category: normalizeCategory(post?.category),
-
-    // old support
     image: post?.image || images[0] || "",
-
-    // new support
     images,
-
     likes,
     likedByMe: currentUserId ? likes.includes(String(currentUserId)) : false,
-
     comments: comments.map(cleanComment),
     commentsCount: comments.length,
-
     isEdited: Boolean(post?.isEdited),
     createdAt: post?.createdAt || null,
     updatedAt: post?.updatedAt || null,
-
     author: {
       _id: String(author._id || ""),
       name: author.name || "Unknown Alumni",
@@ -86,42 +71,62 @@ function cleanPost(post: any, currentUserId?: string) {
       department: author.department || "",
       graduatedYear: author.graduatedYear || null,
     },
-
     isOwner: currentUserId
       ? String(author._id || "") === String(currentUserId)
       : false,
   };
 }
 
-export async function GET(req: Request) {
+// Dual Authentication Helper (Web Session OR Mobile Header)
+async function getAuthenticatedUser(req: Request) {
+  await connectDB();
+
+  // 1. Check Mobile App Headers (x-user-id or Authorization: Bearer <ID>)
+  const mobileHeaderId =
+    req.headers.get("x-user-id") ||
+    req.headers.get("authorization")?.replace("Bearer ", "").trim();
+
+  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
+    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+    if (user) return user;
+  }
+
+  // 2. Check NextAuth Web Session
   try {
     const session = await auth();
+    if (session?.user?.email) {
+      const user = await User.findOne({ email: session.user.email })
+        .select("_id email")
+        .lean();
+      if (user) return user;
+    }
+  } catch (err) {
+    // No active web cookie session
+  }
 
-    if (!session?.user?.email) {
+  return null;
+}
+
+// ==========================================
+// 1. GET: Fetch Feed Posts
+// ==========================================
+export async function GET(req: Request) {
+  try {
+    const currentUser: any = await getAuthenticatedUser(req);
+
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
-    const currentUser: any = await User.findOne({
-      email: session.user.email,
-    })
-      .select("_id")
-      .lean();
-
-    if (!currentUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
     const { searchParams } = new URL(req.url);
-
     const q = searchParams.get("q")?.trim() || "";
     const category = searchParams.get("category")?.trim() || "";
 
     const filter: Record<string, any> = {};
 
     if (category && category !== "All") {
-      filter.category = category === "News" ? { $in: ["News", "Announcement"] } : category;
+      filter.category =
+        category === "News" ? { $in: ["News", "Announcement"] } : category;
     }
 
     if (q) {
@@ -138,36 +143,24 @@ export async function GET(req: Request) {
       .lean();
 
     return NextResponse.json(
-      posts.map((post: any) => cleanPost(post, String(currentUser._id)))
+      posts.map((post: any) => cleanPost(post, String(currentUser._id))),
+      { status: 200 }
     );
   } catch (error) {
     console.error("GET /api/posts error:", error);
-
-    return NextResponse.json(
-      { error: "Failed to load posts" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to load posts" }, { status: 500 });
   }
 }
 
+// ==========================================
+// 2. POST: Create New Post
+// ==========================================
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    await connectDB();
-
-    const currentUser: any = await User.findOne({
-      email: session.user.email,
-    })
-      .select("_id")
-      .lean();
+    const currentUser: any = await getAuthenticatedUser(req);
 
     if (!currentUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -187,20 +180,15 @@ export async function POST(req: Request) {
       parsed.data.images && parsed.data.images.length > 0
         ? parsed.data.images.slice(0, 3).filter(Boolean)
         : parsed.data.image
-          ? [parsed.data.image]
-          : [];
+        ? [parsed.data.image]
+        : [];
 
     const post = await Post.create({
       author: currentUser._id,
       content: parsed.data.content,
       category: parsed.data.category,
-
-      // keep old image field for compatibility
       image: images[0] || "",
-
-      // new multiple image field
       images,
-
       likes: [],
       comments: [],
       isEdited: false,
@@ -211,15 +199,12 @@ export async function POST(req: Request) {
       .populate("comments.author", "name image department graduatedYear")
       .lean();
 
-    return NextResponse.json(cleanPost(populatedPost, String(currentUser._id)), {
-      status: 201,
-    });
+    return NextResponse.json(
+      cleanPost(populatedPost, String(currentUser._id)),
+      { status: 201 }
+    );
   } catch (error) {
     console.error("POST /api/posts error:", error);
-
-    return NextResponse.json(
-      { error: "Failed to create post" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to create post" }, { status: 500 });
   }
 }
