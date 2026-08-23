@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
-// Mapping exactly to your folder structure from image_0036a8.png
+// Mapping exactly to your folder structure
 const GAMES = [
   {
     id: "endless-runner",
@@ -197,12 +197,42 @@ export default function GameMenu() {
           ))}
         </div>
 
-        {/* Footer */}
+        {/* Footer connected to Sub-Pages */}
         <div 
-          className={`mt-24 text-center transition-all duration-1000 delay-700 ${
+          className={`mt-24 pb-8 flex flex-col items-center justify-center gap-8 text-center transition-all duration-1000 delay-700 ${
             mounted ? "opacity-100" : "opacity-0"
           }`}
         >
+          {/* Quick Links Row */}
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            
+            {/* About Us Link */}
+            <Link 
+              href="/game/aboutus"
+              className="inline-flex items-center px-5 sm:px-6 py-2 rounded-full border border-cyan-500/30 bg-cyan-950/20 text-cyan-500/80 hover:text-cyan-400 hover:border-cyan-400 hover:bg-cyan-950/40 text-[10px] sm:text-xs font-bold tracking-widest uppercase transition-all hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] active:scale-95"
+            >
+              <span className="mr-2">🏛️</span> About Us
+            </Link>
+
+            {/* Journal Link */}
+            <Link 
+              href="/game/journal"
+              className="inline-flex items-center px-5 sm:px-6 py-2 rounded-full border border-emerald-500/30 bg-emerald-950/20 text-emerald-500/80 hover:text-emerald-400 hover:border-emerald-400 hover:bg-emerald-950/40 text-[10px] sm:text-xs font-bold tracking-widest uppercase transition-all hover:shadow-[0_0_15px_rgba(16,185,129,0.3)] active:scale-95"
+            >
+              <span className="mr-2">📓</span> Journal
+            </Link>
+
+            {/* AI Chat Link */}
+            <Link 
+              href="/game/AIChat"
+              className="inline-flex items-center px-5 sm:px-6 py-2 rounded-full border border-purple-500/30 bg-purple-950/20 text-purple-500/80 hover:text-purple-400 hover:border-purple-400 hover:bg-purple-950/40 text-[10px] sm:text-xs font-bold tracking-widest uppercase transition-all hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] active:scale-95"
+            >
+              <span className="mr-2">🤖</span> AI Chat
+            </Link>
+
+          </div>
+          
+          {/* Copyright Signature */}
           <p className="text-xs font-mono text-slate-600 tracking-widest">
             © {new Date().getFullYear()} AUNG PYAE SONE
           </p>
