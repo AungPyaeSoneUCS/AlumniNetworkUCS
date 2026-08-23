@@ -1,5 +1,4 @@
 // file: app/api/messages/[userId]/route.ts
-
 import { NextResponse } from "next/server";
 import { Types } from "mongoose";
 
@@ -42,13 +41,15 @@ function getConversationId(userA: string, userB: string) {
 
 // 1. GET: FETCH ALL MESSAGES
 export async function GET(
-  _req: Request,
+  req: Request,
   context: { params: Promise<{ userId: string }> }
 ) {
   try {
+    // --- DUAL AUTHENTICATION (WEB & MOBILE) ---
     const session = await auth();
+    const mobileUserId = req.headers.get("x-user-id") || req.headers.get("authorization")?.split(" ")[1];
 
-    if (!session?.user?.email) {
+    if (!session?.user?.email && !mobileUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -60,9 +61,13 @@ export async function GET(
 
     await connectDB();
 
-    const currentUser = await User.findOne({
-      email: session.user.email,
-    }).select("_id name email role image department graduatedYear");
+    // Identify current user
+    let currentUser: any = null;
+    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
+      currentUser = await User.findById(mobileUserId).select("_id name email role image department graduatedYear");
+    } else if (session?.user?.email) {
+      currentUser = await User.findOne({ email: session.user.email }).select("_id name email role image department graduatedYear");
+    }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -95,9 +100,11 @@ export async function PATCH(
   context: { params: Promise<{ userId: string }> }
 ) {
   try {
+    // --- DUAL AUTHENTICATION (WEB & MOBILE) ---
     const session = await auth();
+    const mobileUserId = req.headers.get("x-user-id") || req.headers.get("authorization")?.split(" ")[1];
 
-    if (!session?.user?.email) {
+    if (!session?.user?.email && !mobileUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -114,7 +121,14 @@ export async function PATCH(
 
     await connectDB();
 
-    const currentUser = await User.findOne({ email: session.user.email }).select("_id");
+    // Identify current user
+    let currentUser: any = null;
+    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
+      currentUser = await User.findById(mobileUserId).select("_id");
+    } else if (session?.user?.email) {
+      currentUser = await User.findOne({ email: session.user.email }).select("_id");
+    }
+
     if (!currentUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const message = await Message.findById(messageId);
@@ -160,9 +174,11 @@ export async function DELETE(
   context: { params: Promise<{ userId: string }> }
 ) {
   try {
+    // --- DUAL AUTHENTICATION (WEB & MOBILE) ---
     const session = await auth();
+    const mobileUserId = req.headers.get("x-user-id") || req.headers.get("authorization")?.split(" ")[1];
 
-    if (!session?.user?.email) {
+    if (!session?.user?.email && !mobileUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -179,9 +195,13 @@ export async function DELETE(
 
     await connectDB();
 
-    const currentUser = await User.findOne({
-      email: session.user.email,
-    }).select("_id name");
+    // Identify current user
+    let currentUser: any = null;
+    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
+      currentUser = await User.findById(mobileUserId).select("_id name");
+    } else if (session?.user?.email) {
+      currentUser = await User.findOne({ email: session.user.email }).select("_id name");
+    }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

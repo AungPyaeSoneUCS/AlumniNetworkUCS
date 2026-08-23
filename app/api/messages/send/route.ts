@@ -1,5 +1,4 @@
 // file: app/api/messages/send/route.ts
-
 import { NextResponse } from "next/server";
 import { Types } from "mongoose";
 
@@ -53,9 +52,11 @@ function cleanNotification(notification: any) {
 
 export async function POST(req: Request) {
   try {
+    // --- DUAL AUTHENTICATION (WEB & MOBILE) ---
     const session = await auth();
+    const mobileUserId = req.headers.get("x-user-id") || req.headers.get("authorization")?.split(" ")[1];
 
-    if (!session?.user?.email) {
+    if (!session?.user?.email && !mobileUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -73,9 +74,14 @@ export async function POST(req: Request) {
 
     await connectDB();
 
-    const currentUser: any = await User.findOne({
-      email: session.user.email,
-    }).select("_id name email image department graduatedYear");
+    // Identify current user either by Mobile Header ID or Web Session Email
+    let currentUser: any = null;
+    
+    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
+      currentUser = await User.findById(mobileUserId).select("_id name email image department graduatedYear");
+    } else if (session?.user?.email) {
+      currentUser = await User.findOne({ email: session.user.email }).select("_id name email image department graduatedYear");
+    }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
