@@ -18,7 +18,8 @@ const CommentSchema = z.object({
   content: z.string().trim().min(1, "Comment content cannot be empty").max(1000),
 });
 
-function cleanComment(comment: any) {
+// 1. Updated cleanComment to accept and return isOwner
+function cleanComment(comment: any, isOwner: boolean = false) {
   const author = comment?.author || {};
 
   return {
@@ -26,6 +27,7 @@ function cleanComment(comment: any) {
     content: comment?.content || "",
     createdAt: comment?.createdAt || null,
     updatedAt: comment?.updatedAt || null,
+    isOwner: isOwner, // <-- Added this field
     author: {
       _id: String(author._id || ""),
       name: author.name || "Unknown Alumni",
@@ -110,7 +112,8 @@ export async function POST(req: Request, { params }: Props) {
 
     const newComment = updatedPost.comments[updatedPost.comments.length - 1];
 
-    return NextResponse.json(cleanComment(newComment), { status: 201 });
+    // 2. Pass `true` to cleanComment because the user making this POST request is the owner
+    return NextResponse.json(cleanComment(newComment, true), { status: 201 });
   } catch (error) {
     console.error("POST /api/posts/[id]/comments error:", error);
     return NextResponse.json(

@@ -17,13 +17,21 @@ const PostSchema = z.object({
   images: z.array(z.string()).max(3, "Maximum 3 photos allowed").optional(),
 });
 
-function cleanComment(comment: any) {
+// 1. Updated cleanComment to accept currentUserId and calculate isOwner
+function cleanComment(comment: any, currentUserId?: string) {
   const author = comment?.author || {};
+  
+  // Check if the currently logged-in user matches the comment's author
+  const isCommentOwner = currentUserId
+    ? String(author._id || author) === String(currentUserId)
+    : false;
+
   return {
     _id: String(comment?._id || ""),
     content: comment?.content || "",
     createdAt: comment?.createdAt || null,
     updatedAt: comment?.updatedAt || null,
+    isOwner: isCommentOwner, // <-- Added this field
     author: {
       _id: String(author._id || ""),
       name: author.name || "Unknown Alumni",
@@ -58,7 +66,8 @@ function cleanPost(post: any, currentUserId?: string) {
     images,
     likes,
     likedByMe: currentUserId ? likes.includes(String(currentUserId)) : false,
-    comments: comments.map(cleanComment),
+    // FIX: Added ': any' to comment parameter to satisfy TypeScript
+    comments: comments.map((comment: any) => cleanComment(comment, currentUserId)),
     commentsCount: comments.length,
     isEdited: Boolean(post?.isEdited),
     createdAt: post?.createdAt || null,

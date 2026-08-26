@@ -40,7 +40,6 @@ type Comment = {
     degree?: string;
     graduatedYear?: number | null;
   };
-  isOwner?: boolean;
 };
 
 type Post = {
@@ -93,13 +92,10 @@ const text = {
     saving: "Saving...",
     saveChanges: "Save Changes",
     deleteConfirm: "Delete this post?",
-    deleteCommentConfirm: "Delete this comment?", // <-- Added
     createFailed: "Failed to create post",
     updateFailed: "Failed to update post",
     deleteFailed: "Failed to delete post",
     commentFailed: "Failed to comment",
-    commentUpdateFailed: "Failed to update comment",
-    commentDeleteFailed: "Failed to delete comment",
     edited: "Edited",
     alumni: "Alumni",
     unknownAlumni: "Unknown Alumni",
@@ -143,13 +139,10 @@ const text = {
     saving: "သိမ်းနေသည်...",
     saveChanges: "သိမ်းမည်",
     deleteConfirm: "ဒီ post ကို ဖျက်မှာ သေချာပါသလား?",
-    deleteCommentConfirm: "ဒီ comment ကို ဖျက်မှာ သေချာပါသလား?", // <-- Added
     createFailed: "Post တင်၍မရပါ",
     updateFailed: "Post ပြင်၍မရပါ",
     deleteFailed: "Post ဖျက်၍မရပါ",
     commentFailed: "Comment ရေး၍မရပါ",
-    commentUpdateFailed: "Comment ပြင်၍မရပါ",
-    commentDeleteFailed: "Comment ဖျက်၍မရပါ",
     edited: "ပြင်ထားသည်",
     alumni: "ကျောင်းသားဟောင်း",
     unknownAlumni: "အမည်မသိ ကျောင်းသားဟောင်း",
@@ -232,7 +225,7 @@ export default function FeedsPage() {
   // Scroll visibility
   const [showScrollUp, setShowScrollUp] = useState(false);
 
-  // Filter States
+  // States initialized from sessionStorage if available to persist filters across back navigation
   const [search, setSearch] = useState(() => {
     if (typeof window !== "undefined") {
       return sessionStorage.getItem("feed_filter_search") || "";
@@ -266,11 +259,10 @@ export default function FeedsPage() {
   const [content, setContent] = useState("");
   const [postCategory, setPostCategory] = useState<Category>("General");
 
-  // Edit/Delete Post State
+  // Edit state
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [editContent, setEditContent] = useState("");
   const [editCategory, setEditCategory] = useState<Category>("General");
-  const [postToDelete, setPostToDelete] = useState<string | null>(null); // <-- Added Modal state for deleting posts
 
   // Synchronize dynamic updates back into the storage session
   useEffect(() => {
@@ -483,7 +475,7 @@ export default function FeedsPage() {
         },
         body: JSON.stringify({
           content: editContent,
-          category: editCategory, 
+          category: editCategory, // The newly updated category is sent to the backend
           image: editingPost.image || "",
           images: editingPost.images || [],
         }),
@@ -512,8 +504,9 @@ export default function FeedsPage() {
     }
   }
 
-  // Refactored to not use window.confirm, relies on custom modal
   async function deletePost(postId: string) {
+    if (!confirm(t.deleteConfirm)) return;
+
     try {
       const res = await fetch(`/api/posts/${postId}`, {
         method: "DELETE",
@@ -529,8 +522,6 @@ export default function FeedsPage() {
     } catch (error) {
       console.error("Delete post failed:", error);
       alert(t.deleteFailed);
-    } finally {
-      setPostToDelete(null); // Close the modal
     }
   }
 
@@ -690,7 +681,7 @@ export default function FeedsPage() {
                   index={index}
                   active={activeRecentId === post._id}
                   onEdit={startEdit}
-                  onDelete={(id) => setPostToDelete(id)} // Open Post Delete Modal
+                  onDelete={deletePost}
                   onLike={toggleLike}
                   onCommentsChange={updatePostComments}
                   t={t}
@@ -736,7 +727,7 @@ export default function FeedsPage() {
 
       {/* MODAL: Edit Post */}
       {editingPost && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
           <div className="ucsh-card w-full max-w-2xl p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-2xl font-black text-[var(--ucsh-text)]">
@@ -782,39 +773,6 @@ export default function FeedsPage() {
                 className="ucsh-btn w-full text-sm disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving ? t.saving : t.saveChanges}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Custom Post Deletion Confirmation */}
-      {postToDelete && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-          <div className="ucsh-card w-full max-w-sm p-6 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500 dark:bg-red-950/40">
-              <Trash2 size={28} />
-            </div>
-            <h3 className="mb-2 text-lg font-black text-[var(--ucsh-text)]">
-              {t.deleteConfirm}
-            </h3>
-            <p className="text-sm font-bold text-[var(--ucsh-muted)]">
-              This action cannot be undone.
-            </p>
-            <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setPostToDelete(null)}
-                className="ucsh-btn-outline flex-1 rounded-xl py-2.5 text-sm font-black"
-              >
-                {t.cancel}
-              </button>
-              <button
-                type="button"
-                onClick={() => deletePost(postToDelete)}
-                className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-black text-white transition hover:bg-red-600 shadow-md hover:shadow-lg"
-              >
-                {t.delete}
               </button>
             </div>
           </div>
@@ -882,6 +840,7 @@ function FeedFilters({
           placeholder={t.searchPosts}
           className="ucsh-input h-12 pl-11 pr-4 text-sm font-bold"
         />
+
       </div>
 
       <div className="mt-4">
@@ -1270,13 +1229,6 @@ function PostCard({
   const [commenting, setCommenting] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
-  // Comment Edit & Delete states
-  const [openCommentMenuId, setOpenCommentMenuId] = useState<string | null>(null);
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editCommentText, setEditCommentText] = useState("");
-  const [isCommentActionLoading, setIsCommentActionLoading] = useState(false);
-  const [commentToDelete, setCommentToDelete] = useState<string | null>(null); // <-- Added Modal state for deleting comments
-
   const [localComments, setLocalComments] = useState<Comment[]>(
     post.comments || []
   );
@@ -1337,68 +1289,6 @@ function PostCard({
       alert(t.commentFailed);
     } finally {
       setCommenting(false);
-    }
-  }
-
-  // Edit Comment Function
-  async function submitCommentEdit(commentId: string) {
-    if (!editCommentText.trim() || isCommentActionLoading) return;
-    setIsCommentActionLoading(true);
-
-    try {
-      const res = await fetch(`/api/posts/${post._id}/comments/${commentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editCommentText }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        alert(error.error || t.commentUpdateFailed);
-        return;
-      }
-
-      const updatedComment = await res.json();
-      const nextComments = localComments.map((c) =>
-        c._id === commentId ? updatedComment : c
-      );
-
-      setLocalComments(nextComments);
-      onCommentsChange(post._id, nextComments);
-      setEditingCommentId(null);
-      setEditCommentText("");
-    } catch (error) {
-      console.error("Edit comment failed:", error);
-      alert(t.commentUpdateFailed);
-    } finally {
-      setIsCommentActionLoading(false);
-    }
-  }
-
-  // Refactored to not use window.confirm, relies on custom modal
-  async function deleteComment(commentId: string) {
-    setIsCommentActionLoading(true);
-
-    try {
-      const res = await fetch(`/api/posts/${post._id}/comments/${commentId}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        alert(error.error || t.commentDeleteFailed);
-        return;
-      }
-
-      const nextComments = localComments.filter((c) => c._id !== commentId);
-      setLocalComments(nextComments);
-      onCommentsChange(post._id, nextComments);
-    } catch (error) {
-      console.error("Delete comment failed:", error);
-      alert(t.commentDeleteFailed);
-    } finally {
-      setIsCommentActionLoading(false);
-      setCommentToDelete(null); // Close the modal
     }
   }
 
@@ -1484,7 +1374,7 @@ function PostCard({
                     type="button"
                     onClick={() => {
                       setMenuOpen(false);
-                      onDelete(post._id); // Calls setPostToDelete(id) passed from FeedsPage
+                      onDelete(post._id);
                     }}
                     className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
                   >
@@ -1585,7 +1475,7 @@ function PostCard({
             ) : (
               <div className="space-y-3">
                 {localComments.map((comment) => (
-                  <div key={comment._id} className="flex items-start gap-3 relative">
+                  <div key={comment._id} className="flex items-start gap-3">
                     <Image
                       src={comment.author.image || "/avatar.png"}
                       alt={comment.author.name || t.alumni}
@@ -1594,91 +1484,20 @@ function PostCard({
                       className="h-9 w-9 rounded-xl object-cover shadow-sm"
                     />
 
-                    <div className="min-w-0 flex-1 rounded-2xl bg-white px-4 py-3 shadow-sm dark:bg-slate-900 relative">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-black text-[var(--ucsh-text)]">
-                            {comment.author.name || t.unknownAlumni}
-                          </p>
-                          <span className="text-xs font-bold text-[var(--ucsh-muted)]">
-                            {formatDate(comment.createdAt, currentLang)}
-                          </span>
-                        </div>
+                    <div className="min-w-0 flex-1 rounded-2xl bg-white px-4 py-3 shadow-sm dark:bg-slate-900">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-black text-[var(--ucsh-text)]">
+                          {comment.author.name || t.unknownAlumni}
+                        </p>
 
-                        {/* Comment Edit/Delete Dropdown Toggle */}
-                        {comment.isOwner && (
-                          <div className="relative">
-                            <button
-                              onClick={() =>
-                                setOpenCommentMenuId(
-                                  openCommentMenuId === comment._id ? null : comment._id
-                                )
-                              }
-                              className="text-[var(--ucsh-muted)] hover:text-[var(--ucsh-primary-dark)]"
-                            >
-                              <MoreVertical size={15} />
-                            </button>
-
-                            {openCommentMenuId === comment._id && (
-                              <div className="absolute right-0 top-6 z-20 w-32 overflow-hidden rounded-xl border border-[var(--ucsh-border)] bg-white shadow-lg dark:bg-slate-800">
-                                <button
-                                  onClick={() => {
-                                    setOpenCommentMenuId(null);
-                                    setEditingCommentId(comment._id);
-                                    setEditCommentText(comment.content);
-                                  }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-black text-slate-700 hover:bg-cyan-50 dark:text-slate-200 dark:hover:bg-slate-700"
-                                >
-                                  <Edit size={13} />
-                                  {t.edit}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setOpenCommentMenuId(null);
-                                    setCommentToDelete(comment._id); // Open Comment Delete Modal
-                                  }}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-                                >
-                                  <Trash2 size={13} />
-                                  {t.delete}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        <span className="text-xs font-bold text-[var(--ucsh-muted)]">
+                          {formatDate(comment.createdAt, currentLang)}
+                        </span>
                       </div>
 
-                      {/* Display Textarea if Editing, Otherwise Display Text */}
-                      {editingCommentId === comment._id ? (
-                        <div className="mt-2">
-                          <textarea
-                            value={editCommentText}
-                            onChange={(e) => setEditCommentText(e.target.value)}
-                            rows={2}
-                            className="ucsh-input w-full resize-none text-sm font-bold leading-6"
-                          />
-                          <div className="mt-2 flex gap-2">
-                            <button
-                              onClick={() => submitCommentEdit(comment._id)}
-                              disabled={isCommentActionLoading || !editCommentText.trim()}
-                              className="rounded-lg bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] px-3 py-1.5 text-xs font-black text-white disabled:opacity-50"
-                            >
-                              {t.saveChanges}
-                            </button>
-                            <button
-                              onClick={() => setEditingCommentId(null)}
-                              disabled={isCommentActionLoading}
-                              className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
-                            >
-                              {t.cancel}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="mt-1 whitespace-pre-line break-words text-sm font-bold leading-6 text-slate-600 dark:text-slate-300">
-                          {comment.content}
-                        </p>
-                      )}
+                      <p className="mt-1 whitespace-pre-line break-words text-sm font-bold leading-6 text-slate-600 dark:text-slate-300">
+                        {comment.content}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -1686,42 +1505,6 @@ function PostCard({
             )}
           </div>
         )}
-
-        {/* MODAL: Custom Comment Deletion Confirmation */}
-        {commentToDelete && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-            <div className="ucsh-card w-full max-w-sm p-6 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500 dark:bg-red-950/40">
-                <Trash2 size={28} />
-              </div>
-              <h3 className="mb-2 text-lg font-black text-[var(--ucsh-text)]">
-                {t.deleteCommentConfirm}
-              </h3>
-              <p className="text-sm font-bold text-[var(--ucsh-muted)]">
-                This action cannot be undone.
-              </p>
-              <div className="mt-6 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCommentToDelete(null)}
-                  disabled={isCommentActionLoading}
-                  className="ucsh-btn-outline flex-1 rounded-xl py-2.5 text-sm font-black disabled:opacity-50"
-                >
-                  {t.cancel}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => deleteComment(commentToDelete)}
-                  disabled={isCommentActionLoading}
-                  className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-black text-white transition hover:bg-red-600 disabled:opacity-50 shadow-md hover:shadow-lg"
-                >
-                  {t.delete}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
     </article>
   );
