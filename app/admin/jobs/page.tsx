@@ -220,15 +220,14 @@ function exportHtml(jobs: JobItem[], title: string, t: typeof text.en) {
       (job, index) => `
         <tr>
           <td class="center">${index + 1}</td>
+          <td>${escapeHtml(job.userName || t.unknownAlumni)}</td>
           <td>${escapeHtml(job.position || t.positionNotProvided)}</td>
           <td>${escapeHtml(job.company || t.companyNotProvided)}</td>
           <td>${escapeHtml(job.employmentType || t.notAvailable)}</td>
           <td>${escapeHtml(job.location || t.notAvailable)}</td>
           <td>${escapeHtml(job.salary || t.notAvailable)}</td>
           <td>${escapeHtml(job.phone || t.notAvailable)}</td>
-          <td>${escapeHtml(getContact(job, t))}</td>
           <td>${escapeHtml(getDuration(job, t))}</td>
-          <td>${escapeHtml(job.userName || t.unknownAlumni)}</td>
           <td class="center">
             <span class="badge ${job.isCurrent ? "badge-current" : "badge-past"}">
               ${escapeHtml(job.isCurrent ? t.current : t.past)}
@@ -464,15 +463,14 @@ function exportHtml(jobs: JobItem[], title: string, t: typeof text.en) {
     <thead>
       <tr>
         <th class="center">#</th>
+        <th>ALUMNI</th>
         <th>JOB POSITION</th>
         <th>ORGANIZATION</th>
         <th>TYPE</th>
         <th>LOCATION</th>
-        <th>INCOME</th>
+        <th>SALARY</th>
         <th>PHONE</th>
-        <th>CONTACT</th>
         <th>DURATION</th>
-        <th>ALUMNI</th>
         <th class="center">STATUS</th>
       </tr>
     </thead>
@@ -810,65 +808,12 @@ export default async function AdminJobsPage({
 
             {/* Desktop Table View */}
             <div className="hidden overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 lg:block">
-              <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800/60 sm:px-5">
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                  {filteredJobs.length} {t.job}
-                </p>
-              </div>
-
-              <div className="w-full overflow-x-auto rounded-b-2xl">
+              <div className="w-full overflow-x-auto rounded-2xl">
                 <table className="w-full min-w-[1060px] text-left">
                   <thead className="bg-slate-50 dark:bg-slate-900/80">
                     <tr>
-                      <SortableTableHead
-                        label={t.job}
-                        sortKey="job"
-                        currentSortKey={sortKey}
-                        currentDir={sortDir}
-                        makeSortHref={makeSortHref}
-                      />
-                      <SortableTableHead
-                        label={t.company}
-                        sortKey="company"
-                        currentSortKey={sortKey}
-                        currentDir={sortDir}
-                        makeSortHref={makeSortHref}
-                      />
-                      <SortableTableHead
-                        label={t.type}
-                        sortKey="type"
-                        currentSortKey={sortKey}
-                        currentDir={sortDir}
-                        makeSortHref={makeSortHref}
-                      />
-                      <SortableTableHead
-                        label={t.location}
-                        sortKey="location"
-                        currentSortKey={sortKey}
-                        currentDir={sortDir}
-                        makeSortHref={makeSortHref}
-                      />
-                      <SortableTableHead
-                        label={t.salary}
-                        sortKey="salary"
-                        currentSortKey={sortKey}
-                        currentDir={sortDir}
-                        makeSortHref={makeSortHref}
-                      />
-                      <SortableTableHead
-                        label={t.phone}
-                        sortKey="phone"
-                        currentSortKey={sortKey}
-                        currentDir={sortDir}
-                        makeSortHref={makeSortHref}
-                      />
-                      <SortableTableHead
-                        label={t.duration}
-                        sortKey="duration"
-                        currentSortKey={sortKey}
-                        currentDir={sortDir}
-                        makeSortHref={makeSortHref}
-                      />
+                      <TableHead align="center">No</TableHead>
+
                       <SortableTableHead
                         label={t.alumni}
                         sortKey="alumni"
@@ -876,6 +821,55 @@ export default async function AdminJobsPage({
                         currentDir={sortDir}
                         makeSortHref={makeSortHref}
                       />
+
+                      <SortableTableHead
+                        label={t.job}
+                        sortKey="job"
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
+                      />
+
+                      <SortableTableHead
+                        label={t.company}
+                        sortKey="company"
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
+                      />
+
+                      <SortableTableHead
+                        label={t.type}
+                        sortKey="type"
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
+                      />
+
+                      <SortableTableHead
+                        label={t.location}
+                        sortKey="location"
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
+                      />
+
+                      <SortableTableHead
+                        label={t.salary}
+                        sortKey="salary"
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
+                      />
+
+                      <SortableTableHead
+                        label={t.phone}
+                        sortKey="phone"
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
+                      />
+
                       <SortableTableHead
                         label={t.status}
                         sortKey="status"
@@ -884,12 +878,28 @@ export default async function AdminJobsPage({
                         makeSortHref={makeSortHref}
                         align="center"
                       />
+
+                      <SortableTableHead
+                        label={t.duration}
+                        sortKey="duration"
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
+                      />
                     </tr>
                   </thead>
 
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                     {paginatedJobs.map((job, index) => (
                       <tr key={`${job.userId}-${index}`} className="transition hover:bg-cyan-50/40 dark:hover:bg-[#008B8B]/10">
+                        <td className="px-4 py-3.5 text-center text-sm font-bold text-slate-500 dark:text-slate-400">
+                          {startIndex + index + 1}
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <UserCell job={job} t={t} />
+                        </td>
+
                         <td className="px-4 py-3.5">
                           <h3 className="line-clamp-1 text-sm font-black text-slate-900 dark:text-white">
                             {job.position || t.positionNotProvided}
@@ -922,16 +932,12 @@ export default async function AdminJobsPage({
                           {job.phone || t.notAvailable}
                         </td>
 
-                        <td className="px-4 py-3.5 text-sm font-bold text-slate-600 dark:text-slate-300">
-                          {getDuration(job, t)}
-                        </td>
-
-                        <td className="px-4 py-3.5">
-                          <UserCell job={job} t={t} />
-                        </td>
-
                         <td className="px-4 py-3.5 text-center">
                           <StatusBadge current={Boolean(job.isCurrent)} t={t} />
+                        </td>
+
+                        <td className="px-4 py-3.5 text-sm font-bold text-slate-600 dark:text-slate-300">
+                          {getDuration(job, t)}
                         </td>
                       </tr>
                     ))}
@@ -950,15 +956,19 @@ export default async function AdminJobsPage({
                   className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="line-clamp-1 text-base font-black text-slate-900 dark:text-white">
-                        {job.position || t.positionNotProvided}
-                      </h3>
-                      <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">
-                        {job.company || t.companyNotProvided}
-                      </p>
+                    <div className="flex items-start gap-2 min-w-0">
+                      <span className="mt-1 text-xs font-black text-slate-400 shrink-0">
+                        #{startIndex + index + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <h3 className="line-clamp-1 text-base font-black text-slate-900 dark:text-white">
+                          {job.position || t.positionNotProvided}
+                        </h3>
+                        <p className="mt-1 text-xs font-bold text-slate-400 dark:text-slate-500">
+                          {job.company || t.companyNotProvided}
+                        </p>
+                      </div>
                     </div>
-
                     <StatusBadge current={Boolean(job.isCurrent)} t={t} />
                   </div>
 
@@ -1124,6 +1134,28 @@ function ExportItem({
       {icon}
       {text}
     </a>
+  );
+}
+
+function TableHead({
+  children,
+  align = "left",
+}: {
+  children: React.ReactNode;
+  align?: "left" | "center" | "right";
+}) {
+  return (
+    <th
+      className={`px-4 py-3.5 ${
+        align === "right"
+          ? "text-right"
+          : align === "center"
+            ? "text-center"
+            : "text-left"
+      } text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500`}
+    >
+      {children}
+    </th>
   );
 }
 

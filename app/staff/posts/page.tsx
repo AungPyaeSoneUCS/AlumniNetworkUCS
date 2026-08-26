@@ -89,8 +89,7 @@ const text = {
     actions: "လုပ်ဆောင်ချက်",
     delete: "ဖျက်ရန်",
     noPosts: "ပို့စ် မတွေ့ပါ",
-    noPostsText:
-      "Alumni posts ရှိလာပါက ဒီနေရာတွင် ပြပါမည်။",
+    noPostsText: "Alumni posts ရှိလာပါက ဒီနေရာတွင် ပြပါမည်။",
     unknownAlumni: "အမည်မရှိသော Alumni",
     noEmail: "Email မရှိပါ",
     general: "General",
@@ -141,11 +140,7 @@ function formatDate(value?: string | Date) {
   return `${month} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
-function isDateInRange(
-  value: any,
-  from: string,
-  to: string,
-) {
+function isDateInRange(value: any, from: string, to: string) {
   if (!from && !to) return true;
 
   const date = new Date(value);
@@ -180,9 +175,7 @@ function isDateInRange(
 }
 
 function getLikesCount(post: any) {
-  return Array.isArray(post.likes)
-    ? post.likes.length
-    : 0;
+  return Array.isArray(post.likes) ? post.likes.length : 0;
 }
 
 function getCommentsCount(post: any) {
@@ -205,10 +198,7 @@ function csvCell(value: any) {
   return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
 
-function makeExportRows(
-  posts: any[],
-  t: typeof text.en,
-) {
+function makeExportRows(posts: any[], t: typeof text.en) {
   return posts.map((post) => {
     const author = post.author || {};
 
@@ -224,10 +214,7 @@ function makeExportRows(
   });
 }
 
-function csvDataUrl(
-  posts: any[],
-  t: typeof text.en,
-) {
+function csvDataUrl(posts: any[], t: typeof text.en) {
   const rows = [
     [
       t.author,
@@ -250,11 +237,7 @@ function csvDataUrl(
   )}`;
 }
 
-function exportHtml(
-  posts: any[],
-  title: string,
-  t: typeof text.en,
-) {
+function exportHtml(posts: any[], title: string, t: typeof text.en) {
   const now = new Date();
 
   const dateStr = now.toLocaleDateString("en-US", {
@@ -275,21 +258,13 @@ function exportHtml(
       return `
         <tr>
           <td class="center">${index + 1}</td>
-          <td>${escapeHtml(
-            author.name || t.unknownAlumni,
-          )}</td>
+          <td>${escapeHtml(author.name || t.unknownAlumni)}</td>
           <td>${escapeHtml(author.email || t.noEmail)}</td>
-          <td>${escapeHtml(
-            post.category || t.general,
-          )}</td>
-          <td>${escapeHtml(
-            post.content || t.noContent,
-          )}</td>
+          <td>${escapeHtml(post.category || t.general)}</td>
+          <td>${escapeHtml(post.content || t.noContent)}</td>
           <td class="center">${getLikesCount(post)}</td>
           <td class="center">${getCommentsCount(post)}</td>
-          <td>${escapeHtml(
-            formatDate(post.createdAt),
-          )}</td>
+          <td>${escapeHtml(formatDate(post.createdAt))}</td>
         </tr>
       `;
     })
@@ -628,28 +603,17 @@ function exportHtml(
 </html>`;
 }
 
-function htmlDataUrl(
-  posts: any[],
-  title: string,
-  t: typeof text.en,
-) {
+function htmlDataUrl(posts: any[], title: string, t: typeof text.en) {
   return `data:text/html;charset=utf-8,${encodeURIComponent(
     exportHtml(posts, title, t),
   )}`;
 }
 
-function getPagination(
-  currentPage: number,
-  totalPages: number,
-) {
+function getPagination(currentPage: number, totalPages: number) {
   const pages: Array<number | "dots"> = [];
 
   if (totalPages <= 7) {
-    for (
-      let i = 1;
-      i <= totalPages;
-      i += 1
-    ) {
+    for (let i = 1; i <= totalPages; i += 1) {
       pages.push(i);
     }
 
@@ -662,28 +626,14 @@ function getPagination(
     pages.push("dots");
   }
 
-  const start = Math.max(
-    2,
-    currentPage - 1,
-  );
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
 
-  const end = Math.min(
-    totalPages - 1,
-    currentPage + 1,
-  );
-
-  for (
-    let i = start;
-    i <= end;
-    i += 1
-  ) {
+  for (let i = start; i <= end; i += 1) {
     pages.push(i);
   }
 
-  if (
-    currentPage <
-    totalPages - 3
-  ) {
+  if (currentPage < totalPages - 3) {
     pages.push("dots");
   }
 
@@ -692,14 +642,10 @@ function getPagination(
   return pages;
 }
 
-async function deletePost(
-  formData: FormData,
-) {
+async function deletePost(formData: FormData) {
   "use server";
 
-  const id = String(
-    formData.get("id") || "",
-  );
+  const id = String(formData.get("id") || "");
 
   if (!id) return;
 
@@ -711,12 +657,11 @@ async function deletePost(
 
   await connectDB();
 
-  const staffUser: any =
-    await User.findOne({
-      email: session.user.email,
-    })
-      .select("_id role")
-      .lean();
+  const staffUser: any = await User.findOne({
+    email: session.user.email,
+  })
+    .select("_id role")
+    .lean();
 
   if (
     !staffUser ||
@@ -758,53 +703,29 @@ export default async function StaffPostsPage({
         dir?: "asc" | "desc";
       };
 }) {
-  const resolvedSearchParams =
-    await Promise.resolve(
-      searchParams || {},
-    );
-
-  const rawQ = cleanText(
-    resolvedSearchParams.q,
+  const resolvedSearchParams = await Promise.resolve(
+    searchParams || {},
   );
+
+  const rawQ = cleanText(resolvedSearchParams.q);
 
   const q = rawQ.toLowerCase();
 
-  const selectedCategory =
-    cleanText(
-      resolvedSearchParams.category,
-    );
+  const selectedCategory = cleanText(resolvedSearchParams.category);
 
-  const selectedAuthor =
-    cleanText(
-      resolvedSearchParams.author,
-    );
+  const selectedAuthor = cleanText(resolvedSearchParams.author);
 
-  const selectedFrom =
-    cleanText(
-      resolvedSearchParams.from,
-    );
+  const selectedFrom = cleanText(resolvedSearchParams.from);
 
-  const selectedTo =
-    cleanText(
-      resolvedSearchParams.to,
-    );
+  const selectedTo = cleanText(resolvedSearchParams.to);
 
-  const sortKey =
-    cleanText(
-      resolvedSearchParams.sort,
-    );
+  const sortKey = cleanText(resolvedSearchParams.sort);
 
   const sortDir =
-    resolvedSearchParams.dir ===
-    "desc"
-      ? "desc"
-      : "asc";
+    resolvedSearchParams.dir === "desc" ? "desc" : "asc";
 
   const lang: Lang =
-    resolvedSearchParams.lang ===
-    "mm"
-      ? "mm"
-      : "en";
+    resolvedSearchParams.lang === "mm" ? "mm" : "en";
 
   const t = text[lang];
 
@@ -816,12 +737,11 @@ export default async function StaffPostsPage({
 
   await connectDB();
 
-  const staffUser: any =
-    await User.findOne({
-      email: session.user.email,
-    })
-      .select("_id role")
-      .lean();
+  const staffUser: any = await User.findOne({
+    email: session.user.email,
+  })
+    .select("_id role")
+    .lean();
 
   if (
     !staffUser ||
@@ -830,417 +750,196 @@ export default async function StaffPostsPage({
     redirect("/staff/login");
   }
 
-  const posts: any[] =
-    await Post.find({})
-      .sort({ createdAt: -1 })
-      .populate(
-        "author",
-        "name email image profileImage googleImage googleProfileImage department graduatedYear",
-      )
-      .lean();
+  const posts: any[] = await Post.find({})
+    .sort({ createdAt: -1 })
+    .populate(
+      "author",
+      "name email image profileImage googleImage googleProfileImage department graduatedYear",
+    )
+    .lean();
 
-  const categories =
-    Array.from(
-      new Set(
-        posts
-          .map(
-            (post) =>
-              cleanText(
-                post.category ||
-                  t.general,
-              ),
-          )
-          .filter(Boolean),
-      ),
-    ).sort((a, b) =>
-      a.localeCompare(b),
+  const categories = Array.from(
+    new Set(
+      posts
+        .map((post) => cleanText(post.category || t.general))
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
+
+  const authors = Array.from(
+    new Map(
+      posts
+        .map((post) => post.author)
+        .filter(Boolean)
+        .map((author: any) => [
+          String(author._id),
+          {
+            id: String(author._id),
+            name: author.name || t.unknownAlumni,
+          },
+        ]),
+    ).values(),
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+  let filteredPosts = posts.filter((post) => {
+    const author = post.author || {};
+
+    const likesCount = getLikesCount(post);
+
+    const commentsCount = getCommentsCount(post);
+
+    const searchable = [
+      post.content,
+      post.category,
+      author.name,
+      author.email,
+      String(likesCount),
+      String(commentsCount),
+    ]
+      .map((value) => cleanText(value).toLowerCase())
+      .join(" ");
+
+    return (
+      (!q || searchable.includes(q)) &&
+      (!selectedCategory ||
+        (post.category || t.general) === selectedCategory) &&
+      (!selectedAuthor || String(author._id) === selectedAuthor) &&
+      isDateInRange(post.createdAt, selectedFrom, selectedTo)
     );
-
-  const authors =
-    Array.from(
-      new Map(
-        posts
-          .map(
-            (post) =>
-              post.author,
-          )
-          .filter(Boolean)
-          .map(
-            (author: any) => [
-              String(author._id),
-              {
-                id: String(
-                  author._id,
-                ),
-                name:
-                  author.name ||
-                  t.unknownAlumni,
-              },
-            ],
-          ),
-      ).values(),
-    ).sort((a, b) =>
-      a.name.localeCompare(
-        b.name,
-      ),
-    );
-
-  let filteredPosts =
-    posts.filter((post) => {
-      const author =
-        post.author || {};
-
-      const likesCount =
-        getLikesCount(post);
-
-      const commentsCount =
-        getCommentsCount(post);
-
-      const searchable = [
-        post.content,
-        post.category,
-        author.name,
-        author.email,
-        String(likesCount),
-        String(commentsCount),
-      ]
-        .map((value) =>
-          cleanText(value)
-            .toLowerCase(),
-        )
-        .join(" ");
-
-      return (
-        (!q ||
-          searchable.includes(
-            q,
-          )) &&
-        (!selectedCategory ||
-          (post.category ||
-            t.general) ===
-            selectedCategory) &&
-        (!selectedAuthor ||
-          String(
-            author._id,
-          ) ===
-            selectedAuthor) &&
-        isDateInRange(
-          post.createdAt,
-          selectedFrom,
-          selectedTo,
-        )
-      );
-    });
+  });
 
   if (sortKey) {
-    filteredPosts =
-      [...filteredPosts].sort(
-        (a, b) => {
-          let aVal: any = "";
-          let bVal: any = "";
+    filteredPosts = [...filteredPosts].sort((a, b) => {
+      let aVal: any = "";
+      let bVal: any = "";
 
-          if (
-            sortKey ===
-            "author"
-          ) {
-            aVal =
-              cleanText(
-                a.author?.name,
-              ).toLowerCase();
+      if (sortKey === "author") {
+        aVal = cleanText(a.author?.name).toLowerCase();
+        bVal = cleanText(b.author?.name).toLowerCase();
+      } else if (sortKey === "category") {
+        aVal = cleanText(a.category).toLowerCase();
+        bVal = cleanText(b.category).toLowerCase();
+      } else if (sortKey === "content") {
+        aVal = cleanText(a.content).toLowerCase();
+        bVal = cleanText(b.content).toLowerCase();
+      } else if (sortKey === "likes") {
+        aVal = getLikesCount(a);
+        bVal = getLikesCount(b);
+      } else if (sortKey === "comments") {
+        aVal = getCommentsCount(a);
+        bVal = getCommentsCount(b);
+      } else if (sortKey === "date") {
+        aVal = new Date(a.createdAt || 0).getTime();
+        bVal = new Date(b.createdAt || 0).getTime();
+      }
 
-            bVal =
-              cleanText(
-                b.author?.name,
-              ).toLowerCase();
-          } else if (
-            sortKey ===
-            "category"
-          ) {
-            aVal =
-              cleanText(
-                a.category,
-              ).toLowerCase();
+      if (aVal < bVal) {
+        return sortDir === "asc" ? -1 : 1;
+      }
 
-            bVal =
-              cleanText(
-                b.category,
-              ).toLowerCase();
-          } else if (
-            sortKey ===
-            "content"
-          ) {
-            aVal =
-              cleanText(
-                a.content,
-              ).toLowerCase();
+      if (aVal > bVal) {
+        return sortDir === "asc" ? 1 : -1;
+      }
 
-            bVal =
-              cleanText(
-                b.content,
-              ).toLowerCase();
-          } else if (
-            sortKey ===
-            "likes"
-          ) {
-            aVal =
-              getLikesCount(a);
-
-            bVal =
-              getLikesCount(b);
-          } else if (
-            sortKey ===
-            "comments"
-          ) {
-            aVal =
-              getCommentsCount(a);
-
-            bVal =
-              getCommentsCount(b);
-          } else if (
-            sortKey ===
-            "date"
-          ) {
-            aVal = new Date(
-              a.createdAt || 0,
-            ).getTime();
-
-            bVal = new Date(
-              b.createdAt || 0,
-            ).getTime();
-          }
-
-          if (aVal < bVal) {
-            return sortDir ===
-              "asc"
-              ? -1
-              : 1;
-          }
-
-          if (aVal > bVal) {
-            return sortDir ===
-              "asc"
-              ? 1
-              : -1;
-          }
-
-          return 0;
-        },
-      );
+      return 0;
+    });
   }
 
-  const totalPages =
-    Math.max(
-      Math.ceil(
-        filteredPosts.length /
-          PAGE_SIZE,
-      ),
-      1,
-    );
+  const totalPages = Math.max(
+    Math.ceil(filteredPosts.length / PAGE_SIZE),
+    1,
+  );
 
-  const requestedPage =
-    Number(
-      resolvedSearchParams.page ||
-        "1",
-    );
+  const requestedPage = Number(resolvedSearchParams.page || "1");
 
-  const currentPage =
-    Math.min(
-      Math.max(
-        Number.isFinite(
-          requestedPage,
-        )
-          ? requestedPage
-          : 1,
-        1,
-      ),
-      totalPages,
-    );
+  const currentPage = Math.min(
+    Math.max(Number.isFinite(requestedPage) ? requestedPage : 1, 1),
+    totalPages,
+  );
 
-  const startIndex =
-    (currentPage - 1) *
-    PAGE_SIZE;
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
 
-  const paginatedPosts =
-    filteredPosts.slice(
-      startIndex,
-      startIndex + PAGE_SIZE,
-    );
+  const paginatedPosts = filteredPosts.slice(
+    startIndex,
+    startIndex + PAGE_SIZE,
+  );
 
-  const pageNumbers =
-    getPagination(
-      currentPage,
-      totalPages,
-    );
+  const pageNumbers = getPagination(currentPage, totalPages);
 
-  const showingStart =
-    filteredPosts.length ===
-    0
-      ? 0
-      : startIndex + 1;
+  const showingStart = filteredPosts.length === 0 ? 0 : startIndex + 1;
 
-  const showingEnd =
-    Math.min(
-      startIndex + PAGE_SIZE,
-      filteredPosts.length,
-    );
+  const showingEnd = Math.min(
+    startIndex + PAGE_SIZE,
+    filteredPosts.length,
+  );
 
-  const makePageHref = (
-    pageNumber: number,
-  ) => {
-    const params =
-      new URLSearchParams();
+  const makePageHref = (pageNumber: number) => {
+    const params = new URLSearchParams();
 
-    if (rawQ)
-      params.set(
-        "q",
-        rawQ,
-      );
+    if (rawQ) params.set("q", rawQ);
 
-    if (selectedCategory)
-      params.set(
-        "category",
-        selectedCategory,
-      );
+    if (selectedCategory) params.set("category", selectedCategory);
 
-    if (selectedAuthor)
-      params.set(
-        "author",
-        selectedAuthor,
-      );
+    if (selectedAuthor) params.set("author", selectedAuthor);
 
-    if (selectedFrom)
-      params.set(
-        "from",
-        selectedFrom,
-      );
+    if (selectedFrom) params.set("from", selectedFrom);
 
-    if (selectedTo)
-      params.set(
-        "to",
-        selectedTo,
-      );
+    if (selectedTo) params.set("to", selectedTo);
 
-    if (lang)
-      params.set(
-        "lang",
-        lang,
-      );
+    if (lang) params.set("lang", lang);
 
-    if (sortKey)
-      params.set(
-        "sort",
-        sortKey,
-      );
+    if (sortKey) params.set("sort", sortKey);
 
-    if (sortDir)
-      params.set(
-        "dir",
-        sortDir,
-      );
+    if (sortDir) params.set("dir", sortDir);
 
-    params.set(
-      "page",
-      String(pageNumber),
-    );
+    params.set("page", String(pageNumber));
 
     return `/staff/posts?${params.toString()}`;
   };
 
-  const makeSortHref = (
-    key: string,
-  ) => {
-    const params =
-      new URLSearchParams();
+  const makeSortHref = (key: string) => {
+    const params = new URLSearchParams();
 
-    if (rawQ)
-      params.set(
-        "q",
-        rawQ,
-      );
+    if (rawQ) params.set("q", rawQ);
 
-    if (selectedCategory)
-      params.set(
-        "category",
-        selectedCategory,
-      );
+    if (selectedCategory) params.set("category", selectedCategory);
 
-    if (selectedAuthor)
-      params.set(
-        "author",
-        selectedAuthor,
-      );
+    if (selectedAuthor) params.set("author", selectedAuthor);
 
-    if (selectedFrom)
-      params.set(
-        "from",
-        selectedFrom,
-      );
+    if (selectedFrom) params.set("from", selectedFrom);
 
-    if (selectedTo)
-      params.set(
-        "to",
-        selectedTo,
-      );
+    if (selectedTo) params.set("to", selectedTo);
 
-    if (lang)
-      params.set(
-        "lang",
-        lang,
-      );
+    if (lang) params.set("lang", lang);
 
-    params.set(
-      "page",
-      "1",
-    );
+    params.set("page", "1");
 
-    params.set(
-      "sort",
-      key,
-    );
+    params.set("sort", key);
 
     params.set(
       "dir",
-      sortKey === key &&
-      sortDir === "asc"
-        ? "desc"
-        : "asc",
+      sortKey === key && sortDir === "asc" ? "desc" : "asc",
     );
 
     return `/staff/posts?${params.toString()}`;
   };
 
-  const exportTitle =
-    t.exportTitle;
+  const exportTitle = t.exportTitle;
 
-  const excelHref =
-    csvDataUrl(
-      filteredPosts,
-      t,
-    );
+  const excelHref = csvDataUrl(filteredPosts, t);
 
-  const printHtml =
-    exportHtml(
-      filteredPosts,
-      exportTitle,
-      t,
-    );
+  const printHtml = exportHtml(filteredPosts, exportTitle, t);
 
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <div className="flex min-h-screen">
-        <StaffSidebar
-          active="posts"
-          lang={lang}
-        />
+        <StaffSidebar active="posts" lang={lang} />
 
         <section className="min-w-0 flex-1 px-4 pb-8 pt-16 sm:px-6 md:px-8 lg:pt-8">
           <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
-
             {/* Header + Filters */}
             <div className="relative z-20 overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 sm:p-5">
-
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-
                 <div className="min-w-0">
                   <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white sm:text-2xl">
                     {t.title}
@@ -1252,9 +951,7 @@ export default async function StaffPostsPage({
                 </div>
 
                 <div className="relative z-50 flex w-full flex-wrap items-center gap-2 overflow-visible xl:w-auto xl:justify-end">
-
                   <details className="group relative z-[200] inline-flex overflow-visible">
-
                     <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] px-4 py-2 text-xs font-black text-white shadow-md shadow-cyan-500/20 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95 marker:hidden [&::-webkit-details-marker]:hidden">
                       <Download size={15} />
                       {t.export}
@@ -1262,27 +959,18 @@ export default async function StaffPostsPage({
                     </summary>
 
                     <div className="absolute right-0 top-full z-[9999] mt-2 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-400/40 dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/50 max-[420px]:left-0 max-[420px]:right-auto">
-
                       <ExportItem
                         href={excelHref}
                         fileName="posts-export.csv"
-                        icon={
-                          <FileSpreadsheet
-                            size={16}
-                          />
-                        }
+                        icon={<FileSpreadsheet size={16} />}
                         text={t.excel}
                       />
 
                       <div className="flex [&>button]:flex [&>button]:w-full [&>button]:items-center [&>button]:gap-3 [&>button]:rounded-xl [&>button]:px-3 [&>button]:py-2.5 [&>button]:text-left [&>button]:text-sm [&>button]:font-black [&>button]:text-slate-700 [&>button]:transition-colors [&>button]:hover:bg-slate-100 dark:[&>button]:text-slate-200 dark:[&>button]:hover:bg-slate-700/50">
-                        <PrintUsersButton
-                          html={printHtml}
-                        />
+                        <PrintUsersButton html={printHtml} />
                       </div>
-
                     </div>
                   </details>
-
                 </div>
               </div>
 
@@ -1291,27 +979,14 @@ export default async function StaffPostsPage({
                 className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]"
                 action="/staff/posts"
               >
-
-                <input
-                  type="hidden"
-                  name="lang"
-                  value={lang}
-                />
+                <input type="hidden" name="lang" value={lang} />
 
                 {sortKey && (
-                  <input
-                    type="hidden"
-                    name="sort"
-                    value={sortKey}
-                  />
+                  <input type="hidden" name="sort" value={sortKey} />
                 )}
 
                 {sortDir && (
-                  <input
-                    type="hidden"
-                    name="dir"
-                    value={sortDir}
-                  />
+                  <input type="hidden" name="dir" value={sortDir} />
                 )}
 
                 <div className="relative md:col-span-2 xl:col-span-1">
@@ -1320,9 +995,7 @@ export default async function StaffPostsPage({
                   <input
                     name="q"
                     defaultValue={rawQ}
-                    placeholder={
-                      t.searchPlaceholder
-                    }
+                    placeholder={t.searchPlaceholder}
                     data-auto-filter="true"
                     className="h-10 w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4]"
                   />
@@ -1330,55 +1003,32 @@ export default async function StaffPostsPage({
 
                 <SelectBox
                   name="category"
-                  defaultValue={
-                    selectedCategory
-                  }
+                  defaultValue={selectedCategory}
                 >
-                  <option value="">
-                    {t.allCategories}
-                  </option>
+                  <option value="">{t.allCategories}</option>
 
-                  {categories.map(
-                    (category) => (
-                      <option
-                        key={category}
-                        value={category}
-                      >
-                        {category}
-                      </option>
-                    ),
-                  )}
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
                 </SelectBox>
 
-                <SelectBox
-                  name="author"
-                  defaultValue={
-                    selectedAuthor
-                  }
-                >
-                  <option value="">
-                    {t.allAuthors}
-                  </option>
+                <SelectBox name="author" defaultValue={selectedAuthor}>
+                  <option value="">{t.allAuthors}</option>
 
-                  {authors.map(
-                    (author) => (
-                      <option
-                        key={author.id}
-                        value={author.id}
-                      >
-                        {author.name}
-                      </option>
-                    ),
-                  )}
+                  {authors.map((author) => (
+                    <option key={author.id} value={author.id}>
+                      {author.name}
+                    </option>
+                  ))}
                 </SelectBox>
 
                 <input
                   type="date"
                   name="from"
                   aria-label={t.from}
-                  defaultValue={
-                    selectedFrom
-                  }
+                  defaultValue={selectedFrom}
                   className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
                 />
 
@@ -1386,330 +1036,197 @@ export default async function StaffPostsPage({
                   type="date"
                   name="to"
                   aria-label={t.to}
-                  defaultValue={
-                    selectedTo
-                  }
+                  defaultValue={selectedTo}
                   className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
                 />
-
               </form>
 
               <AutoFilterScript />
-
             </div>
 
             {/* Desktop Table */}
             <div className="hidden overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 lg:block">
-
-              <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800/60 sm:px-5">
-                <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                  {filteredPosts.length}{" "}
-                  {t.title2}
-                </p>
-              </div>
-
-              <div className="w-full overflow-x-auto rounded-b-2xl">
-
+              <div className="w-full overflow-x-auto rounded-2xl">
                 <table className="w-full min-w-[1100px] text-left">
-
                   <thead className="bg-slate-50 dark:bg-slate-900/80">
                     <tr>
+                      <TableHead align="center">No</TableHead>
 
                       <SortableTableHead
                         label={t.author}
                         sortKey="author"
-                        currentSortKey={
-                          sortKey
-                        }
-                        currentDir={
-                          sortDir
-                        }
-                        makeSortHref={
-                          makeSortHref
-                        }
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
                       />
 
                       <SortableTableHead
                         label={t.category}
                         sortKey="category"
-                        currentSortKey={
-                          sortKey
-                        }
-                        currentDir={
-                          sortDir
-                        }
-                        makeSortHref={
-                          makeSortHref
-                        }
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
                       />
 
                       <SortableTableHead
                         label={t.content}
                         sortKey="content"
-                        currentSortKey={
-                          sortKey
-                        }
-                        currentDir={
-                          sortDir
-                        }
-                        makeSortHref={
-                          makeSortHref
-                        }
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
                       />
 
                       <SortableTableHead
                         label={t.likes}
                         sortKey="likes"
-                        currentSortKey={
-                          sortKey
-                        }
-                        currentDir={
-                          sortDir
-                        }
-                        makeSortHref={
-                          makeSortHref
-                        }
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
                         align="center"
                       />
 
                       <SortableTableHead
                         label={t.comments}
                         sortKey="comments"
-                        currentSortKey={
-                          sortKey
-                        }
-                        currentDir={
-                          sortDir
-                        }
-                        makeSortHref={
-                          makeSortHref
-                        }
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
                         align="center"
                       />
 
                       <SortableTableHead
                         label={t.date}
                         sortKey="date"
-                        currentSortKey={
-                          sortKey
-                        }
-                        currentDir={
-                          sortDir
-                        }
-                        makeSortHref={
-                          makeSortHref
-                        }
+                        currentSortKey={sortKey}
+                        currentDir={sortDir}
+                        makeSortHref={makeSortHref}
                       />
 
-                      <TableHead align="right">
-                        {t.actions}
-                      </TableHead>
-
+                      <TableHead align="right">{t.actions}</TableHead>
                     </tr>
                   </thead>
 
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {paginatedPosts.map((post, index) => {
+                      const author = post.author || {};
 
-                    {paginatedPosts.map(
-                      (post) => {
-                        const author =
-                          post.author ||
-                          {};
+                      return (
+                        <tr
+                          key={String(post._id)}
+                          className="transition hover:bg-cyan-50/40 dark:hover:bg-[#008B8B]/10"
+                        >
+                          <td className="px-4 py-3.5 text-center text-sm font-bold text-slate-500 dark:text-slate-400">
+                            {startIndex + index + 1}
+                          </td>
 
-                        return (
-                          <tr
-                            key={String(
-                              post._id,
-                            )}
-                            className="transition hover:bg-cyan-50/40 dark:hover:bg-[#008B8B]/10"
-                          >
+                          <td className="px-4 py-3.5">
+                            <AuthorCell author={author} t={t} />
+                          </td>
 
-                            <td className="px-4 py-3.5">
-                              <AuthorCell
-                                author={
-                                  author
-                                }
-                                t={t}
-                              />
-                            </td>
+                          <td className="px-4 py-3.5">
+                            <Badge>{post.category || t.general}</Badge>
+                          </td>
 
-                            <td className="px-4 py-3.5">
-                              <Badge>
-                                {post.category ||
-                                  t.general}
-                              </Badge>
-                            </td>
+                          <td className="max-w-[430px] px-4 py-3.5">
+                            <p className="line-clamp-2 text-sm font-semibold leading-5 text-slate-600 dark:text-slate-300">
+                              {post.content || t.noContent}
+                            </p>
+                          </td>
 
-                            <td className="max-w-[430px] px-4 py-3.5">
-                              <p className="line-clamp-2 text-sm font-semibold leading-5 text-slate-600 dark:text-slate-300">
-                                {post.content ||
-                                  t.noContent}
-                              </p>
-                            </td>
+                          <td className="px-4 py-3.5 text-center">
+                            <span className="inline-flex items-center justify-center gap-1 text-sm font-black text-slate-700 dark:text-slate-300">
+                              {getLikesCount(post)}
+                            </span>
+                          </td>
 
-                            <td className="px-4 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center gap-1 text-sm font-black text-slate-700 dark:text-slate-300">
-                                <Heart
-                                  size={14}
-                                  className="text-rose-500"
-                                />
-                                {getLikesCount(
-                                  post,
-                                )}
-                              </span>
-                            </td>
+                          <td className="px-4 py-3.5 text-center">
+                            <span className="inline-flex items-center justify-center gap-1 text-sm font-black text-slate-700 dark:text-slate-300">
+                              {getCommentsCount(post)}
+                            </span>
+                          </td>
 
-                            <td className="px-4 py-3.5 text-center">
-                              <span className="inline-flex items-center justify-center gap-1 text-sm font-black text-slate-700 dark:text-slate-300">
-                                <MessageCircle
-                                  size={14}
-                                  className="text-cyan-600"
-                                />
-                                {getCommentsCount(
-                                  post,
-                                )}
-                              </span>
-                            </td>
+                          <td className="px-4 py-3.5 text-sm font-bold text-slate-600 dark:text-slate-400">
+                            {formatDate(post.createdAt)}
+                          </td>
 
-                            <td className="px-4 py-3.5 text-sm font-bold text-slate-600 dark:text-slate-400">
-                              {formatDate(
-                                post.createdAt,
-                              )}
-                            </td>
-
-                            <td className="px-4 py-3.5">
-                              <PostActions
-                                post={post}
-                                t={t}
-                              />
-                            </td>
-
-                          </tr>
-                        );
-                      },
-                    )}
-
+                          <td className="px-4 py-3.5">
+                            <PostActions post={post} t={t} />
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
-              {filteredPosts.length ===
-                0 && (
-                <EmptyPosts t={t} />
-              )}
-
+              {filteredPosts.length === 0 && <EmptyPosts t={t} />}
             </div>
 
             {/* Mobile Cards */}
             <div className="grid gap-4 lg:hidden">
+              {paginatedPosts.map((post, index) => {
+                const author = post.author || {};
 
-              {paginatedPosts.map(
-                (post) => {
-                  const author =
-                    post.author ||
-                    {};
-
-                  return (
-                    <article
-                      key={`mobile-${String(
-                        post._id,
-                      )}`}
-                      className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50"
-                    >
-
-                      <div className="flex items-start justify-between gap-3">
-
-                        <AuthorCell
-                          author={author}
-                          t={t}
-                        />
-
-                        <Badge>
-                          {post.category ||
-                            t.general}
-                        </Badge>
-
+                return (
+                  <article
+                    key={`mobile-${String(post._id)}`}
+                    className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-2">
+                        <span className="mt-2 text-xs font-black text-slate-400">
+                          #{startIndex + index + 1}
+                        </span>
+                        <AuthorCell author={author} t={t} />
                       </div>
 
-                      <p className="mt-4 line-clamp-4 text-sm font-semibold leading-5 text-slate-600 dark:text-slate-300">
-                        {post.content ||
-                          t.noContent}
-                      </p>
+                      <Badge>{post.category || t.general}</Badge>
+                    </div>
 
-                      <div className="mt-4 grid grid-cols-3 gap-3">
+                    <p className="mt-4 line-clamp-4 text-sm font-semibold leading-5 text-slate-600 dark:text-slate-300">
+                      {post.content || t.noContent}
+                    </p>
 
-                        <MiniInfo
-                          label={t.likes}
-                          value={getLikesCount(
-                            post,
-                          )}
-                        />
+                    <div className="mt-4 grid grid-cols-3 gap-3">
+                      <MiniInfo
+                        label={t.likes}
+                        value={getLikesCount(post)}
+                      />
 
-                        <MiniInfo
-                          label={t.comments}
-                          value={getCommentsCount(
-                            post,
-                          )}
-                        />
+                      <MiniInfo
+                        label={t.comments}
+                        value={getCommentsCount(post)}
+                      />
 
-                        <MiniInfo
-                          label={t.date}
-                          value={formatDate(
-                            post.createdAt,
-                          )}
-                        />
+                      <MiniInfo
+                        label={t.date}
+                        value={formatDate(post.createdAt)}
+                      />
+                    </div>
 
-                      </div>
+                    <div className="mt-4">
+                      <PostActions post={post} t={t} mobile />
+                    </div>
+                  </article>
+                );
+              })}
 
-                      <div className="mt-4">
-                        <PostActions
-                          post={post}
-                          t={t}
-                          mobile
-                        />
-                      </div>
-
-                    </article>
-                  );
-                },
-              )}
-
-              {filteredPosts.length ===
-                0 && (
-                <EmptyPosts t={t} />
-              )}
-
+              {filteredPosts.length === 0 && <EmptyPosts t={t} />}
             </div>
 
             {/* Pagination */}
-            {filteredPosts.length >
-              0 && (
+            {filteredPosts.length > 0 && (
               <Pagination
-                currentPage={
-                  currentPage
-                }
-                totalPages={
-                  totalPages
-                }
-                pageNumbers={
-                  pageNumbers
-                }
-                makePageHref={
-                  makePageHref
-                }
-                showingStart={
-                  showingStart
-                }
-                showingEnd={
-                  showingEnd
-                }
-                totalItems={
-                  filteredPosts.length
-                }
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageNumbers={pageNumbers}
+                makePageHref={makePageHref}
+                showingStart={showingStart}
+                showingEnd={showingEnd}
+                totalItems={filteredPosts.length}
                 t={t}
               />
             )}
-
           </div>
         </section>
       </div>
@@ -1816,20 +1333,11 @@ function SortableTableHead({
   label: string;
   sortKey: string;
   currentSortKey: string;
-  currentDir:
-    | "asc"
-    | "desc";
-  makeSortHref: (
-    key: string,
-  ) => string;
-  align?:
-    | "left"
-    | "center"
-    | "right";
+  currentDir: "asc" | "desc";
+  makeSortHref: (key: string) => string;
+  align?: "left" | "center" | "right";
 }) {
-  const isActive =
-    currentSortKey ===
-    sortKey;
+  const isActive = currentSortKey === sortKey;
 
   const alignClasses =
     align === "right"
@@ -1841,9 +1349,7 @@ function SortableTableHead({
   return (
     <th className="px-4 py-3.5 text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
       <Link
-        href={makeSortHref(
-          sortKey,
-        )}
+        href={makeSortHref(sortKey)}
         className={`inline-flex w-full items-center gap-1.5 transition-colors hover:text-slate-800 dark:hover:text-slate-200 ${alignClasses}`}
       >
         {label}
@@ -1919,10 +1425,7 @@ function TableHead({
   align = "left",
 }: {
   children: React.ReactNode;
-  align?:
-    | "left"
-    | "center"
-    | "right";
+  align?: "left" | "center" | "right";
 }) {
   return (
     <th
@@ -1948,32 +1451,22 @@ function AuthorCell({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
-
       <Image
-        src={getAuthorImage(
-          author,
-        )}
-        alt={
-          author.name ||
-          t.unknownAlumni
-        }
+        src={getAuthorImage(author)}
+        alt={author.name || t.unknownAlumni}
         width={40}
         height={40}
         className="h-10 w-10 shrink-0 rounded-xl border border-slate-200/80 bg-slate-50 object-cover dark:border-slate-700/80 dark:bg-slate-900"
       />
 
       <div className="min-w-0">
-
         <p className="line-clamp-1 text-sm font-black text-slate-950 dark:text-white">
-          {author.name ||
-            t.unknownAlumni}
+          {author.name || t.unknownAlumni}
         </p>
 
         <p className="mt-0.5 line-clamp-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-          {author.email ||
-            t.noEmail}
+          {author.email || t.noEmail}
         </p>
-
       </div>
     </div>
   );
@@ -1991,26 +1484,17 @@ function PostActions({
   return (
     <div
       className={`flex gap-2 ${
-        mobile
-          ? "grid grid-cols-1"
-          : "justify-end"
+        mobile ? "grid grid-cols-1" : "justify-end"
       }`}
     >
-      <form
-        action={deletePost}
-        className="w-full"
-      >
+      <form action={deletePost} className="w-full">
         <input
           type="hidden"
           name="id"
-          value={String(
-            post._id,
-          )}
+          value={String(post._id)}
         />
 
-        <button
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white"
-        >
+        <button className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white">
           <Trash2 size={14} />
           {t.delete}
         </button>
@@ -2058,7 +1542,6 @@ function EmptyPosts({
 }) {
   return (
     <div className="p-10 text-center">
-
       <Newspaper className="mx-auto h-12 w-12 text-slate-300 dark:text-slate-600" />
 
       <h2 className="mt-4 text-lg font-black text-slate-900 dark:text-white">
@@ -2068,7 +1551,6 @@ function EmptyPosts({
       <p className="mt-1 text-sm font-bold text-slate-400">
         {t.noPostsText}
       </p>
-
     </div>
   );
 }
@@ -2085,11 +1567,8 @@ function Pagination({
 }: {
   currentPage: number;
   totalPages: number;
-  pageNumbers:
-    Array<number | "dots">;
-  makePageHref: (
-    page: number,
-  ) => string;
+  pageNumbers: Array<number | "dots">;
+  makePageHref: (page: number) => string;
   showingStart: number;
   showingEnd: number;
   totalItems: number;
@@ -2097,85 +1576,45 @@ function Pagination({
 }) {
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
         <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
-          {t.showing}{" "}
-          {showingStart}-
-          {showingEnd}{" "}
-          {t.of}{" "}
-          {totalItems} •{" "}
-          {t.page}{" "}
-          {currentPage}/
-          {totalPages}
+          {t.showing} {showingStart}-{showingEnd} {t.of}{" "}
+          {totalItems} • {t.page} {currentPage}/{totalPages}
         </p>
 
         <div className="flex flex-wrap items-center gap-1.5">
-
           <PageLink
-            href={makePageHref(
-              Math.max(
-                currentPage - 1,
-                1,
-              ),
-            )}
-            disabled={
-              currentPage ===
-              1
-            }
+            href={makePageHref(Math.max(currentPage - 1, 1))}
+            disabled={currentPage === 1}
           >
             {t.previous}
           </PageLink>
 
-          {pageNumbers.map(
-            (
-              pageNumber,
-              index,
-            ) =>
-              pageNumber ===
-              "dots" ? (
-                <span
-                  key={`dots-${index}`}
-                  className="flex h-9 min-w-[36px] items-center justify-center rounded-xl px-2 text-xs font-black text-slate-400 dark:text-slate-600"
-                >
-                  ...
-                </span>
-              ) : (
-                <PageLink
-                  key={
-                    pageNumber
-                  }
-                  href={makePageHref(
-                    pageNumber,
-                  )}
-                  active={
-                    pageNumber ===
-                    currentPage
-                  }
-                >
-                  {
-                    pageNumber
-                  }
-                </PageLink>
-              ),
+          {pageNumbers.map((pageNumber, index) =>
+            pageNumber === "dots" ? (
+              <span
+                key={`dots-${index}`}
+                className="flex h-9 min-w-[36px] items-center justify-center rounded-xl px-2 text-xs font-black text-slate-400 dark:text-slate-600"
+              >
+                ...
+              </span>
+            ) : (
+              <PageLink
+                key={pageNumber}
+                href={makePageHref(pageNumber)}
+                active={pageNumber === currentPage}
+              >
+                {pageNumber}
+              </PageLink>
+            ),
           )}
 
           <PageLink
-            href={makePageHref(
-              Math.min(
-                currentPage + 1,
-                totalPages,
-              ),
-            )}
-            disabled={
-              currentPage ===
-              totalPages
-            }
+            href={makePageHref(Math.min(currentPage + 1, totalPages))}
+            disabled={currentPage === totalPages}
           >
             {t.next}
           </PageLink>
-
         </div>
       </div>
     </div>
