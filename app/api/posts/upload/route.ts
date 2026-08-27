@@ -3,13 +3,13 @@ import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import mongoose from "mongoose";
-import { exec } from "child_process"; // <-- Import exec to run terminal commands
+import { exec } from "child_process"; 
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
 
 const allowedTypes = [
   "image/jpeg",
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
     // Size limit check
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: "Image must be under 5MB" },
+        { error: "Image must be under 15MB" },
         { status: 400 }
       );
     }
@@ -109,13 +109,16 @@ export async function POST(req: Request) {
       "upload"
     );
 
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(path.join(uploadDir, fileName), buffer);
+    // Create the directory if it does not exist WITH 755 PERMISSIONS
+    await mkdir(uploadDir, { recursive: true, mode: 0o755 });
+    
+    // Save the file to the disk WITH 644 PERMISSIONS
+    await writeFile(path.join(uploadDir, fileName), buffer, { mode: 0o644 });
 
     // Trigger PM2 restart with a 1-second delay
-    // This allows Next.js enough time to send the JSON response back to the client
+    // Restart PM2 with a umask that ensures 755 directory and 644 file permissions
     setTimeout(() => {
-      exec("pm2 restart next-app", (error, stdout, stderr) => {
+      exec("pm2 restart next-app --update-env -- -umask 0022", (error, stdout, stderr) => {
         if (error) {
           console.error(`PM2 Restart Error: ${error.message}`);
           return;

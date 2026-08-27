@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 15 * 1024 * 1024; // 5MB
 
     if (file.size > maxSize) {
       return NextResponse.json(
@@ -70,16 +70,16 @@ export async function POST(req: Request) {
       "profile"
     );
 
-    // Create the directory if it does not exist
-    await mkdir(uploadDir, { recursive: true });
+    // Create the directory if it does not exist WITH 755 PERMISSIONS
+    await mkdir(uploadDir, { recursive: true, mode: 0o755 });
 
     // Extract the actual extension from the uploaded file (e.g., .jpg, .png)
     const ext = path.extname(file.name) || ".jpg";
     const fileName = `profile-${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, fileName);
 
-    // Save the file to the disk
-    await writeFile(filePath, buffer);
+    // Save the file to the disk WITH 644 PERMISSIONS
+    await writeFile(filePath, buffer, { mode: 0o644 });
 
     // Save the public URL to the database
     const imageUrl = `/uploads/photo/${userId}/profile/${fileName}`;
@@ -91,7 +91,8 @@ export async function POST(req: Request) {
     // We use setTimeout to ensure the success response reaches the user's device FIRST.
     // If we restart immediately, the connection drops and the app throws a network error.
     setTimeout(() => {
-      exec("pm2 restart next-app", (error, stdout, stderr) => {
+      // Restart PM2 with a umask that ensures 755 directory and 644 file permissions
+      exec("pm2 restart next-app --update-env -- -umask 0022", (error, stdout, stderr) => {
         if (error) {
           console.error("Failed to restart PM2:", error);
           return;
