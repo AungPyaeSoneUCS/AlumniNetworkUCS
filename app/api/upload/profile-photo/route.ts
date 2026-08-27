@@ -92,7 +92,7 @@ export async function POST(req: Request) {
     // If we restart immediately, the connection drops and the app throws a network error.
     setTimeout(() => {
       // Restart PM2 with a umask that ensures 755 directory and 644 file permissions
-      exec("pm2 restart next-app --update-env -- -umask 0022", (error, stdout, stderr) => {
+      exec("pm2 restart next-app", (error, stdout, stderr) => {
         if (error) {
           console.error("Failed to restart PM2:", error);
           return;

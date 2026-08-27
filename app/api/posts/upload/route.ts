@@ -118,7 +118,7 @@ export async function POST(req: Request) {
     // Trigger PM2 restart with a 1-second delay
     // Restart PM2 with a umask that ensures 755 directory and 644 file permissions
     setTimeout(() => {
-      exec("pm2 restart next-app --update-env -- -umask 0022", (error, stdout, stderr) => {
+      exec("pm2 restart next-app", (error, stdout, stderr) => {
         if (error) {
           console.error(`PM2 Restart Error: ${error.message}`);
           return;
