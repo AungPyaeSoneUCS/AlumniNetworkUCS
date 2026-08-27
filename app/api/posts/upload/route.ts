@@ -113,8 +113,36 @@ export async function POST(req: Request) {
     await writeFile(path.join(uploadDir, fileName), buffer);
 
     // Trigger PM2 restart with a 1-second delay
+
     // This allows Next.js enough time to send the JSON response back to the client
- 
+
+    setTimeout(() => {
+
+      exec("pm2 restart next-app", (error, stdout, stderr) => {
+
+        if (error) {
+
+          console.error(`PM2 Restart Error: ${error.message}`);
+
+          return;
+
+        }
+
+        if (stderr) {
+
+          console.error(`PM2 Restart stderr: ${stderr}`);
+
+          return;
+
+        }
+
+        console.log(`PM2 Restart stdout: ${stdout}`);
+
+      });
+
+    }, 1000);
+
+
 
     return NextResponse.json(
       {

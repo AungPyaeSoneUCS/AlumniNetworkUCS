@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
     // Identify current user either by Mobile Header ID or Web Session Email
     let user: any = null;
-    
+
     if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
       user = await User.findById(mobileUserId);
     } else if (session?.user?.email) {
@@ -90,7 +90,35 @@ export async function POST(req: Request) {
     // --- PM2 RESTART LOGIC ---
     // We use setTimeout to ensure the success response reaches the user's device FIRST.
     // If we restart immediately, the connection drops and the app throws a network error.
-    
+    // Trigger PM2 restart with a 1-second delay
+
+    // This allows Next.js enough time to send the JSON response back to the client
+
+    setTimeout(() => {
+
+      exec("pm2 restart next-app", (error, stdout, stderr) => {
+
+        if (error) {
+
+          console.error(`PM2 Restart Error: ${error.message}`);
+
+          return;
+
+        }
+
+        if (stderr) {
+
+          console.error(`PM2 Restart stderr: ${stderr}`);
+
+          return;
+
+        }
+
+        console.log(`PM2 Restart stdout: ${stdout}`);
+
+      });
+
+    }, 1000);
 
     return NextResponse.json(
       {
