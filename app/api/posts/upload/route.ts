@@ -116,7 +116,6 @@ export async function POST(req: Request) {
     await writeFile(path.join(uploadDir, fileName), buffer, { mode: 0o644 });
 
     // Trigger PM2 restart with a 1-second delay
-    // Restart PM2 with a umask that ensures 755 directory and 644 file permissions
     setTimeout(() => {
       exec("pm2 restart next-app", (error, stdout, stderr) => {
         if (error) {
