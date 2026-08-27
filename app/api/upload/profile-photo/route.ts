@@ -48,11 +48,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const maxSize = 15 * 1024 * 1024; // 15MB
+    const maxSize = 15 * 1024 * 1024; // 5MB
 
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: "Image must be smaller than 15MB" },
+        { error: "Image must be smaller than 5MB" },
         { status: 400 }
       );
     }
@@ -91,7 +91,8 @@ export async function POST(req: Request) {
     // We use setTimeout to ensure the success response reaches the user's device FIRST.
     // If we restart immediately, the connection drops and the app throws a network error.
     setTimeout(() => {
-      exec("pm2 restart next-app", (error, stdout, stderr) => {
+      // Restart PM2 with a umask that ensures 755 directory and 644 file permissions
+      exec("pm2 restart next-app --update-env -- -umask 0022", (error, stdout, stderr) => {
         if (error) {
           console.error("Failed to restart PM2:", error);
           return;
