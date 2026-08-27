@@ -90,16 +90,7 @@ export async function POST(req: Request) {
     // --- PM2 RESTART LOGIC ---
     // We use setTimeout to ensure the success response reaches the user's device FIRST.
     // If we restart immediately, the connection drops and the app throws a network error.
-    setTimeout(() => {
-      // Restart PM2 with a umask that ensures 755 directory and 644 file permissions
-      exec("pm2 restart next-app --update-env -- -umask 0022", (error, stdout, stderr) => {
-        if (error) {
-          console.error("Failed to restart PM2:", error);
-          return;
-        }
-        console.log("PM2 Restart Triggered Successfully:", stdout);
-      });
-    }, 1500);
+    
 
     return NextResponse.json(
       {
