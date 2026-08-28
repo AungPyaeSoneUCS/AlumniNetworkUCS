@@ -70,16 +70,16 @@ export async function POST(req: Request) {
       "profile"
     );
 
-    // Create the directory if it does not exist WITH 755 PERMISSIONS
-    await mkdir(uploadDir, { recursive: true, mode: 0o755 });
+    // Create the directory if it does not exist WITH 777 PERMISSIONS
+    await mkdir(uploadDir, { recursive: true, mode: 0o777 });
 
     // Extract the actual extension from the uploaded file (e.g., .jpg, .png)
     const ext = path.extname(file.name) || ".jpg";
     const fileName = `profile-${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, fileName);
 
-    // Save the file to the disk WITH 644 PERMISSIONS
-    await writeFile(filePath, buffer, { mode: 0o644 });
+    // Save the file to the disk WITH 777 PERMISSIONS
+    await writeFile(filePath, buffer, { mode: 0o777 });
 
     // Save the public URL to the database
     const imageUrl = `/uploads/photo/${userId}/profile/${fileName}`;
