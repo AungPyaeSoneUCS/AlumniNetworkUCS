@@ -28,6 +28,7 @@ const translations = {
     roleTeam: "ပရောဂျက်အဖွဲ့ (Team) - ပရောဂျက် တင်သွင်းနိုင်သည်",
     createBtn: "အကောင့် ဖန်တီးမည်",
     creatingBtn: "ဖန်တီးနေပါသည်...",
+    emailError: "အီးမေးလ်သည် @gmail.com သို့မဟုတ် @ucsh.edu.mm ဖြင့်သာ ပြီးဆုံးရမည်။",
     accessRestricted: "ဝင်ရောက်ခွင့် ကန့်သတ်ထားပါသည်",
     loginRequired: "သင်သည် အက်ဒမင်အဖြစ် လုံခြုံစွာ အကောင့်ဝင်ထားရပါမည်။",
     goLogin: "အက်ဒမင် လော့ဂ်အင်သို့ သွားရန်",
@@ -52,6 +53,7 @@ const translations = {
     roleTeam: "Project Team - Can submit a project",
     createBtn: "Register Account",
     creatingBtn: "Creating...",
+    emailError: "Email must end with @gmail.com or @ucsh.edu.mm only.",
     accessRestricted: "Access Restricted",
     loginRequired: "You must be securely logged in as an Administrator.",
     goLogin: "Go to Admin Login",
@@ -75,6 +77,27 @@ export default function AdminCreatePage() {
   const [role, setRole] = useState("VOTER");
   const [isCreating, setIsCreating] = useState(false);
   const [createMsg, setCreateMsg] = useState({ type: "", text: "" });
+  const [emailValidationWarning, setEmailValidationWarning] = useState("");
+
+  // Live Email Validation as Admin is Typing
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setEmail(val);
+
+    if (val.trim() === "") {
+      setEmailValidationWarning("");
+      return;
+    }
+
+    const cleanEmail = val.trim().toLowerCase();
+    const isValid = cleanEmail.endsWith("@gmail.com") || cleanEmail.endsWith("@ucsh.edu.mm");
+
+    if (!isValid) {
+      setEmailValidationWarning(t.emailError);
+    } else {
+      setEmailValidationWarning("");
+    }
+  };
 
   // --- Typing Effect State ---
   const phrases = [
@@ -107,20 +130,28 @@ export default function AdminCreatePage() {
   // --- Form Handler ---
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsCreating(true);
     setCreateMsg({ type: "", text: "" });
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail.endsWith("@gmail.com") && !cleanEmail.endsWith("@ucsh.edu.mm")) {
+      setCreateMsg({ type: "error", text: t.emailError });
+      return;
+    }
+
+    setIsCreating(true);
 
     try {
       const res = await fetch("/api/vote/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }),
+        body: JSON.stringify({ name, email: cleanEmail, password, role }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong.");
 
       setCreateMsg({ type: "success", text: data.message });
       setName(""); setEmail(""); setPassword(""); setRole("VOTER");
+      setEmailValidationWarning("");
     } catch (error: any) {
       setCreateMsg({ type: "error", text: error.message });
     } finally {
@@ -296,19 +327,30 @@ export default function AdminCreatePage() {
                   </div>
 
                   {/* Email Input */}
-                  <div>
+                  <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t.emailLabel}</label>
                     <input 
                       type="email" 
                       required 
                       value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:text-white transition-colors" 
+                      onChange={handleEmailChange} 
+                      className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border rounded-xl focus:ring-2 dark:text-white transition-colors ${
+                        emailValidationWarning 
+                          ? "border-red-500 focus:ring-red-500 focus:border-red-500" 
+                          : "border-gray-200 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
+                      }`} 
+                      placeholder="user@gmail.com or user@ucsh.edu.mm"
                     />
+                    {emailValidationWarning && (
+                      <p className="mt-2 text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        {emailValidationWarning}
+                      </p>
+                    )}
                   </div>
 
                   {/* Password Input */}
-                  <div>
+                  <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1.5">{t.pwdLabel}</label>
                     <input 
                       type="password" 
@@ -338,8 +380,8 @@ export default function AdminCreatePage() {
                 <div className="pt-2">
                   <button 
                     type="submit" 
-                    disabled={isCreating} 
-                    className="w-full py-3.5 px-4 text-white font-bold rounded-xl shadow-md transition-all duration-200 bg-blue-600 hover:bg-blue-700 transform hover:-translate-y-0.5 disabled:bg-blue-400 disabled:transform-none"
+                    disabled={isCreating || Boolean(emailValidationWarning)} 
+                    className="w-full py-3.5 px-4 text-white font-bold rounded-xl shadow-md transition-all duration-200 bg-blue-600 hover:bg-blue-700 transform hover:-translate-y-0.5 disabled:bg-gray-400 dark:disabled:bg-gray-700 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {isCreating ? (
                       <span className="flex items-center justify-center gap-2">
