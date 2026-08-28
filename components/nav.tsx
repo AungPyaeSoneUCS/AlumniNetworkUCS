@@ -89,7 +89,7 @@ export default function Nav() {
   const currentLang = lang === "mm" ? "mm" : "en";
   const t = navText[currentLang];
 
-  const hideNav = pathname.startsWith("/admin") || pathname.startsWith("/staff") || pathname.startsWith("/AungPyaeSoneUCS") || pathname.startsWith("/ChitSuWai") || pathname.startsWith("/game");
+  const hideNav =pathname.startsWith("/vote") || pathname.startsWith("/admin") || pathname.startsWith("/staff") || pathname.startsWith("/AungPyaeSoneUCS") || pathname.startsWith("/ChitSuWai") || pathname.startsWith("/game");
 
   const links = [
     { href: "/feeds", label: t.feeds, icon: Newspaper },

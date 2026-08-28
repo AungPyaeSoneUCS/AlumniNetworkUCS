@@ -27,6 +27,10 @@ export default function Footer() {
     return null;
   }
 
+  if (pathname.startsWith("/vote")) {
+    return null;
+  }
+
 
   return (
     <footer className="mt-4 px-0 pb-2">
