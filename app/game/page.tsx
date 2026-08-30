@@ -230,6 +230,14 @@ export default function GameMenu() {
               <span className="mr-2">🤖</span> AI Chat
             </Link>
 
+            {/* NEW: QR Code / News Link */}
+            <Link 
+              href="/game/QR"
+              className="inline-flex items-center px-5 sm:px-6 py-2 rounded-full border border-rose-500/30 bg-rose-950/20 text-rose-500/80 hover:text-rose-400 hover:border-rose-400 hover:bg-rose-950/40 text-[10px] sm:text-xs font-bold tracking-widest uppercase transition-all hover:shadow-[0_0_15px_rgba(244,63,94,0.3)] active:scale-95"
+            >
+              <span className="mr-2">🔳</span> QR Code
+            </Link>
+
           </div>
           
           {/* Copyright Signature */}
