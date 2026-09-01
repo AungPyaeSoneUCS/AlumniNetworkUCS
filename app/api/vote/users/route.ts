@@ -7,7 +7,9 @@ import { authOptions } from "@/auth"; // Adjust this import path if your auth.ts
 import { connectDB } from "@/lib/mongodb";
 import VoteUser from "@/models/VoteUser";
 
-// Helper function to verify Admin access to keep code DRY
+// --- Helper Functions ---
+
+// 1. Verify Admin access to keep code DRY
 async function verifyAdminAccess() {
   const session = await getServerSession(authOptions);
   if (
@@ -20,6 +22,12 @@ async function verifyAdminAccess() {
   }
   return true;
 }
+
+// 2. Strict Email Domain Validation
+const isValidDomain = (email: string) => {
+  const cleanEmail = email.trim().toLowerCase();
+  return cleanEmail.endsWith("@gmail.com") || cleanEmail.endsWith("@ucsh.edu.mm");
+};
 
 // ==========================================
 // POST: Create a new user (Add)
@@ -35,6 +43,10 @@ export async function POST(req: Request) {
 
     if (!name || !email || !password || !role) {
       return NextResponse.json({ error: "Name, email, password, and role are required." }, { status: 400 });
+    }
+
+    if (!isValidDomain(email)) {
+      return NextResponse.json({ error: "Email must end with @gmail.com or @ucsh.edu.mm only." }, { status: 400 });
     }
 
     if (!["TEAM", "VOTER"].includes(role.toUpperCase())) {
@@ -123,6 +135,12 @@ export async function PUT(req: Request) {
     
     if (email) {
       const normalizedEmail = email.trim().toLowerCase();
+      
+      // Server-side Domain check for updates
+      if (!isValidDomain(normalizedEmail)) {
+        return NextResponse.json({ error: "Email must end with @gmail.com or @ucsh.edu.mm only." }, { status: 400 });
+      }
+
       // Ensure the new email isn't already taken by someone else
       const existingEmail = await VoteUser.findOne({ email: normalizedEmail, _id: { $ne: id } });
       if (existingEmail) {

@@ -1,7 +1,54 @@
 // file: app/vote/page.tsx
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function VotingLandingPage() {
+  const [schedule, setSchedule] = useState({ start: 0, end: 0 });
+  const [isVotingOpen, setIsVotingOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 1. Fetch the schedule from the database on load
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch("/api/vote/settings");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.startDate && data.endDate) {
+            setSchedule({
+              start: new Date(data.startDate).getTime(),
+              end: new Date(data.endDate).getTime(),
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load settings", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  // 2. Real-time status checker (updates every second without hitting the DB)
+  useEffect(() => {
+    if (!schedule.start || !schedule.end) {
+      setIsVotingOpen(false);
+      return;
+    }
+
+    const checkTime = () => {
+      const now = new Date().getTime();
+      setIsVotingOpen(now >= schedule.start && now <= schedule.end);
+    };
+
+    checkTime(); // Check immediately
+    const timer = setInterval(checkTime, 1000); // Re-check every second
+    return () => clearInterval(timer);
+  }, [schedule]);
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col justify-center items-center relative overflow-hidden">
       
@@ -16,13 +63,27 @@ export default function VotingLandingPage() {
         
         {/* Header Section */}
         <div className="mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 font-semibold text-sm mb-6 border border-blue-100 shadow-sm">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
-            </span>
-            Voting is currently open
-          </div>
+          
+          {/* Dynamic Live Status Badge */}
+          {isLoading ? (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-100 text-gray-600 font-semibold text-sm mb-6 border border-gray-200 shadow-sm transition-all duration-300">
+              <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+              Checking schedule...
+            </div>
+          ) : isVotingOpen ? (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 font-semibold text-sm mb-6 border border-green-200 shadow-sm transition-all duration-300">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+              </span>
+              Voting is currently OPEN
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 text-red-700 font-semibold text-sm mb-6 border border-red-200 shadow-sm transition-all duration-300">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd"></path></svg>
+              Voting is currently CLOSED
+            </div>
+          )}
           
           <h1 className="text-5xl md:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-indigo-600 to-purple-600 mb-6 tracking-tight">
             Project Showcase 2026

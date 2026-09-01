@@ -21,6 +21,7 @@ const text = {
     
     directDownload: "Direct Download APK",
     driveDownload: "Google Drive Mirror",
+    telegramDownload: "Telegram Channel",
     githubSource: "GitHub Source",
     backHome: "Back to Home",
   },
@@ -36,6 +37,7 @@ const text = {
     
     directDownload: "တိုက်ရိုက် ဒေါင်းလုဒ်",
     driveDownload: "Google Drive မှ ဒေါင်းလုဒ်",
+    telegramDownload: "Telegram မှ ဒေါင်းလုဒ်",
     githubSource: "GitHub Source Code",
     backHome: "ပင်မစာမျက်နှာသို့",
   },
@@ -94,6 +96,30 @@ export default function DownloadPage() {
               >
                 <Download size={18} />
                 {content.directDownload}
+              </a>
+
+              {/* Telegram Link */}
+              <a
+                href="https://t.me/AlumniNetwork"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#229ED9]/90 border border-[#229ED9]/50 px-6 py-3 text-sm font-black text-white shadow-lg backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-[#229ED9]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m22 2-7 20-4-9-9-4Z" />
+                  <path d="M22 2 11 13" />
+                </svg>
+                {content.telegramDownload}
               </a>
 
               {/* Google Drive Link */}

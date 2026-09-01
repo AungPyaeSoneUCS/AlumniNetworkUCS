@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import * as XLSX from "xlsx";
 
 type Team = {
   _id: string;
@@ -20,7 +21,7 @@ const translations = {
     portalName: "အက်ဒမင်",
     logoutBtn: "ထွက်မည်",
     navResult: "မဲရလဒ်များ",
-    navCreate: "အကောင့် ဖန်တီးရန်",
+    navCreate: "အကောင့် စီမံခန့်ခွဲရန်",
     navVoterList: "မဲပေးသူ စာရင်း",
     navTeamList: "အဖွဲ့ စာရင်း",
     navTime: "မဲပေးချိန် သတ်မှတ်ရန်",
@@ -51,12 +52,14 @@ const translations = {
     accessRestricted: "ဝင်ရောက်ခွင့် ကန့်သတ်ထားပါသည်",
     loginRequired: "သင်သည် အက်ဒမင်အဖြစ် လုံခြုံစွာ အကောင့်ဝင်ထားရပါမည်။",
     goLogin: "အက်ဒမင် လော့ဂ်အင်သို့ သွားရန်",
+    exportBtn: "Excel အဖြစ် ထုတ်ယူမည်",
+    printBtn: "ပရင့်ထုတ်မည်",
   },
   en: {
     portalName: "Admin",
     logoutBtn: "Log Out",
     navResult: "Voting Results",
-    navCreate: "Create Accounts",
+    navCreate: "Account Management",
     navVoterList: "Voter Lists",
     navTeamList: "Team Lists",
     navTime: "Set Voting Times",
@@ -87,6 +90,8 @@ const translations = {
     accessRestricted: "Access Restricted",
     loginRequired: "You must be securely logged in as an Administrator.",
     goLogin: "Go to Admin Login",
+    exportBtn: "Export Excel",
+    printBtn: "Print List",
   }
 };
 
@@ -131,6 +136,27 @@ export default function TeamListPage() {
     };
     fetchTeams();
   }, [status]);
+
+  // --- Export and Print Handlers ---
+  const handleExportExcel = () => {
+    if (teams.length === 0) return;
+    
+    const exportData = teams.map((tItem, i) => ({
+      "No.": i + 1,
+      "Name": tItem.name,
+      "Email": tItem.email,
+      "Added On": new Date(tItem.createdAt).toLocaleDateString()
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Teams");
+    XLSX.writeFile(wb, "Team_List.xlsx");
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   // --- Delete Handlers ---
   const openDeleteModal = (id: string, name: string) => {
@@ -235,11 +261,11 @@ export default function TeamListPage() {
   }
 
   return (
-    <div className={`${isDark ? "dark" : ""} h-screen flex flex-col overflow-hidden`}>
-      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300">
+    <div className={`${isDark ? "dark" : ""} h-screen flex flex-col overflow-hidden print:h-auto print:overflow-visible`}>
+      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300 print:bg-white print:text-black">
         
-        {/* --- Unified Single-Line Navigation Bar --- */}
-        <nav className="flex-none bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-50 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        {/* --- Unified Single-Line Navigation Bar (Hidden on Print) --- */}
+        <nav className="flex-none bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-50 border-b border-gray-200 dark:border-gray-800 shadow-sm print:hidden">
           <div className="max-w-[95rem] mx-auto px-4 h-16 flex items-center justify-between gap-4">
             
             {/* Left: Admin Identity */}
@@ -303,8 +329,8 @@ export default function TeamListPage() {
           </div>
         </nav>
 
-        {/* Mobile Navbar Links */}
-        <div className="flex lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 overflow-x-auto no-scrollbar gap-4 flex-shrink-0">
+        {/* Mobile Navbar Links (Hidden on Print) */}
+        <div className="flex lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 overflow-x-auto no-scrollbar gap-4 flex-shrink-0 print:hidden">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
@@ -322,67 +348,93 @@ export default function TeamListPage() {
         </div>
 
         {/* --- Main Scrollable Content --- */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-6xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print:overflow-visible print:p-0">
+          <div className="max-w-6xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500 print:pb-0">
             
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4 print:mb-4">
               <div>
-                <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">{t.title}</h1>
-                <p className="text-gray-600 dark:text-gray-400 font-medium">{t.subtitle}</p>
+
+                {/* Export & Print Buttons */}
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleExportExcel}
+                      disabled={teams.length === 0}
+                      className="flex items-center gap-2 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 px-4 py-3 rounded-2xl font-bold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                      <span className="hidden sm:inline">{t.exportBtn}</span>
+                    </button>
+
+                    <button 
+                      onClick={handlePrint}
+                      disabled={teams.length === 0}
+                      className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 px-4 py-3 rounded-2xl font-bold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                      <span className="hidden sm:inline">{t.printBtn}</span>
+                    </button>
+                  </div>
+               
               </div>
 
+              {/* Quick Stats & Action Buttons (Hidden on Print) */}
               {!isLoading && !error && (
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center px-8 transition-colors">
-                  <div className="text-center">
-                    <p className="text-xs text-purple-600 dark:text-purple-400 font-black uppercase tracking-widest mb-1">{t.totalTeams}</p>
-                    <p className="text-3xl font-black text-gray-900 dark:text-white">{teams.length}</p>
+                <div className="flex flex-wrap items-center gap-3 print:hidden">
+                  
+                  <div className="flex gap-4 bg-white dark:bg-gray-800 p-2.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors">
+                    <div className="text-center px-6">
+                      <p className="text-xs text-purple-600 dark:text-purple-400 font-bold uppercase tracking-wider mb-0.5">{t.totalTeams}</p>
+                      <p className="text-xl font-black text-gray-900 dark:text-white">{teams.length}</p>
+                    </div>
                   </div>
+
+                  
                 </div>
               )}
             </div>
 
             {error ? (
-              <div className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 p-4 rounded-xl border border-red-200 dark:border-red-500/20 font-bold">{error}</div>
+              <div className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 p-4 rounded-xl border border-red-200 dark:border-red-500/20 font-bold print:hidden">{error}</div>
             ) : isLoading ? (
-              <div className="flex justify-center py-20">
+              <div className="flex justify-center py-20 print:hidden">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
               </div>
             ) : teams.length === 0 ? (
-              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-dashed border-gray-300 dark:border-gray-700 p-16 text-center transition-colors">
+              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-dashed border-gray-300 dark:border-gray-700 p-16 text-center transition-colors print:hidden">
                 <p className="text-gray-500 dark:text-gray-400 mb-4 font-medium">{t.noTeams}</p>
                 <Link href="/vote/admin/create" className="text-blue-600 dark:text-blue-400 font-bold hover:underline">
                   {t.createOne} &rarr;
                 </Link>
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-900/50 transition-colors">
+              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-colors print:shadow-none print:border-none print:rounded-none">
+                <div className="overflow-x-auto print:overflow-visible">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 print:divide-black">
+                    <thead className="bg-gray-50 dark:bg-gray-900/50 transition-colors print:bg-white print:text-black">
                       <tr>
-                        <th className="px-6 py-5 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.tableNo}</th>
-                        <th className="px-6 py-5 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.tableName}</th>
-                        <th className="px-6 py-5 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.tableEmail}</th>
-                        <th className="px-6 py-5 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.tableAddedOn}</th>
-                        <th className="px-6 py-5 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.tableActions}</th>
+                        <th className="px-6 py-5 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider print:text-black print:border-b print:border-black">{t.tableNo}</th>
+                        <th className="px-6 py-5 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider print:text-black print:border-b print:border-black">{t.tableName}</th>
+                        <th className="px-6 py-5 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider print:text-black print:border-b print:border-black">{t.tableEmail}</th>
+                        <th className="px-6 py-5 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider print:text-black print:border-b print:border-black">{t.tableAddedOn}</th>
+                        <th className="px-6 py-5 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider print:hidden">{t.tableActions}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700 print:divide-gray-300">
                       {teams.map((team, index) => (
-                        <tr key={team._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                          <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-bold">
+                        <tr key={team._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors print:bg-white print:text-black">
+                          <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 font-bold print:text-black">
                             {index + 1}
                           </td>
                           <td className="px-6 py-5 whitespace-nowrap">
-                            <div className="font-bold text-gray-900 dark:text-white text-base">{team.name}</div>
+                            <div className="font-bold text-gray-900 dark:text-white text-base print:text-black">{team.name}</div>
                           </td>
                           <td className="px-6 py-5 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-600 dark:text-gray-400">{team.email}</div>
+                            <div className="text-sm font-medium text-gray-600 dark:text-gray-400 print:text-black">{team.email}</div>
                           </td>
-                          <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-gray-400">
+                          <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-500 dark:text-gray-400 print:text-black">
                             {new Date(team.createdAt).toLocaleDateString()}
                           </td>
-                          <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-bold space-x-4">
+                          <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-bold space-x-4 print:hidden">
                             <button onClick={() => openEditModal(team)} className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
                               {t.editBtn}
                             </button>
@@ -403,7 +455,7 @@ export default function TeamListPage() {
 
       {/* --- EDIT MODAL OVERLAY --- */}
       {editingTeam && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 print:hidden">
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 dark:border-gray-700 animate-in zoom-in-95 duration-200">
             <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
               <h2 className="text-xl font-extrabold text-gray-900 dark:text-white">{t.editTitle}</h2>
@@ -449,7 +501,7 @@ export default function TeamListPage() {
 
       {/* --- DELETE CUSTOM MODAL --- */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 print:hidden">
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700">
             <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500 rounded-full flex items-center justify-center mb-4">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>

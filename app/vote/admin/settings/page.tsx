@@ -12,7 +12,7 @@ const translations = {
     portalName: "အက်ဒမင်",
     logoutBtn: "ထွက်မည်",
     navResult: "မဲရလဒ်များ",
-    navCreate: "အကောင့် ဖန်တီးရန်",
+    navCreate: "အကောင့် စီမံခန့်ခွဲရန်",
     navVoterList: "မဲပေးသူ စာရင်း",
     navTeamList: "အဖွဲ့ စာရင်း",
     navTime: "မဲပေးချိန် သတ်မှတ်ရန်",
@@ -34,7 +34,7 @@ const translations = {
     portalName: "Admin",
     logoutBtn: "Log Out",
     navResult: "Voting Results",
-    navCreate: "Create Accounts",
+    navCreate: "Account Management",
     navVoterList: "Voter Lists",
     navTeamList: "Team Lists",
     navTime: "Set Voting Times",
@@ -247,7 +247,7 @@ export default function AdminSettingsPage() {
           </div>
         </nav>
 
-        {/* Mobile Navbar Links */}
+        {/* Mobile Navbar Links (Visible on smaller screens below top bar) */}
         <div className="flex lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 overflow-x-auto no-scrollbar gap-4 flex-shrink-0">
           {navLinks.map((link) => {
             const isActive = pathname === link.href;
@@ -265,45 +265,38 @@ export default function AdminSettingsPage() {
           })}
         </div>
 
-        {/* --- Main Scrollable Content --- */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-3xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* --- Main Area (Centered Vertically and Horizontally) --- */}
+        <main className="flex-1 p-4 flex flex-col items-center justify-center overflow-y-auto">
+          <div className="w-full max-w-xl animate-in fade-in zoom-in-95 duration-300">
             
-            <div className="mb-8 text-center sm:text-left flex flex-col sm:flex-row justify-between items-center gap-6">
-              <div>
-                <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">{t.title}</h1>
-                <p className="text-gray-600 dark:text-gray-400 font-medium">{t.subtitle}</p>
-              </div>
-            </div>
-
             {/* Live Status Banner */}
             {!isLoading && (
-              <div className={`mb-8 p-6 rounded-3xl shadow-sm border transition-all duration-300 flex items-center justify-center gap-4 ${
+              <div className={`mb-5 p-4 rounded-2xl shadow-sm border transition-all duration-300 flex items-center justify-center gap-3 ${
                 isVotingOpen 
                   ? "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20 text-green-700 dark:text-green-400" 
                   : "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-700 dark:text-red-400"
               }`}>
                 {isVotingOpen ? (
                   <>
-                    <span className="flex h-4 w-4 relative">
+                    <span className="flex h-3 w-3 relative">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-4 w-4 bg-green-500"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                     </span>
-                    <h2 className="text-2xl font-black uppercase tracking-wider">{t.statusOpen}</h2>
+                    <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider">{t.statusOpen}</h2>
                   </>
                 ) : (
                   <>
-                    <svg className="w-8 h-8 opacity-80" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd"></path></svg>
-                    <h2 className="text-2xl font-black uppercase tracking-wider">{t.statusClosed}</h2>
+                    <svg className="w-6 h-6 opacity-80" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd"></path></svg>
+                    <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider">{t.statusClosed}</h2>
                   </>
                 )}
               </div>
             )}
 
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 p-8 transition-colors duration-300">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 sm:p-8 transition-colors duration-300">
               
               {message.text && (
-                <div className={`p-4 mb-8 rounded-xl text-sm font-bold text-center border ${
+                <div className={`p-3 mb-5 rounded-lg text-sm font-bold text-center border ${
                   message.type === "success" 
                     ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20" 
                     : "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/20"
@@ -313,15 +306,15 @@ export default function AdminSettingsPage() {
               )}
 
               {isLoading ? (
-                <div className="flex justify-center py-10">
+                <div className="flex justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
                 </div>
               ) : (
-                <form onSubmit={handleSave} className="space-y-8">
+                <form onSubmit={handleSave} className="space-y-5">
                   
                   {/* Start Date */}
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 transition-colors">
-                    <label className="block text-sm font-black text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider">
+                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
                       {t.startLabel}
                     </label>
                     <input 
@@ -329,13 +322,13 @@ export default function AdminSettingsPage() {
                       required
                       value={startDate} 
                       onChange={(e) => setStartDate(e.target.value)} 
-                      className="w-full px-5 py-4 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium text-lg transition-colors"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium transition-colors"
                     />
                   </div>
 
                   {/* End Date */}
-                  <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 transition-colors">
-                    <label className="block text-sm font-black text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wider">
+                  <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors">
+                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
                       {t.endLabel}
                     </label>
                     <input 
@@ -343,15 +336,15 @@ export default function AdminSettingsPage() {
                       required
                       value={endDate} 
                       onChange={(e) => setEndDate(e.target.value)} 
-                      className="w-full px-5 py-4 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium text-lg transition-colors"
+                      className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium transition-colors"
                     />
                   </div>
 
-                  <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                  <div className="pt-2">
                     <button 
                       type="submit" 
                       disabled={isSaving} 
-                      className={`w-full flex justify-center py-4 px-4 text-white font-bold rounded-xl shadow-lg transition-all duration-200 text-lg ${
+                      className={`w-full flex justify-center py-3 px-4 text-white font-bold rounded-xl shadow-md transition-all duration-200 text-sm ${
                         isSaving
                           ? "bg-blue-400 dark:bg-blue-500 cursor-not-allowed"
                           : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transform hover:-translate-y-0.5"
@@ -359,7 +352,7 @@ export default function AdminSettingsPage() {
                     >
                       {isSaving ? (
                         <span className="flex items-center justify-center gap-2">
-                          <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
