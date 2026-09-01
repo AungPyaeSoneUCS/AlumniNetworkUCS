@@ -1,4 +1,3 @@
-// file: app/vote/dashboard/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -69,6 +68,9 @@ export default function VoterDashboard() {
   const [voteMessage, setVoteMessage] = useState({ type: "", text: "" });
   const [votingForId, setVotingForId] = useState<string | null>(null);
   
+  // Local state to instantly track if the user has voted (fixes the re-login issue)
+  const [hasVotedLocal, setHasVotedLocal] = useState(false);
+
   // Custom Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -86,6 +88,13 @@ export default function VoterDashboard() {
   const sortProjects = (data: Project[]) => {
     return [...data].sort((a, b) => b.voteCount - a.voteCount);
   };
+
+  // Sync local vote state with NextAuth session on load
+  useEffect(() => {
+    if (session?.user && (session.user as any).hasVoted) {
+      setHasVotedLocal(true);
+    }
+  }, [session]);
 
   // Fetch projects and schedule settings on load
   useEffect(() => {
@@ -119,12 +128,11 @@ export default function VoterDashboard() {
     fetchData();
   }, []);
 
-  // Determine user voting eligibility (Checks session state instantly)
+  // Determine user voting eligibility (using the instant local state)
   const user = session?.user as any;
   const isVoteUser = user?.isVoteSystem;
-  const hasVoted = user?.hasVoted;
   const userRole = user?.role;
-  const canVote = isVoteUser && userRole === "VOTER" && !hasVoted && isVotingTimeOpen;
+  const canVote = isVoteUser && userRole === "VOTER" && !hasVotedLocal && isVotingTimeOpen;
 
   // Open custom confirmation modal
   const handleVoteClick = (projectId: string) => {
@@ -157,6 +165,9 @@ export default function VoterDashboard() {
 
       setVoteMessage({ type: "success", text: t.successMsg });
       
+      // INSTANT UI UPDATE: Set local state to true so buttons change immediately
+      setHasVotedLocal(true);
+
       // Update UI instantly and resort max to min
       setProjects((prev) => {
         const updated = prev.map((p) =>
@@ -165,7 +176,7 @@ export default function VoterDashboard() {
         return sortProjects(updated);
       });
 
-      // Instantly update the NextAuth session state so `hasVoted` turns true right away without relogging
+      // Silently update the NextAuth session state in the background
       await update({ ...session, user: { ...user, hasVoted: true } });
       router.refresh();
     } catch (error: any) {
@@ -249,7 +260,7 @@ export default function VoterDashboard() {
                   <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path></svg>
                   {t.votingClosed}
                 </div>
-              ) : hasVoted ? (
+              ) : hasVotedLocal ? (
                 <div className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl shadow-sm text-sm font-bold border bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20 text-green-700 dark:text-green-400">
                   <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
                   {t.votedMsg}
@@ -273,7 +284,7 @@ export default function VoterDashboard() {
               </div>
             )}
 
-            {/* --- Projects Grid (4 Columns) --- */}
+            {/* --- Projects Grid --- */}
             {isLoading ? (
               <div className="flex justify-center items-center py-20">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 dark:border-blue-400"></div>
@@ -342,14 +353,14 @@ export default function VoterDashboard() {
                             ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 cursor-wait border-blue-200 dark:border-blue-800"
                             : canVote
                             ? "bg-blue-600 hover:bg-blue-700 text-white border-transparent hover:shadow transform hover:-translate-y-0.5"
-                            : hasVoted
+                            : hasVotedLocal
                             ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 cursor-not-allowed"
                             : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-700 cursor-not-allowed"
                         }`}
                       >
                         {votingForId === project._id ? (
                           <span className="animate-pulse">{t.votingBtn}</span>
-                        ) : hasVoted ? (
+                        ) : hasVotedLocal ? (
                           <>
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
                             {t.votedBtn}
