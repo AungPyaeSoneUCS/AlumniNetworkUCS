@@ -1,10 +1,10 @@
-// file: app/vote/admin/guest/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import AdminNav from "@/app/vote/components/AdminNav"; // Ensure this path is correct
 
 // Define TypeScript type for the project data
 type Project = {
@@ -17,11 +17,11 @@ type Project = {
   teamId: { name: string };
 };
 
-// --- Translations Dictionary ---
+// --- Translations Dictionary (Page Content Only) ---
 const translations = {
   my: {
     guestMode: "ဧည့်သည်အဖြစ် မဲပေးနေပါသည် (Admin View)",
-    continuousVoting: "မဲပေးနိုင်သောစနစ် ဖွင့်ထားပါသည်။",
+    continuousVoting: "မဲပေးနိုင်သောစနစ် ဖွင့်ထားပါသည်။ (Kiosk Mode)",
     voteBtn: "မဲပေးမည်",
     votingBtn: "မဲပေးနေပါသည်...",
     confirmVote: "အတည်ပြုပါသလား? ဤပရောဂျက်အတွက် မဲပေးမည်မှာ သေချာပါသလား?",
@@ -33,11 +33,13 @@ const translations = {
     modalCancel: "ပယ်ဖျက်မည်",
     modalConfirm: "အတည်ပြုမည်",
     votingClosed: "မဲပေးချိန် ပြီးဆုံးသွားပါပြီ သို့မဟုတ် မစတင်သေးပါ။",
-    backToAdmin: "Admin Dashboard သို့ ပြန်သွားမည်",
+    accessRestricted: "ဝင်ရောက်ခွင့် ကန့်သတ်ထားပါသည်",
+    loginRequired: "သင်သည် အက်ဒမင်အဖြစ် လုံခြုံစွာ အကောင့်ဝင်ထားရပါမည်။",
+    goLogin: "အက်ဒမင် လော့ဂ်အင်သို့ သွားရန်",
   },
   en: {
     guestMode: "Voting as Guest (Admin View)",
-    continuousVoting: "Continuous Voting is Enabled.",
+    continuousVoting: "Continuous Voting (Kiosk Mode) is Enabled.",
     voteBtn: "Vote",
     votingBtn: "Voting...",
     confirmVote: "Are you sure you want to cast a guest vote for this project?",
@@ -49,7 +51,9 @@ const translations = {
     modalCancel: "Cancel",
     modalConfirm: "Confirm Vote",
     votingClosed: "Voting is currently closed or has not started yet.",
-    backToAdmin: "Back to Admin Dashboard",
+    accessRestricted: "Access Restricted",
+    loginRequired: "You must be securely logged in as an Administrator.",
+    goLogin: "Go to Admin Login",
   }
 };
 
@@ -69,7 +73,6 @@ export default function AdminGuestViewDashboard() {
 
   // Voting Time Schedule State
   const [isVotingTimeOpen, setIsVotingTimeOpen] = useState(true); 
-  const [isCheckingTime, setIsCheckingTime] = useState(true);
   
   // --- Settings States ---
   const [lang, setLang] = useState<"my" | "en">("my"); 
@@ -123,7 +126,6 @@ export default function AdminGuestViewDashboard() {
         console.error("Failed to load dashboard data", error);
       } finally {
         setIsLoading(false);
-        setIsCheckingTime(false);
       }
     };
     fetchData();
@@ -188,61 +190,42 @@ export default function AdminGuestViewDashboard() {
   // Show nothing/loading while checking session to prevent flicker
   if (status === "loading") {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className={`h-screen flex items-center justify-center ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
 
-  if (status === "unauthenticated" || (session?.user as any)?.role !== "ADMIN") {
-    return null; // Will be redirected by useEffect
+  // --- 2. Auth Protection Display ---
+  const user = session?.user as any;
+  if (!session || user?.role !== "ADMIN" || !user?.isVoteSystem) {
+    return (
+      <div className={`${isDark ? "dark" : ""}`}>
+        <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
+          <div className="bg-gray-800 p-8 rounded-3xl shadow-2xl text-center max-w-md w-full border border-gray-700">
+            <h1 className="text-2xl font-bold text-white mb-2">{t.accessRestricted}</h1>
+            <p className="text-gray-400 mb-8">{t.loginRequired}</p>
+            <Link href="/vote/admin/login" className="w-full block py-3 px-4 bg-white text-gray-900 font-bold rounded-xl hover:bg-gray-200 transition-colors">
+              {t.goLogin}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className={`${isDark ? "dark" : ""} h-screen overflow-hidden`}>
       <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300">
         
-        {/* --- Top Navigation Bar --- */}
-        <nav className="flex-none bg-white/80 dark:bg-gray-900/80 backdrop-blur-md z-50 border-b border-gray-200 dark:border-gray-800 transition-colors duration-300">
-          <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg">
-                <span className="text-white font-extrabold text-lg">U</span>
-              </div>
-              <span className="font-bold text-lg tracking-tight hidden sm:block">UCSH Voting</span>
-              <span className="ml-2 px-2.5 py-1 text-[10px] uppercase font-bold tracking-wider bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-full border border-purple-200 dark:border-purple-800">
-                Admin (Guest View)
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setLang(lang === "my" ? "en" : "my")}
-                className="flex items-center justify-center px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                {lang === "my" ? "EN" : "မြန်မာ"}
-              </button>
-              
-              <button
-                onClick={() => setIsDark(!isDark)}
-                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                {isDark ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                )}
-              </button>
-
-              <Link 
-                href="/vote/admin"
-                className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
-              >
-                {t.backToAdmin} &rarr;
-              </Link>
-            </div>
-          </div>
-        </nav>
+        {/* Render Reusable Admin Navbar */}
+        <AdminNav 
+          lang={lang} 
+          setLang={setLang} 
+          isDark={isDark} 
+          setIsDark={setIsDark} 
+          user={user} 
+        />
 
         {/* --- Main Content --- */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">

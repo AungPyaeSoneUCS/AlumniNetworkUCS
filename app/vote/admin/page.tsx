@@ -1,11 +1,10 @@
-// file: app/vote/admin/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
-import { useRouter, usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
+import AdminNav from "@/app/vote/components/AdminNav"; // Adjust path if needed
 
 type Project = {
   _id: string;
@@ -14,17 +13,9 @@ type Project = {
   teamId: { name: string };
 };
 
-// --- Translations Dictionary ---
+// --- Translations Dictionary (Page Content Only) ---
 const translations = {
   my: {
-    portalName: "အက်ဒမင်",
-    logoutBtn: "ထွက်မည်",
-    navResult: "မဲရလဒ်များ",
-    navCreate: "အကောင့် စီမံခန့်ခွဲရန်",
-    navVoterList: "မဲပေးသူ စာရင်း",
-    navTeamList: "အဖွဲ့ စာရင်း",
-    navTime: "မဲပေးချိန် သတ်မှတ်ရန်",
-    navProfile: "ပရိုဖိုင်",
     title: "မဲရလဒ်များ (တိုက်ရိုက်)",
     subtitle: "မဲရလဒ်များကို အများဆုံးမှ အနည်းဆုံးသို့ အလိုအလျောက် စဉ်ပြထားပါသည်။",
     rank: "အဆင့်",
@@ -39,14 +30,6 @@ const translations = {
     exportBtn: "Excel ဆွဲထုတ်မည်",
   },
   en: {
-    portalName: "Admin",
-    logoutBtn: "Log Out",
-    navResult: "Voting Results",
-    navCreate: "Account Management",
-    navVoterList: "Voter Lists",
-    navTeamList: "Team Lists",
-    navTime: "Set Voting Times",
-    navProfile: "Profile",
     title: "Live Voting Results",
     subtitle: "Real-time voting results automatically sorted from highest to lowest.",
     rank: "Rank",
@@ -64,8 +47,6 @@ const translations = {
 
 export default function AdminResultsPage() {
   const { data: session, status } = useSession();
-  const router = useRouter();
-  const pathname = usePathname();
 
   // --- States ---
   const [projects, setProjects] = useState<Project[]>([]);
@@ -120,16 +101,6 @@ export default function AdminResultsPage() {
     XLSX.writeFile(wb, "Voting_Results.xlsx");
   };
 
-  // --- Dynamic Navbar Links ---
-  const navLinks = [
-    { href: "/vote/admin", label: t.navResult },
-    { href: "/vote/admin/create", label: t.navCreate },
-    { href: "/vote/admin/voters", label: t.navVoterList },
-    { href: "/vote/admin/teams", label: t.navTeamList },
-    { href: "/vote/admin/settings", label: t.navTime },
-    { href: "/vote/admin/profile", label: t.navProfile },
-  ];
-
   // --- 1. Loading State ---
   if (status === "loading") {
     return (
@@ -161,88 +132,14 @@ export default function AdminResultsPage() {
     <div className={`${isDark ? "dark" : ""} h-screen flex flex-col overflow-hidden print:h-auto print:overflow-visible`}>
       <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300 print:bg-white print:text-black">
         
-        {/* --- Unified Single-Line Navigation Bar (Standard Size) --- */}
-        <nav className="flex-none bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-50 border-b border-gray-200 dark:border-gray-800 shadow-sm print:hidden">
-          <div className="max-w-[95rem] mx-auto px-4 h-16 flex items-center justify-between gap-4">
-            
-            {/* Left: Admin Identity */}
-            <div className="flex items-center gap-2.5 whitespace-nowrap flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white font-extrabold text-lg">A</span>
-              </div>
-              <span className="font-bold text-base tracking-tight hidden md:inline">
-                {t.portalName} <span className="text-blue-500 dark:text-blue-400 font-medium">({user.name})</span>
-              </span>
-            </div>
-
-            {/* Middle: Centered Navigation Links */}
-            <div className="hidden lg:flex items-center gap-6 overflow-x-auto no-scrollbar py-2">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`text-sm font-bold transition-colors pb-0.5 whitespace-nowrap ${
-                      isActive
-                        ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-                        : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </div>
-            
-            {/* Right: Language, Theme Toggle & Logout Button */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button 
-                onClick={() => setLang(lang === "my" ? "en" : "my")} 
-                className="flex items-center justify-center px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-bold shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                {lang === "my" ? "EN" : "မြန်မာ"}
-              </button>
-              
-              <button 
-                onClick={() => setIsDark(!isDark)} 
-                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 shadow-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                {isDark ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                )}
-              </button>
-
-              <button 
-                onClick={() => signOut({ callbackUrl: "/vote" })} 
-                className="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-500/10 px-3.5 py-1.5 rounded-lg shadow-sm hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
-              >
-                {t.logoutBtn}
-              </button>
-            </div>
-
-          </div>
-        </nav>
-
-        {/* Mobile Navbar Links (Hidden on Print) */}
-        <div className="flex lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 overflow-x-auto no-scrollbar gap-4 flex-shrink-0 print:hidden">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`text-xs font-bold whitespace-nowrap pb-1 border-b-2 ${
-                  isActive ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-gray-500"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </div>
+        {/* Render Reusable Admin Navbar */}
+        <AdminNav 
+          lang={lang} 
+          setLang={setLang} 
+          isDark={isDark} 
+          setIsDark={setIsDark} 
+          user={user} 
+        />
 
         {/* --- Main Scrollable Content --- */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print:overflow-visible print:p-0">
@@ -250,9 +147,8 @@ export default function AdminResultsPage() {
             
             <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 print:mb-4">
               <div>
-
                 <div className="flex items-center gap-3 mb-2">
-                <p className="text-gray-600 dark:text-gray-400 font-medium print:hidden">{t.subtitle}</p>
+                  <p className="text-gray-600 dark:text-gray-400 font-medium print:hidden">{t.subtitle}</p>
 
                   <span className="flex h-3 w-3 relative mt-1 print:hidden">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>

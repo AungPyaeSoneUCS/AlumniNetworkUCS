@@ -1,11 +1,11 @@
-// file: app/vote/admin/voters/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
+import AdminNav from "@/app/vote/components/AdminNav";
 
 type Voter = {
   _id: string;
@@ -16,17 +16,9 @@ type Voter = {
   createdAt: string;
 };
 
-// --- Translations Dictionary ---
+// --- Translations Dictionary (Page Content Only) ---
 const translations = {
   my: {
-    portalName: "အက်ဒမင်",
-    logoutBtn: "ထွက်မည်",
-    navResult: "မဲရလဒ်များ",
-    navCreate: "အကောင့် စီမံခန့်ခွဲရန်",
-    navVoterList: "မဲပေးသူ စာရင်း",
-    navTeamList: "အဖွဲ့ စာရင်း",
-    navTime: "မဲပေးချိန် သတ်မှတ်ရန်",
-    navProfile: "ပရိုဖိုင်",
     title: "မှတ်ပုံတင်ထားသော မဲပေးသူများ",
     subtitle: "စနစ်အတွင်းရှိ မဲပေးသူအကောင့် အားလုံးကို စီမံခန့်ခွဲပြီး စောင့်ကြည့်ပါ။",
     total: "စုစုပေါင်း",
@@ -52,7 +44,8 @@ const translations = {
     saveBtn: "သိမ်းဆည်းမည်",
     savingBtn: "သိမ်းဆည်းနေပါသည်...",
     deleteTitle: "အကောင့် ဖျက်သိမ်းရန် အတည်ပြုပါ",
-    deleteWarning: "ဤမဲပေးသူကို ဖျက်ပစ်ရန် သေချာပါသလား? ဤလုပ်ဆောင်ချက်ကို နောက်ပိုင်းတွင် ပြင်ဆင်၍မရပါ။",
+    // Updated warning message
+    deleteWarning: "ဤမဲပေးသူကို ဖျက်ပစ်ရန် သေချာပါသလား? အကယ်၍ ဤသူသည် မဲပေးပြီးဖြစ်ပါက၊ ၎င်း၏မဲကို ပရောဂျက်မဲစာရင်းမှ ပြန်လည်နှုတ်ယူမည်ဖြစ်ပါသည်။ ဤလုပ်ဆောင်ချက်ကို ပြင်ဆင်၍မရပါ။",
     confirmDeleteBtn: "ဖျက်သိမ်းမည်",
     accessRestricted: "ဝင်ရောက်ခွင့် ကန့်သတ်ထားပါသည်",
     loginRequired: "သင်သည် အက်ဒမင်အဖြစ် လုံခြုံစွာ အကောင့်ဝင်ထားရပါမည်။",
@@ -61,14 +54,6 @@ const translations = {
     printBtn: "ပရင့်ထုတ်မည်",
   },
   en: {
-    portalName: "Admin",
-    logoutBtn: "Log Out",
-    navResult: "Voting Results",
-    navCreate: "Account Management",
-    navVoterList: "Voter Lists",
-    navTeamList: "Team Lists",
-    navTime: "Set Voting Times",
-    navProfile: "Profile",
     title: "Registered Voters",
     subtitle: "Manage and monitor all voter accounts in the system.",
     total: "Total",
@@ -94,7 +79,8 @@ const translations = {
     saveBtn: "Save Changes",
     savingBtn: "Saving...",
     deleteTitle: "Confirm Deletion",
-    deleteWarning: "Are you sure you want to delete this voter? This action cannot be undone.",
+    // Updated warning message
+    deleteWarning: "Are you sure you want to delete this voter? If they have already voted, their vote will be automatically deducted from the project. This action cannot be undone.",
     confirmDeleteBtn: "Delete Voter",
     accessRestricted: "Access Restricted",
     loginRequired: "You must be securely logged in as an Administrator.",
@@ -107,7 +93,6 @@ const translations = {
 export default function VoterListPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const pathname = usePathname();
   
   const [voters, setVoters] = useState<Voter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -236,16 +221,6 @@ export default function VoterListPage() {
     }
   };
 
-  // --- Dynamic Navbar Links ---
-  const navLinks = [
-    { href: "/vote/admin", label: t.navResult },
-    { href: "/vote/admin/create", label: t.navCreate },
-    { href: "/vote/admin/voters", label: t.navVoterList },
-    { href: "/vote/admin/teams", label: t.navTeamList },
-    { href: "/vote/admin/settings", label: t.navTime },
-    { href: "/vote/admin/profile", label: t.navProfile },
-  ];
-
   // --- 1. Loading State ---
   if (status === "loading") {
     return (
@@ -281,88 +256,14 @@ export default function VoterListPage() {
     <div className={`${isDark ? "dark" : ""} h-screen flex flex-col overflow-hidden print:h-auto print:overflow-visible`}>
       <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300 print:bg-white print:text-black">
         
-        {/* --- Unified Single-Line Navigation Bar (Hidden on Print) --- */}
-        <nav className="flex-none bg-white/90 dark:bg-gray-900/90 backdrop-blur-md z-50 border-b border-gray-200 dark:border-gray-800 shadow-sm print:hidden">
-          <div className="max-w-[95rem] mx-auto px-4 h-16 flex items-center justify-between gap-4">
-            
-            {/* Left: Admin Identity */}
-            <div className="flex items-center gap-2.5 whitespace-nowrap flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white font-extrabold text-lg">A</span>
-              </div>
-              <span className="font-bold text-base tracking-tight hidden md:inline">
-                {t.portalName} <span className="text-blue-500 dark:text-blue-400 font-medium">({user.name})</span>
-              </span>
-            </div>
-
-            {/* Middle: Centered Navigation Links */}
-            <div className="hidden lg:flex items-center gap-6 overflow-x-auto no-scrollbar py-2">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`text-sm font-bold transition-colors pb-0.5 whitespace-nowrap ${
-                      isActive
-                        ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-                        : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </div>
-            
-            {/* Right: Language, Theme Toggle & Logout Button */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <button 
-                onClick={() => setLang(lang === "my" ? "en" : "my")} 
-                className="flex items-center justify-center px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-xs font-bold shadow-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              >
-                {lang === "my" ? "EN" : "မြန်မာ"}
-              </button>
-              
-              <button 
-                onClick={() => setIsDark(!isDark)} 
-                className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 shadow-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                {isDark ? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-                )}
-              </button>
-
-              <button 
-                onClick={() => signOut({ callbackUrl: "/vote" })} 
-                className="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-500/10 px-3.5 py-1.5 rounded-lg shadow-sm hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
-              >
-                {t.logoutBtn}
-              </button>
-            </div>
-
-          </div>
-        </nav>
-
-        {/* Mobile Navbar Links (Hidden on Print) */}
-        <div className="flex lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2.5 overflow-x-auto no-scrollbar gap-4 flex-shrink-0 print:hidden">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`text-xs font-bold whitespace-nowrap pb-1 border-b-2 ${
-                  isActive ? "border-blue-600 text-blue-600 dark:text-blue-400" : "border-transparent text-gray-500"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </div>
+        {/* Render Reusable Admin Navbar */}
+        <AdminNav 
+          lang={lang} 
+          setLang={setLang} 
+          isDark={isDark} 
+          setIsDark={setIsDark} 
+          user={user} 
+        />
 
         {/* --- Main Scrollable Content --- */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print:overflow-visible print:p-0">
@@ -370,30 +271,6 @@ export default function VoterListPage() {
             
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4 print:mb-4">
               
-              
-
-              {/* Export & Print Buttons */}
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleExportExcel}
-                      disabled={voters.length === 0}
-                      className="flex items-center gap-2 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 px-4 py-3 rounded-2xl font-bold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                      <span className="hidden sm:inline">{t.exportBtn}</span>
-                    </button>
-
-                    <button 
-                      onClick={handlePrint}
-                      disabled={voters.length === 0}
-                      className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 px-4 py-3 rounded-2xl font-bold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                      <span className="hidden sm:inline">{t.printBtn}</span>
-                    </button>
-                  </div>
-
-
               {/* Quick Stats & Action Buttons (Hidden on Print) */}
               {!isLoading && !error && (
                 <div className="flex flex-wrap items-center gap-3 print:hidden">
@@ -409,10 +286,29 @@ export default function VoterListPage() {
                       <p className="text-xl font-black text-green-600 dark:text-green-400">{votedCount}</p>
                     </div>
                   </div>
-
-                  
                 </div>
               )}
+
+              {/* Export & Print Buttons */}
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleExportExcel}
+                  disabled={voters.length === 0}
+                  className="flex items-center gap-2 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 px-4 py-3 rounded-2xl font-bold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                  <span className="hidden sm:inline">{t.exportBtn}</span>
+                </button>
+
+                <button 
+                  onClick={handlePrint}
+                  disabled={voters.length === 0}
+                  className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 px-4 py-3 rounded-2xl font-bold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                  <span className="hidden sm:inline">{t.printBtn}</span>
+                </button>
+              </div>
             </div>
 
             {error ? (
