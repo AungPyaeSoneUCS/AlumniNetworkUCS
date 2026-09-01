@@ -1,4 +1,3 @@
-// file: app/vote/admin/register/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -17,7 +16,7 @@ const translations = {
     password: "စကားဝှက်",
     passwordPlaceholder: "•••••••• (အနည်းဆုံး ၆ လုံး)",
     secretKey: "လျှို့ဝှက်ကုဒ် (Secret Key)",
-    secretKeyPlaceholder: "ADMIN_SETUP_SECRET",
+    secretKeyPlaceholder: "VOTE_ADMIN_SETUP_SECRET",
     submit: "အကောင့် ဖန်တီးမည်",
     submitting: "ဖန်တီးနေပါသည်...",
     success: "အက်ဒမင် အကောင့် ဖန်တီးပြီးပါပြီ။ လော့ဂ်အင်သို့ သွားနေပါသည်...",
@@ -34,7 +33,7 @@ const translations = {
     password: "Password",
     passwordPlaceholder: "•••••••• (Min 6 chars)",
     secretKey: "Setup Secret Key",
-    secretKeyPlaceholder: "ADMIN_SETUP_SECRET",
+    secretKeyPlaceholder: "VOTE_ADMIN_SETUP_SECRET",
     submit: "Register",
     submitting: "Creating Admin...",
     success: "Admin account created! Redirecting to login...",
@@ -66,6 +65,7 @@ export default function AdminRegisterPage() {
     setMessage({ type: "", text: "" });
 
     try {
+      // Send the data, including the secretKey, to the backend API for verification
       const res = await fetch("/api/vote/admin/setup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,7 +125,9 @@ export default function AdminRegisterPage() {
           <h2 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white transition-colors">
             {t.title}
           </h2>
-    
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+            {t.subtitle}
+          </p>
         </div>
 
         {/* Form Container */}

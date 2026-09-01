@@ -1,4 +1,4 @@
-// file: app/admin/register/page.tsx
+//file app/admin/acc_create/page.tsx
 
 "use client";
 
@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Sparkles,
   User,
+  KeyRound,
 } from "lucide-react";
 
 export default function AdminRegisterPage() {
@@ -29,8 +30,10 @@ export default function AdminRegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [secretKey, setSecretKey] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -58,6 +61,11 @@ export default function AdminRegisterPage() {
       return;
     }
 
+    if (!secretKey.trim()) {
+      setError("Admin Secret Key is required.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -68,13 +76,14 @@ export default function AdminRegisterPage() {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password,
+          secretKey: secretKey.trim(), // Sent to backend for .env validation
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Admin register failed.");
+        setError(data.error || "Admin register failed. Check your Secret Key.");
         return;
       }
 
@@ -133,33 +142,28 @@ export default function AdminRegisterPage() {
           </h1>
 
           <p className="admin-fade-up-delay mt-5 max-w-2xl text-base font-semibold leading-8 text-white/80 sm:text-lg">
-            Use this page only during development or first setup. After creating
-            the admin account, remove or protect this page.
+            Use this page only during development or first setup. You will need the system's Master Secret Key to authorize this creation.
           </p>
 
           <p className="admin-fade-up-delay-2 mt-4 max-w-2xl text-xl font-black leading-tight text-[#77edec] sm:text-2xl">
-            Admin Only • Secure Setup • Mobile Ready
+            Admin Only • Secure Setup • Key Required
           </p>
 
           <div className="admin-fade-up-delay-3 mt-8 grid gap-3 sm:grid-cols-3">
             <InfoCard title="Secure" text="Admin access" />
             <InfoCard title="Setup" text="First account" />
-            <InfoCard title="Responsive" text="Mobile ready" />
+            <InfoCard title="Protected" text="Env Key Required" />
           </div>
         </div>
 
         <div className="animate-card-in w-full">
           <div className="rounded-[34px] border border-white/25 bg-white/90 p-5 text-slate-950 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:p-6">
             
-
             <div className="text-center">
-          
-
               <h2 className="mt-2 text-2xl font-black">Admin Register</h2>
-              
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <form onSubmit={handleSubmit} className="mt-6 space-y-5">
               <InputField
                 label="Admin Name"
                 type="text"
@@ -184,6 +188,7 @@ export default function AdminRegisterPage() {
                 onChange={setPassword}
                 show={showPassword}
                 setShow={setShowPassword}
+                icon={<LockKeyhole className="h-5 w-5" />}
               />
 
               <PasswordField
@@ -192,6 +197,18 @@ export default function AdminRegisterPage() {
                 onChange={setConfirm}
                 show={showPassword}
                 setShow={setShowPassword}
+                icon={<LockKeyhole className="h-5 w-5" />}
+              />
+
+              {/* Secret Key Field */}
+              <PasswordField
+                label="System Secret Key"
+                value={secretKey}
+                onChange={setSecretKey}
+                show={showSecret}
+                setShow={setShowSecret}
+                icon={<KeyRound className="h-5 w-5" />}
+                placeholder="Enter environment secret key"
               />
 
               {error && (
@@ -213,7 +230,8 @@ export default function AdminRegisterPage() {
                   !name.trim() ||
                   !email.trim() ||
                   !password ||
-                  !confirm
+                  !confirm ||
+                  !secretKey.trim()
                 }
                 className="group flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] text-sm font-black text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-1 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -466,12 +484,16 @@ function PasswordField({
   onChange,
   show,
   setShow,
+  icon,
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   show: boolean;
   setShow: (value: boolean) => void;
+  icon: React.ReactNode;
+  placeholder?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -479,7 +501,7 @@ function PasswordField({
 
       <div className="group relative">
         <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-[#008B8B]">
-          <LockKeyhole className="h-5 w-5" />
+          {icon}
         </div>
 
         <input
@@ -487,7 +509,7 @@ function PasswordField({
           required
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder={`Enter ${label.toLowerCase()}`}
+          placeholder={placeholder || `Enter ${label.toLowerCase()}`}
           className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-12 pr-14 text-sm font-bold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#00BFC4] focus:bg-white focus:ring-4 focus:ring-cyan-100"
         />
 
