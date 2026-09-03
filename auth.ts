@@ -15,7 +15,7 @@ import {
 } from "@/lib/emailTemplates";
 import { getRequestInfo } from "@/lib/requestInfo";
 import User from "@/models/User";
-import VoteUser from "@/models/VoteUser"; // <-- ADDED: Import the VoteUser model
+import VoteUser from "@/models/VoteUser";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
@@ -105,7 +105,7 @@ export const authOptions: NextAuthOptions = {
       },
     }),
 
-    // --- 2. ADDED: VOTING SYSTEM LOGIN ---
+    // --- 2. VOTING SYSTEM LOGIN ---
     CredentialsProvider({
       id: "vote-login", // Unique ID used to call this specific login
       name: "Voting System Login",
@@ -152,20 +152,27 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async redirect({ url, baseUrl }) {
-      if (url.startsWith("https://ucshalumninetwork.netlify.app")) {
+      // Allow redirects to your custom production domains & legacy URL
+      if (
+        url.startsWith("https://alumni.ucsh.edu.mm") ||
+        url.startsWith("https://alumna.ucsh.edu.mm") ||
+        url.startsWith("https://ucshalumninetwork.netlify.app")
+      ) {
         return url;
       }
-      
+
+      // Allow relative paths (e.g. /dashboard)
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       }
-      
+
+      // Allow same-origin redirects
       try {
         if (new URL(url).origin === baseUrl) {
           return url;
         }
       } catch (error) {}
-      
+
       return baseUrl;
     },
 
@@ -255,15 +262,15 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = (user as any).id || token.id;
         token.role = (user as any).role || token.role || "user";
-        
-        // --- ADDED: Pass voting fields into the token ---
+
+        // Pass voting fields into the token
         if ((user as any).isVoteSystem) {
           token.isVoteSystem = true;
           token.hasVoted = (user as any).hasVoted;
         }
       }
 
-      // --- UPDATED: Prevent NextAuth from looking for a VoteUser in the Alumni User DB ---
+      // Prevent NextAuth from looking for a VoteUser in the Alumni User DB
       if ((!token.id || !token.role) && token.email && !token.isVoteSystem) {
         await connectDB();
 
@@ -286,8 +293,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id as string;
         (session.user as any).role = (token.role as string) || "user";
-        
-        // --- ADDED: Pass voting fields into the active session ---
+
+        // Pass voting fields into the active session
         if (token.isVoteSystem) {
           (session.user as any).isVoteSystem = true;
           (session.user as any).hasVoted = token.hasVoted as boolean;

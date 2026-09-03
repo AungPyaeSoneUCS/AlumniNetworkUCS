@@ -11,11 +11,11 @@ export async function POST(req: Request) {
     const { name, email, password, secretKey } = body;
 
     // 1. Verify the Secret Key
-    const envSecret = process.env.VOTE_ADMIN_SETUP_SECRET;
+    const envSecret = process.env.ADMIN_SECRET_KEY;
     
     if (!envSecret) {
       return NextResponse.json(
-        { error: "Server misconfiguration: VOTE_ADMIN_SETUP_SECRET is not set in .env" },
+        { error: "Server misconfiguration: SECRET_KEY is not set in .env" },
         { status: 500 }
       );
     }
