@@ -832,6 +832,7 @@ function Input({
   placeholder,
   required = false,
   min,
+  max,
 }: {
   label?: string;
   value: string;
@@ -842,6 +843,7 @@ function Input({
   placeholder?: string;
   required?: boolean;
   min?: string;
+  max?: string;
 }) {
   return (
     <div>
@@ -866,6 +868,7 @@ function Input({
           placeholder={placeholder}
           required={required}
           min={min}
+          max={max}
           onChange={(event) => onChange?.(event.target.value)}
           className={inputClass(icon ? "pl-9" : "")}
         />
