@@ -3,7 +3,6 @@
 import type React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Script from "next/script";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
@@ -11,18 +10,13 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
-  Briefcase,
   ChevronDown,
   Download,
-  Eye,
-  EyeOff,
   FileSpreadsheet,
-  Lock,
   Mail,
   Pencil,
   Plus,
   Search,
-  Trash2,
   UserCog,
   Users,
 } from "lucide-react";
@@ -31,6 +25,8 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import AdminSidebar from "@/components/admin/admin-sidebar";
+import AddStaffForm from "@/components/admin/add-staff-form";
+import ConfirmDelete from "@/components/admin/confirm-delete";
 import PrintUsersButton from "@/components/admin/print-users-button";
 
 type Lang = "en" | "mm";
@@ -53,6 +49,9 @@ const text = {
     actions: "Actions",
     edit: "Edit",
     delete: "Delete",
+    cancel: "Cancel",
+    deleteConfirm: "Delete Staff Account",
+    cannotUndo: "This action cannot be undone.",
     save: "Save Staff Account",
     unknownUser: "Unknown Staff",
     noEmail: "No email",
@@ -74,6 +73,8 @@ const text = {
     missingFields: "All fields are required.",
     invalidPassword: "Password must be at least 8 chars with 1 uppercase, 1 lowercase, and 1 number.",
     invalidEmail: "Invalid email format.",
+    emailRequired: "Email is required.",
+    passwordRequired: "Password is required.",
     pwdPlaceholder: "Min 8 chars, 1 uppercase, 1 lowercase, 1 number",
   },
   mm: {
@@ -91,6 +92,9 @@ const text = {
     actions: "လုပ်ဆောင်ချက်များ",
     edit: "ပြင်မည်",
     delete: "ဖျက်မည်",
+    cancel: "မဖျက်တော့ပါ",
+    deleteConfirm: "Staff အကောင့် ဖျက်မည်လား",
+    cannotUndo: "ဤလုပ်ဆောင်ချက်ကို ပြန်ပြင်၍မရပါ။",
     save: "အကောင့်သိမ်းမည်",
     unknownUser: "အမည်မရှိသော Staff",
     noEmail: "Email မရှိပါ",
@@ -112,6 +116,8 @@ const text = {
     missingFields: "အချက်အလက်အားလုံး ဖြည့်သွင်းရန် လိုအပ်ပါသည်။",
     invalidPassword: "စကားဝှက်တွင် စာလုံးကြီး၊ စာလုံးသေး၊ ဂဏန်း ပါဝင်ရမည်ဖြစ်ပြီး အနည်းဆုံး ၈ လုံးဖြစ်ရမည်။",
     invalidEmail: "အီးမေးလ်ပုံစံ မှားယွင်းနေပါသည်။",
+    emailRequired: "အီးမေးလ် ဖြည့်သွင်းရန် လိုအပ်ပါသည်။",
+    passwordRequired: "စကားဝှက် ဖြည့်သွင်းရန် လိုအပ်ပါသည်။",
     pwdPlaceholder: "အနည်းဆုံး ၈ လုံး (A-Z, a-z, 0-9 ပါရမည်)",
   },
 };
@@ -527,101 +533,7 @@ export default async function AdminManageStaffPage({
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t.addStaffSubtitle}</p>
                 </div>
 
-                <form action={addStaffAccount} className="max-w-xl space-y-5">
-                  <input type="hidden" name="lang" value={lang} />
-                  
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      {t.staff}
-                    </label>
-                    <div className="relative">
-                      <UserCog className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        name="name"
-                        required
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
-                        placeholder="U Htet Wai Lwin"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      {t.position}
-                    </label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        name="position"
-                        required
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
-                        placeholder="Student Affairs Officer"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      {t.email}
-                    </label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="email"
-                        name="email"
-                        required
-                        pattern="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-                        title={lang === "mm" ? "အီးမေးလ်ပုံစံ မှန်ကန်စွာရိုက်ထည့်ပါ။" : "Please enter a valid email address."}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
-                        placeholder="staff@ucsh.edu.mm"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      {t.password}
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                      <input
-                        id="password-input"
-                        type="password"
-                        name="password"
-                        required
-                        pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
-                        title={lang === "mm" ? t.invalidPassword : t.invalidPassword}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/20 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
-                        placeholder={t.pwdPlaceholder}
-                      />
-                      {/* Checkbox toggle trick to keep it purely server-component safe without client-side state */}
-                      <label className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-slate-400 hover:text-[#008B8B] transition-colors">
-                        <input type="checkbox" id="show-pwd-checkbox" className="peer sr-only" />
-                        <Eye className="h-4 w-4 peer-checked:hidden" />
-                        <EyeOff className="h-4 w-4 hidden peer-checked:block" />
-                      </label>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] px-6 py-3 text-sm font-black text-white shadow-lg shadow-cyan-500/25 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95"
-                  >
-                    <UserCog className="h-4 w-4" />
-                    {t.save}
-                  </button>
-                </form>
-
-                <Script id="pwd-toggle" strategy="afterInteractive">
-                  {`
-                    document.getElementById('show-pwd-checkbox')?.addEventListener('change', function(e) {
-                      const pwd = document.getElementById('password-input');
-                      if (pwd) pwd.type = e.target.checked ? 'text' : 'password';
-                    });
-                  `}
-                </Script>
+                <AddStaffForm t={t} lang={lang} action={addStaffAccount} />
               </div>
             )}
 
@@ -705,13 +617,13 @@ export default async function AdminManageStaffPage({
                                   {t.edit}
                                 </Link>
 
-                                <form action={deleteStaffAccount}>
-                                  <input type="hidden" name="id" value={String(user._id)} />
-                                  <button className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white">
-                                    <Trash2 size={14} />
-                                    {t.delete}
-                                  </button>
-                                </form>
+                                <ConfirmDelete
+                                  action={deleteStaffAccount}
+                                  id={String(user._id)}
+                                  t={{ deleteConfirm: t.deleteConfirm, cancel: t.cancel, delete: t.delete, cannotUndo: t.cannotUndo }}
+                                  label={t.delete}
+                                  className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white"
+                                />
                               </div>
                             </td>
                           </tr>
@@ -744,12 +656,13 @@ export default async function AdminManageStaffPage({
                         >
                           <Pencil size={14} /> {t.edit}
                         </Link>
-                        <form action={deleteStaffAccount} className="flex-1">
-                          <input type="hidden" name="id" value={String(user._id)} />
-                          <button className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-red-50 px-4 py-2.5 text-xs font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500">
-                            <Trash2 size={14} /> {t.delete}
-                          </button>
-                        </form>
+                        <ConfirmDelete
+                          action={deleteStaffAccount}
+                          id={String(user._id)}
+                          t={{ deleteConfirm: t.deleteConfirm, cancel: t.cancel, delete: t.delete, cannotUndo: t.cannotUndo }}
+                          label={t.delete}
+                          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-red-50 px-4 py-2.5 text-xs font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500"
+                        />
                       </div>
                     </article>
                   ))}

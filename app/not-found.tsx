@@ -1,4 +1,4 @@
-// file: app/not-found.tsx
+﻿// file: app/not-found.tsx
 
 "use client";
 
@@ -31,19 +31,19 @@ export default function NotFound() {
       contact: "Contact Us",
     },
     mm: {
-      badge: "စာမျက်နှာ မတွေ့ပါ",
-      code: "၄၀၄",
-      title: "စာမျက်နှာ မတွေ့ပါ",
+      badge: "á€…á€¬á€™á€»á€€á€ºá€”á€¾á€¬ á€™á€á€½á€±á€·á€•á€«",
+      code: "á„á€á„",
+      title: "á€…á€¬á€™á€»á€€á€ºá€”á€¾á€¬ á€™á€á€½á€±á€·á€•á€«",
       subtitle:
-        "သင်ရှာနေသော စာမျက်နှာ မရှိတော့ပါ သို့မဟုတ် ရွှေ့ထားနိုင်ပါသည်။",
-      hint: "Alumni Network သို့ ပြန်သွားပြီး ဆက်လက်အသုံးပြုနိုင်ပါသည်။",
-      home: "မူလစာမျက်နှာသို့",
-      directory: "Directory ဖွင့်မည်",
-      seeMore: "ပိုကြည့်မည်",
-      seeLess: "လျှော့ပြမည်",
-      feeds: "Feeds ဖွင့်မည်",
-      jobs: "Jobs ကြည့်မည်",
-      contact: "ဆက်သွယ်မည်",
+        "á€žá€„á€ºá€›á€¾á€¬á€”á€±á€žá€±á€¬ á€…á€¬á€™á€»á€€á€ºá€”á€¾á€¬ á€™á€›á€¾á€­á€á€±á€¬á€·á€•á€« á€žá€­á€¯á€·á€™á€Ÿá€¯á€á€º á€›á€½á€¾á€±á€·á€‘á€¬á€¸á€”á€­á€¯á€„á€ºá€•á€«á€žá€Šá€ºá‹",
+      hint: "Alumni Network á€žá€­á€¯á€· á€•á€¼á€”á€ºá€žá€½á€¬á€¸á€•á€¼á€®á€¸ á€†á€€á€ºá€œá€€á€ºá€¡á€žá€¯á€¶á€¸á€•á€¼á€¯á€”á€­á€¯á€„á€ºá€•á€«á€žá€Šá€ºá‹",
+      home: "á€™á€°á€œá€…á€¬á€™á€»á€€á€ºá€”á€¾á€¬á€žá€­á€¯á€·",
+      directory: "Directory á€–á€½á€„á€·á€ºá€™á€Šá€º",
+      seeMore: "á€•á€­á€¯á€€á€¼á€Šá€·á€ºá€™á€Šá€º",
+      seeLess: "á€œá€»á€¾á€±á€¬á€·á€•á€¼á€™á€Šá€º",
+      feeds: "Feeds á€–á€½á€„á€·á€ºá€™á€Šá€º",
+      jobs: "Jobs á€€á€¼á€Šá€·á€ºá€™á€Šá€º",
+      contact: "á€†á€€á€ºá€žá€½á€šá€ºá€™á€Šá€º",
     },
   }[currentLang];
 
@@ -53,7 +53,7 @@ export default function NotFound() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('/imgaes/background/background-1.jpg')",
+            backgroundImage: "url('/images/background/background-1.jpg')",
           }}
         />
 

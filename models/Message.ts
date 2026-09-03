@@ -2,6 +2,14 @@
 
 import mongoose, { Schema, models, model } from "mongoose";
 
+const ReactionSchema = new Schema(
+  {
+    emoji: { type: String, required: true },
+    users: [{ type: Schema.Types.ObjectId, ref: "User" }],
+  },
+  { _id: false }
+);
+
 const MessageSchema = new Schema(
   {
     sender: {
@@ -27,7 +35,6 @@ const MessageSchema = new Schema(
       default: false,
     },
 
-    // NEW: Viber/Telegram style feature flags
     isDeleted: {
       type: Boolean,
       default: false,
@@ -42,6 +49,11 @@ const MessageSchema = new Schema(
       type: String,
       default: "",
       trim: true,
+    },
+
+    reactions: {
+      type: [ReactionSchema],
+      default: [],
     },
   },
   {

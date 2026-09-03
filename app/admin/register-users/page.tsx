@@ -20,12 +20,12 @@ import {
   Plus,
   Printer,
   Search,
-  Trash2,
   Upload,
   XCircle,
 } from "lucide-react";
 
 import AdminSidebar from "@/components/admin/admin-sidebar";
+import ConfirmDelete from "@/components/admin/confirm-delete";
 
 type Student = {
   _id: string;
@@ -70,6 +70,9 @@ const text = {
     approve: "Approve",
     edit: "Edit",
     delete: "Delete",
+    cancel: "Cancel",
+    deleteConfirm: "Delete Register Data",
+    cannotUndo: "This action cannot be undone.",
     actions: "Action",
     loadFailed: "Failed to load data.",
     networkError: "Network error.",
@@ -121,6 +124,9 @@ const text = {
     approve: "အတည်ပြုမည်",
     edit: "ပြင်မည်",
     delete: "ဖျက်မည်",
+    cancel: "မဖျက်တော့ပါ",
+    deleteConfirm: "စာရင်းသွင်းထားသော အချက်အလက် ဖျက်မည်လား",
+    cannotUndo: "ဤလုပ်ဆောင်ချက်ကို ပြန်ပြင်၍မရပါ။",
     actions: "လုပ်ဆောင်ချက်",
     loadFailed: "ဒေတာ load မအောင်မြင်ပါ။",
     networkError: "Network error ဖြစ်နေသည်။",
@@ -750,8 +756,6 @@ export default function RegisterUserDataAddPage() {
   }
 
   async function deleteStudent(id: string) {
-    if (!confirm("Delete this register data?")) return;
-
     setActionId(id);
     setError("");
     setMessage("");
@@ -1217,14 +1221,13 @@ export default function RegisterUserDataAddPage() {
                                       {t.edit}
                                     </ActionSmallButton>
 
-                                    <ActionSmallButton
-                                      color="red"
-                                      disabled={actionId === student._id}
-                                      onClick={() => deleteStudent(student._id)}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                      {t.delete}
-                                    </ActionSmallButton>
+                                    <ConfirmDelete
+                                      onClientConfirm={deleteStudent}
+                                      id={String(student._id)}
+                                      t={{ deleteConfirm: t.deleteConfirm, cancel: t.cancel, delete: t.delete, cannotUndo: t.cannotUndo }}
+                                      label={t.delete}
+                                      className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 disabled:opacity-60 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white"
+                                    />
                                   </div>
                                 </td>
                               </tr>

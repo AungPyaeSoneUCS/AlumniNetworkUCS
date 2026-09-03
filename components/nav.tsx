@@ -9,6 +9,7 @@ import {
   Bell,
   Briefcase,
   Edit,
+  LayoutDashboard,
   Mail,
   Menu,
   MessageCircle,
@@ -42,6 +43,7 @@ const navText = {
     settings: "Settings",
     pleaseWait: "Please wait...",
     notifications: "Notifications",
+    goDashboard: "Go Dashboard",
   },
   mm: {
     brand: "ကျောင်းသားဟောင်းများ ကွန်ရက်",
@@ -60,6 +62,7 @@ const navText = {
     settings: "ဆက်တင်",
     pleaseWait: "ခဏစောင့်ပါ...",
     notifications: "အသိပေးချက်များ",
+    goDashboard: "Dashboard သို့သွားမည်",
   },
 };
 
@@ -67,6 +70,7 @@ type MeUser = {
   _id?: string;
   name?: string;
   image?: string;
+  role?: string;
 };
 
 export default function Nav() {
@@ -101,6 +105,11 @@ export default function Nav() {
 
   const profileHref = me?._id ? `/profile/${me._id}` : "/settings";
   const editProfileHref = "/settings";
+
+  const isAdminOrStaff =
+    me?.role === "admin" || me?.role === "staff" ? true : false;
+  const dashboardHref =
+    me?.role === "admin" ? "/admin/dashboard" : "/staff/dashboard";
 
   // NEW: Fetch global logo on mount
   useEffect(() => {
@@ -142,6 +151,7 @@ export default function Nav() {
           _id: user?._id,
           name: user?.name,
           image: user?.image,
+          role: user?.role,
         });
       } catch (error) {
         console.error("Load current user failed:", error);
@@ -333,6 +343,17 @@ export default function Nav() {
                           <Edit size={16} />
                           {t.editProfile}
                         </Link>
+
+                        {isAdminOrStaff && (
+                          <Link
+                            href={dashboardHref}
+                            onClick={() => setProfileOpen(false)}
+                            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-[#94EFEE]/70 hover:text-[#008B8B]"
+                          >
+                            <LayoutDashboard size={16} />
+                            {t.goDashboard}
+                          </Link>
+                        )}
                       </div>
                     </div>
                   )}
@@ -422,6 +443,17 @@ export default function Nav() {
                   <Edit size={18} />
                   {t.editProfile}
                 </Link>
+
+                {isAdminOrStaff && (
+                  <Link
+                    href={dashboardHref}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-black text-slate-700 transition hover:bg-[#94EFEE]/70 hover:text-[#008B8B]"
+                  >
+                    <LayoutDashboard size={18} />
+                    {t.goDashboard}
+                  </Link>
+                )}
 
                 <button
                   type="button"

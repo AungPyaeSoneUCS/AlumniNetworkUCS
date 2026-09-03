@@ -261,6 +261,10 @@ export default function FeedsPage() {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [activeRecentId, setActiveRecentId] = useState("");
 
+  // Target post from notification link (?post=<id>)
+  const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
+  const [didHighlight, setDidHighlight] = useState(false);
+
   // Create state
   const [composerActive, setComposerActive] = useState(false);
   const [content, setContent] = useState("");
@@ -342,6 +346,34 @@ export default function FeedsPage() {
 
     loadPosts();
   }, []);
+
+  // When coming from a notification link (?post=<id>), scroll to & highlight that post
+  useEffect(() => {
+    if (didHighlight || typeof window === "undefined") return;
+
+    const targetId = new URLSearchParams(window.location.search).get("post");
+    if (!targetId) return;
+
+    setHighlightPostId(targetId);
+
+    // Wait for posts to render, then scroll to the target post
+    const timer = window.setTimeout(() => {
+      document.getElementById(`post-${targetId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      setDidHighlight(true);
+
+      // Clear the query param so refresh doesn't re-trigger
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("post")) {
+        url.searchParams.delete("post");
+        window.history.replaceState({}, "", url.toString());
+      }
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [posts, didHighlight]);
 
   const authors = useMemo(() => {
     const map = new Map<string, string>();
@@ -581,6 +613,8 @@ export default function FeedsPage() {
     setSelectedDate("");
     setCalendarMonth(new Date());
     setActiveRecentId("");
+    setHighlightPostId(null);
+    setDidHighlight(true);
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("feed_filter_search");
       sessionStorage.removeItem("feed_filter_category");
@@ -595,6 +629,7 @@ export default function FeedsPage() {
     setFilterAuthor("");
     setSelectedDate("");
     setActiveRecentId(post._id);
+    setHighlightPostId(null);
 
     window.setTimeout(() => {
       document.getElementById(`post-${post._id}`)?.scrollIntoView({
@@ -688,7 +723,7 @@ export default function FeedsPage() {
                   key={post._id}
                   post={post}
                   index={index}
-                  active={activeRecentId === post._id}
+                  active={activeRecentId === post._id || highlightPostId === post._id}
                   onEdit={startEdit}
                   onDelete={(id) => setPostToDelete(id)} // Open Post Delete Modal
                   onLike={toggleLike}

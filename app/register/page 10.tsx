@@ -1,4 +1,4 @@
-// file: app/register/page.tsx
+﻿// file: app/register/page.tsx
 
 "use client";
 
@@ -33,7 +33,7 @@ type NrcItem = {
 
 const OTP_LENGTH = 6;
 const NRC_CACHE_KEY = "ucsh-nrc-json-cache-v1";
-const mmDigits = ["၀", "၁", "၂", "၃", "၄", "၅", "၆", "၇", "၈", "၉"];
+const mmDigits = ["á€", "á", "á‚", "áƒ", "á„", "á…", "á†", "á‡", "áˆ", "á‰"];
 const nrcRegions = Array.from({ length: 14 }, (_, index) =>
   String(index + 1),
 );
@@ -42,11 +42,11 @@ let nrcMemoryCache: NrcItem[] | null = null;
 
 const fallbackNrcData: NrcItem[] = [
   {
-    id: "14-ဟသတ",
+    id: "14-á€Ÿá€žá€",
     name_en: "HaThaTa",
-    name_mm: "ဟသတ",
+    name_mm: "á€Ÿá€žá€",
     nrc_code: "14",
-    city_mm: "ဟင်္သာတ",
+    city_mm: "á€Ÿá€„á€ºá€¹á€žá€¬á€",
   },
 ];
 
@@ -95,46 +95,46 @@ const text = {
     nrcPreview: "NRC Preview",
   },
   mm: {
-    badge: "ကျောင်းသားဟောင်း ကွန်ရက်",
-    title: "Alumni Account ပြုလုပ်ရန်",
+    badge: "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸ á€€á€½á€”á€ºá€›á€€á€º",
+    title: "Alumni Account á€•á€¼á€¯á€œá€¯á€•á€ºá€›á€”á€º",
     subtitle:
-      "Admin မှ အတည်ပြုထားသော student information ဖြင့် Alumni Network သို့ ဝင်ရောက်ပါ။",
+      "Admin á€™á€¾ á€¡á€á€Šá€ºá€•á€¼á€¯á€‘á€¬á€¸á€žá€±á€¬ student information á€–á€¼á€„á€·á€º Alumni Network á€žá€­á€¯á€· á€á€„á€ºá€›á€±á€¬á€€á€ºá€•á€«á‹",
     step1: "Approval",
     step2: "Account",
     step3: "OTP",
-    name: "အမည်",
-    fatherName: "အဖအမည်",
+    name: "á€¡á€™á€Šá€º",
+    fatherName: "á€¡á€–á€¡á€™á€Šá€º",
     rollNumber: "Roll Number",
     nrc: "NRC",
-    region: "အမှတ်",
-    township: "မြို့နယ်",
-    nrcType: "အမျိုးအစား",
-    nrcNumber: "NRC နံပါတ်",
-    graduatedYear: "ဘွဲ့ရနှစ်",
-    email: "အီးမေးလ်",
-    password: "စကားဝှက်",
-    confirmPassword: "စကားဝှက် အတည်ပြု",
-    check: "Approval စစ်မည်",
-    checking: "စစ်ဆေးနေသည်...",
-    sendOtp: "ဆက်သွားမည်",
-    sending: "ပို့နေသည်...",
-    verifyOtp: "OTP အတည်ပြုမည်",
-    verifying: "စစ်ဆေးနေသည်...",
-    back: "နောက်သို့",
-    already: "Account ရှိပြီးသားလား?",
+    region: "á€¡á€™á€¾á€á€º",
+    township: "á€™á€¼á€­á€¯á€·á€”á€šá€º",
+    nrcType: "á€¡á€™á€»á€­á€¯á€¸á€¡á€…á€¬á€¸",
+    nrcNumber: "NRC á€”á€¶á€•á€«á€á€º",
+    graduatedYear: "á€˜á€½á€²á€·á€›á€”á€¾á€…á€º",
+    email: "á€¡á€®á€¸á€™á€±á€¸á€œá€º",
+    password: "á€…á€€á€¬á€¸á€á€¾á€€á€º",
+    confirmPassword: "á€…á€€á€¬á€¸á€á€¾á€€á€º á€¡á€á€Šá€ºá€•á€¼á€¯",
+    check: "Approval á€…á€…á€ºá€™á€Šá€º",
+    checking: "á€…á€…á€ºá€†á€±á€¸á€”á€±á€žá€Šá€º...",
+    sendOtp: "á€†á€€á€ºá€žá€½á€¬á€¸á€™á€Šá€º",
+    sending: "á€•á€­á€¯á€·á€”á€±á€žá€Šá€º...",
+    verifyOtp: "OTP á€¡á€á€Šá€ºá€•á€¼á€¯á€™á€Šá€º",
+    verifying: "á€…á€…á€ºá€†á€±á€¸á€”á€±á€žá€Šá€º...",
+    back: "á€”á€±á€¬á€€á€ºá€žá€­á€¯á€·",
+    already: "Account á€›á€¾á€­á€•á€¼á€®á€¸á€žá€¬á€¸á€œá€¬á€¸?",
     login: "Login",
     home: "Home",
-    approved: "Admin မှ အတည်ပြုထားသော data တွေ့ပါသည်။",
-    required: "လိုအပ်သော အချက်အလက်အားလုံး ဖြည့်ပါ။",
-    nameInvalid: "အမည်သည် အနည်းဆုံး စာလုံး ၅ လုံး ရှိရမည်။",
-    fatherNameInvalid: 'အဖအမည်သည် "U " ဖြင့် စရမည်။ ဥပမာ - U Mg Mg',
-    invalidEmail: "Email format မမှန်ပါ။",
+    approved: "Admin á€™á€¾ á€¡á€á€Šá€ºá€•á€¼á€¯á€‘á€¬á€¸á€žá€±á€¬ data á€á€½á€±á€·á€•á€«á€žá€Šá€ºá‹",
+    required: "á€œá€­á€¯á€¡á€•á€ºá€žá€±á€¬ á€¡á€á€»á€€á€ºá€¡á€œá€€á€ºá€¡á€¬á€¸á€œá€¯á€¶á€¸ á€–á€¼á€Šá€·á€ºá€•á€«á‹",
+    nameInvalid: "á€¡á€™á€Šá€ºá€žá€Šá€º á€¡á€”á€Šá€ºá€¸á€†á€¯á€¶á€¸ á€…á€¬á€œá€¯á€¶á€¸ á… á€œá€¯á€¶á€¸ á€›á€¾á€­á€›á€™á€Šá€ºá‹",
+    fatherNameInvalid: 'á€¡á€–á€¡á€™á€Šá€ºá€žá€Šá€º "U " á€–á€¼á€„á€·á€º á€…á€›á€™á€Šá€ºá‹ á€¥á€•á€™á€¬ - U Mg Mg',
+    invalidEmail: "Email format á€™á€™á€¾á€”á€ºá€•á€«á‹",
     weakPassword:
-      "Password တွင် အကြီးစာလုံး၊ အသေးစာလုံး၊ နံပါတ်၊ symbol နှင့် 8 လုံးအထက် ပါရမည်။",
-    passwordMismatch: "Password မတူပါ။",
-    passwordMatched: "Password တူညီပါသည်။",
-    checkFirst: "အရင်ဆုံး approval စစ်ပါ။",
-    otpInvalid: "OTP သည် ဂဏန်း ၆ လုံး ဖြစ်ရမည်။",
+      "Password á€á€½á€„á€º á€¡á€€á€¼á€®á€¸á€…á€¬á€œá€¯á€¶á€¸áŠ á€¡á€žá€±á€¸á€…á€¬á€œá€¯á€¶á€¸áŠ á€”á€¶á€•á€«á€á€ºáŠ symbol á€”á€¾á€„á€·á€º 8 á€œá€¯á€¶á€¸á€¡á€‘á€€á€º á€•á€«á€›á€™á€Šá€ºá‹",
+    passwordMismatch: "Password á€™á€á€°á€•á€«á‹",
+    passwordMatched: "Password á€á€°á€Šá€®á€•á€«á€žá€Šá€ºá‹",
+    checkFirst: "á€¡á€›á€„á€ºá€†á€¯á€¶á€¸ approval á€…á€…á€ºá€•á€«á‹",
+    otpInvalid: "OTP á€žá€Šá€º á€‚á€á€”á€ºá€¸ á† á€œá€¯á€¶á€¸ á€–á€¼á€…á€ºá€›á€™á€Šá€ºá‹",
     nrcPreview: "NRC Preview",
   },
 };
@@ -144,7 +144,7 @@ function enToMmDigit(value: string) {
 }
 
 function mmToEnDigit(value: string) {
-  return value.replace(/[၀-၉]/g, (digit) => String(mmDigits.indexOf(digit)));
+  return value.replace(/[á€-á‰]/g, (digit) => String(mmDigits.indexOf(digit)));
 }
 
 function normalizeNrcRow(item: any): NrcItem {
@@ -199,8 +199,8 @@ export default function RegisterPage() {
 
   const [nrcData, setNrcData] = useState<NrcItem[]>(fallbackNrcData);
   const [nrcRegion, setNrcRegion] = useState("14");
-  const [nrcCode, setNrcCode] = useState("ဟသတ");
-  const [nrcType, setNrcType] = useState("(နိုင်)");
+  const [nrcCode, setNrcCode] = useState("á€Ÿá€žá€");
+  const [nrcType, setNrcType] = useState("(á€”á€­á€¯á€„á€º)");
   const [nrcNumber, setNrcNumber] = useState("");
 
   const [email, setEmail] = useState("");
@@ -733,15 +733,15 @@ export default function RegisterPage() {
                       value={nrcType}
                       onChange={setNrcType}
                     >
-                      <option value="(နိုင်)">(နိုင်)</option>
-                      <option value="(ဧည့်)">(ဧည့်)</option>
-                      <option value="(ပြု)">(ပြု)</option>
+                      <option value="(á€”á€­á€¯á€„á€º)">(á€”á€­á€¯á€„á€º)</option>
+                      <option value="(á€§á€Šá€·á€º)">(á€§á€Šá€·á€º)</option>
+                      <option value="(á€•á€¼á€¯)">(á€•á€¼á€¯)</option>
                     </Select>
 
                     <Input
                       label={t.nrcNumber}
                       value={nrcNumber}
-                      placeholder="၁၂၃၄၅၆"
+                      placeholder="áá‚áƒá„á…á†"
                       inputMode="numeric"
                       onChange={(value) => {
                         const englishNumber = mmToEnDigit(value).replace(
@@ -974,7 +974,7 @@ function BackgroundPhoto() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/imgaes/background/background-0.jpg')",
+          backgroundImage: "url('/images/background/background-0.jpg')",
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/62 to-slate-950/28" />

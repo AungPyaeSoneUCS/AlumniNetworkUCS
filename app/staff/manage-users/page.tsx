@@ -13,7 +13,6 @@ import {
   Download,
   FileSpreadsheet,
   Mail,
-  Trash2,
   Users,
 } from "lucide-react";
 
@@ -22,6 +21,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import ApprovedStudent from "@/models/ApprovedStudent";
 import StaffSidebar from "@/components/staff/staff-sidebar";
+import ConfirmDelete from "@/components/admin/confirm-delete";
 import AutoSubmitManageUsersFilters from "@/components/admin/auto-submit-manage-users-filters";
 import PrintUsersButton from "@/components/admin/print-users-button";
 
@@ -43,6 +43,9 @@ const text = {
     phone: "Phone Number",
     actions: "Actions",
     delete: "Delete",
+    cancel: "Cancel",
+    deleteConfirm: "Delete Alumni",
+    cannotUndo: "This action cannot be undone.",
     unknownUser: "Unknown Alumni",
     noEmail: "No email",
     unknown: "Unknown",
@@ -75,6 +78,9 @@ const text = {
     phone: "ဖုန်းနံပါတ်",
     actions: "လုပ်ဆောင်ချက်များ",
     delete: "ဖျက်ရန်",
+    cancel: "မဖျက်တော့ပါ",
+    deleteConfirm: "ကျောင်းသားဟောင်း ဖျက်မည်လား",
+    cannotUndo: "ဤလုပ်ဆောင်ချက်ကို ပြန်ပြင်၍မရပါ။",
     unknownUser: "အမည်မရှိသော ကျောင်းသားဟောင်း",
     noEmail: "Email မရှိပါ",
     unknown: "Unknown",
@@ -749,17 +755,13 @@ export default async function StaffManageUsersPage({
 
                         <td className="px-4 py-3.5">
                           <div className="flex justify-end gap-2">
-                            <form action={deleteUserAccount}>
-                              <input
-                                type="hidden"
-                                name="id"
-                                value={String(user._id)}
-                              />
-                              <button className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white">
-                                <Trash2 size={14} />
-                                {t.delete}
-                              </button>
-                            </form>
+                            <ConfirmDelete
+                              action={deleteUserAccount}
+                              id={String(user._id)}
+                              t={{ deleteConfirm: t.deleteConfirm, cancel: t.cancel, delete: t.delete, cannotUndo: t.cannotUndo }}
+                              label={t.delete}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white"
+                            />
                           </div>
                         </td>
                       </tr>
@@ -796,13 +798,13 @@ export default async function StaffManageUsersPage({
                   </div>
 
                   <div className="mt-4 flex justify-end">
-                    <form action={deleteUserAccount}>
-                      <input type="hidden" name="id" value={String(user._id)} />
-                      <button className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-[11px] font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white">
-                        <Trash2 size={14} />
-                        {t.delete}
-                      </button>
-                    </form>
+                    <ConfirmDelete
+                      action={deleteUserAccount}
+                      id={String(user._id)}
+                      t={{ deleteConfirm: t.deleteConfirm, cancel: t.cancel, delete: t.delete, cannotUndo: t.cannotUndo }}
+                      label={t.delete}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-[11px] font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white"
+                    />
                   </div>
                 </article>
               ))}

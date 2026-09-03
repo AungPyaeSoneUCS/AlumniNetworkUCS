@@ -1,4 +1,4 @@
-// file: app/login/page.tsx
+﻿// file: app/login/page.tsx
 
 "use client";
 
@@ -31,13 +31,13 @@ function getEmailError(email: string, lang: Lang) {
 
   if (!value.includes("@")) {
     return lang === "mm"
-      ? "Email တွင် @ ထည့်ရန်လိုအပ်ပါသည်။"
+      ? "Email á€á€½á€„á€º @ á€‘á€Šá€·á€ºá€›á€”á€ºá€œá€­á€¯á€¡á€•á€ºá€•á€«á€žá€Šá€ºá‹"
       : "Email must include @.";
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
     return lang === "mm"
-      ? "Email format မမှန်ပါ။ example@gmail.com ပုံစံဖြစ်ရမည်။"
+      ? "Email format á€™á€™á€¾á€”á€ºá€•á€«á‹ example@gmail.com á€•á€¯á€¶á€…á€¶á€–á€¼á€…á€ºá€›á€™á€Šá€ºá‹"
       : "Invalid email format. Example: example@gmail.com";
   }
 
@@ -49,7 +49,7 @@ function getPasswordError(password: string, lang: Lang) {
 
   if (password.length < 8) {
     return lang === "mm"
-      ? "စကားဝှက်သည် အနည်းဆုံး ၈ လုံး ဖြစ်ရမည်။"
+      ? "á€…á€€á€¬á€¸á€á€¾á€€á€ºá€žá€Šá€º á€¡á€”á€Šá€ºá€¸á€†á€¯á€¶á€¸ áˆ á€œá€¯á€¶á€¸ á€–á€¼á€…á€ºá€›á€™á€Šá€ºá‹"
       : "Password must be at least 8 characters.";
   }
 
@@ -152,7 +152,7 @@ function LoginContent() {
       if (result?.error) {
         setMessage(
           currentLang === "mm"
-            ? "Email သို့မဟုတ် စကားဝှက် မှားနေပါသည်။"
+            ? "Email á€žá€­á€¯á€·á€™á€Ÿá€¯á€á€º á€…á€€á€¬á€¸á€á€¾á€€á€º á€™á€¾á€¬á€¸á€”á€±á€•á€«á€žá€Šá€ºá‹"
             : "Invalid email or password.",
         );
         return;
@@ -168,7 +168,7 @@ function LoginContent() {
     } catch (error) {
       console.error("Login failed:", error);
       setMessage(
-        currentLang === "mm" ? "ဝင်ရောက်မှု မအောင်မြင်ပါ။" : "Login failed.",
+        currentLang === "mm" ? "á€á€„á€ºá€›á€±á€¬á€€á€ºá€™á€¾á€¯ á€™á€¡á€±á€¬á€„á€ºá€™á€¼á€„á€ºá€•á€«á‹" : "Login failed.",
       );
     } finally {
       setLoading(false);
@@ -183,7 +183,7 @@ function LoginContent() {
 
           <div className="relative z-10 flex items-center gap-3 rounded-2xl border border-white/25 bg-white/90 px-6 py-5 text-sm font-black text-[#008B8B] shadow-2xl backdrop-blur-2xl">
             <Loader2 className="h-5 w-5 animate-spin" />
-            {currentLang === "mm" ? "စစ်ဆေးနေသည်..." : "Checking session..."}
+            {currentLang === "mm" ? "á€…á€…á€ºá€†á€±á€¸á€”á€±á€žá€Šá€º..." : "Checking session..."}
           </div>
         </section>
       </main>
@@ -205,7 +205,7 @@ function LoginContent() {
             <div className="animate-in-1 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-lg backdrop-blur">
               <Sparkles size={15} className="text-[#f1cd72]" />
               {currentLang === "mm"
-                ? "ကျောင်းသားဟောင်း ကွန်ရက်"
+                ? "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸ á€€á€½á€”á€ºá€›á€€á€º"
                 : "Alumni Network"}
             </div>
 
@@ -220,13 +220,13 @@ function LoginContent() {
 
             <h2 className="animate-in-4 mt-4 text-xl font-black text-white hero-subtitle sm:text-2xl">
               {currentLang === "mm"
-                ? "Alumni Network သို့ ဝင်မည်"
+                ? "Alumni Network á€žá€­á€¯á€· á€á€„á€ºá€™á€Šá€º"
                 : "Login to Alumni Network"}
             </h2>
 
             <p className="animate-in-5 mt-4 max-w-lg text-base font-semibold leading-7 text-white/90 drop-shadow-lg sm:text-lg">
               {currentLang === "mm"
-                ? "Admin မှ အတည်ပြုထားသော alumni account ဖြင့် ဆက်လက်ဝင်ရောက်ပါ။"
+                ? "Admin á€™á€¾ á€¡á€á€Šá€ºá€•á€¼á€¯á€‘á€¬á€¸á€žá€±á€¬ alumni account á€–á€¼á€„á€·á€º á€†á€€á€ºá€œá€€á€ºá€á€„á€ºá€›á€±á€¬á€€á€ºá€•á€«á‹"
                 : "Continue with your approved alumni account and connect with the community."}
             </p>
 
@@ -243,7 +243,7 @@ function LoginContent() {
                 href="/register"
                 className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#f1cd72] px-6 text-sm font-black text-slate-950 shadow-lg transition duration-300 hover:-translate-y-1 hover:bg-yellow-200 hover:shadow-xl"
               >
-                {currentLang === "mm" ? "စာရင်းသွင်းမည်" : "Join Now"}
+                {currentLang === "mm" ? "á€…á€¬á€›á€„á€ºá€¸á€žá€½á€„á€ºá€¸á€™á€Šá€º" : "Join Now"}
                 <ArrowRight
                   size={17}
                   className="transition group-hover:translate-x-1"
@@ -257,12 +257,12 @@ function LoginContent() {
           <div className="animate-form w-full rounded-[2rem] border border-white/30 bg-white/92 p-5 shadow-2xl backdrop-blur-2xl sm:p-7">
             <div className="mb-6 text-center">
               <h2 className="text-2xl font-black text-slate-950 sm:text-3xl">
-                {currentLang === "mm" ? "ဝင်ရောက်ရန်" : "Welcome Back"}
+                {currentLang === "mm" ? "á€á€„á€ºá€›á€±á€¬á€€á€ºá€›á€”á€º" : "Welcome Back"}
               </h2>
 
               <p className="mt-2 text-sm font-bold text-slate-500">
                 {currentLang === "mm"
-                  ? "Email နှင့် password ဖြင့် login ဝင်ပါ။"
+                  ? "Email á€”á€¾á€„á€·á€º password á€–á€¼á€„á€·á€º login á€á€„á€ºá€•á€«á‹"
                   : "Login with your email and password."}
               </p>
             </div>
@@ -289,9 +289,9 @@ function LoginContent() {
 
               <PasswordInput
                 name="password"
-                label={currentLang === "mm" ? "စကားဝှက်" : "Password"}
+                label={currentLang === "mm" ? "á€…á€€á€¬á€¸á€á€¾á€€á€º" : "Password"}
                 placeholder={
-                  currentLang === "mm" ? "စကားဝှက် ထည့်ပါ" : "Enter password"
+                  currentLang === "mm" ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€‘á€Šá€·á€ºá€•á€«" : "Enter password"
                 }
                 value={password}
                 onFocus={() =>
@@ -315,7 +315,7 @@ function LoginContent() {
                   className="text-sm font-black text-[#008B8B] transition hover:text-[#00BFC4] hover:underline"
                 >
                   {currentLang === "mm"
-                    ? "စကားဝှက် မေ့နေပါသလား?"
+                    ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€™á€±á€·á€”á€±á€•á€«á€žá€œá€¬á€¸?"
                     : "Forgot password?"}
                 </Link>
               </div>
@@ -330,23 +330,23 @@ function LoginContent() {
                 {loading && <Loader2 size={18} className="animate-spin" />}
                 {loading
                   ? currentLang === "mm"
-                    ? "ခဏစောင့်ပါ..."
+                    ? "á€á€á€…á€±á€¬á€„á€·á€ºá€•á€«..."
                     : "Please wait..."
                   : currentLang === "mm"
-                    ? "ဝင်မည်"
+                    ? "á€á€„á€ºá€™á€Šá€º"
                     : "Login"}
               </button>
             </form>
 
             <p className="mt-5 text-center text-sm font-bold text-slate-600">
               {currentLang === "mm"
-                ? "အကောင့်မရှိသေးပါသလား?"
+                ? "á€¡á€€á€±á€¬á€„á€·á€ºá€™á€›á€¾á€­á€žá€±á€¸á€•á€«á€žá€œá€¬á€¸?"
                 : "No account yet?"}{" "}
               <Link
                 href="/register"
                 className="font-black text-[#008B8B] transition hover:text-[#00BFC4] hover:underline"
               >
-                {currentLang === "mm" ? "စာရင်းသွင်းမည်" : "Create one"}
+                {currentLang === "mm" ? "á€…á€¬á€›á€„á€ºá€¸á€žá€½á€„á€ºá€¸á€™á€Šá€º" : "Create one"}
               </Link>
             </p>
           </div>
@@ -435,7 +435,7 @@ function BackgroundPhoto() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/imgaes/background/background-0.jpg')",
+          backgroundImage: "url('/images/background/background-0.jpg')",
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/62 to-slate-950/28" />

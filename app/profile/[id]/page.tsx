@@ -243,6 +243,14 @@ export default function ProfilePage() {
   >({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
+  // Post edit & delete state
+  const [editingPost, setEditingPost] = useState<any>(null);
+  const [editContent, setEditContent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!id) return;
 
@@ -290,6 +298,23 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [id]);
+
+  // Close post options menu when clicking outside
+  useEffect(() => {
+    function handleClickOutsideMenu(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (target.closest('[data-post-menu]')) return;
+      setOpenMenuId(null);
+    }
+
+    if (openMenuId) {
+      document.addEventListener("click", handleClickOutsideMenu);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleClickOutsideMenu);
+    };
+  }, [openMenuId]);
 
   const lang: Lang = profileData?.languagePreference === "mm" ? "mm" : "en";
   const t = text[lang];
@@ -376,6 +401,79 @@ export default function ProfilePage() {
       setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
     } catch (error) {
       console.error("Comment error:", error);
+    }
+  }
+
+  function startEditPost(post: any) {
+    setEditingPost(post);
+    setEditContent(post.content || "");
+    setOpenMenuId(null);
+  }
+
+  async function updatePost() {
+    if (!editingPost || !editContent.trim() || saving) return;
+
+    setSaving(true);
+
+    try {
+      const res = await fetch(`/api/posts/${editingPost._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: editContent,
+          category: editingPost.category || "General",
+          image: editingPost.image || "",
+          images: editingPost.images || [],
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.error || "Failed to update post");
+        return;
+      }
+
+      const updatedPost = await res.json();
+
+      setPosts((prev) =>
+        prev.map((post) =>
+          post._id === updatedPost._id ? updatedPost : post
+        )
+      );
+
+      setEditingPost(null);
+      setEditContent("");
+    } catch (error) {
+      console.error("Update post failed:", error);
+      alert("Failed to update post");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deletePost() {
+    if (!postToDelete || deleting) return;
+
+    setDeleting(true);
+
+    try {
+      const res = await fetch(`/api/posts/${postToDelete._id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.error || "Failed to delete post");
+        return;
+      }
+
+      setPosts((prev) => prev.filter((post) => post._id !== postToDelete._id));
+      setPostToDelete(null);
+    } catch (error) {
+      console.error("Delete post failed:", error);
+      alert("Failed to delete post");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -531,9 +629,52 @@ export default function ProfilePage() {
                           {post.createdAt
                             ? new Date(post.createdAt).toLocaleDateString()
                             : ""}
+                          {post.isEdited ? " • edited" : ""}
                         </p>
                       </div>
                     </div>
+
+                    {post.isOwner && (
+                      <div className="relative shrink-0" data-post-menu>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenMenuId((prev) =>
+                              prev === post._id ? null : post._id
+                            )
+                          }
+                          aria-label="Post options"
+                          className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                        >
+                          <FaEllipsis className="text-sm" />
+                        </button>
+
+                        {openMenuId === post._id && (
+                          <div className="absolute right-0 top-10 z-20 w-36 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                            <button
+                              type="button"
+                              onClick={() => startEditPost(post)}
+                              className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-50"
+                            >
+                              <FaPen className="text-xs" />
+                              {t.editPost}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                setPostToDelete(post);
+                              }}
+                              className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-bold text-red-500 hover:bg-red-50"
+                            >
+                              <FaTrash className="text-xs" />
+                              {t.deletePost}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <PostContentBody content={post.content} t={t} />
@@ -743,6 +884,99 @@ export default function ProfilePage() {
           </Card>
         )}
       </div>
+
+      {/* Edit Post Modal */}
+      {editingPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <h3 className="text-base font-black text-slate-900">
+                {t.editPost}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingPost(null)}
+                aria-label="Close"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="px-5 py-4">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={6}
+                maxLength={3000}
+                autoFocus
+                placeholder={t.writeComment}
+                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-[#25C9C8] focus:bg-white"
+              />
+              <p className="mt-1 text-right text-xs font-medium text-slate-400">
+                {editContent.length}/3000
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setEditingPost(null)}
+                className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={updatePost}
+                disabled={!editContent.trim() || saving}
+                className="rounded-xl bg-[#25C9C8] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#008B8B] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Post Confirm Modal */}
+      {postToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+            <div className="px-5 py-6 text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
+                <FaTrash className="text-xl" />
+              </div>
+              <h3 className="mt-4 text-lg font-black text-slate-900">
+                {t.deletePost}
+              </h3>
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                Are you sure you want to delete this post? This action cannot be
+                undone.
+              </p>
+            </div>
+
+            <div className="flex gap-2 border-t border-slate-100 px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setPostToDelete(null)}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={deletePost}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

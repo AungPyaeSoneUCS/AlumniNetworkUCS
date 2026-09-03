@@ -1,4 +1,4 @@
-// file: app/page.tsx
+﻿// file: app/page.tsx
 
 "use client";
 
@@ -25,7 +25,7 @@ const text = {
     line1: "Hinthada Computer",
     line2: "Science & Technology",
     line3: "Alumni Network",
-    subtitle: "Connecting Alumni • Sharing Knowledge • Inspiring Innovation",
+    subtitle: "Connecting Alumni â€¢ Sharing Knowledge â€¢ Inspiring Innovation",
     slogan: "Together Building Myanmar's Digital Future",
     join: "Join Now",
     feeds: "Open Feeds",
@@ -85,66 +85,66 @@ const text = {
     ],
   },
   mm: {
-    badge: "ကျောင်းသားဟောင်း ကွန်ရက်",
+    badge: "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸ á€€á€½á€”á€ºá€›á€€á€º",
     line1: "Hinthada Computer",
     line2: "Science & Technology",
     line3: "Alumni Network",
-    subtitle: "ကျောင်းသားဟောင်းများချိတ်ဆက်ခြင်း • အသိပညာမျှဝေခြင်း • နည်းပညာတိုးတက်မှုအားပေးခြင်း",
-    slogan: "မြန်မာ့ဒစ်ဂျစ်တယ်အနာဂတ်ကို အတူတကွတည်ဆောက်ကြမယ်",
-    join: "စာရင်းသွင်းမယ်",
-    feeds: "Feeds ကြည့်မယ်",
-    login: "Login ဝင်မယ်",
-    directory: "Directory ကြည့်မယ်",
-    explore: "Platform ကို လေ့လာမယ်",
-    sectionTitle: "Alumni Network မှာ ဘာတွေ အသုံးပြုနိုင်လဲ?",
+    subtitle: "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸á€™á€»á€¬á€¸á€á€»á€­á€á€ºá€†á€€á€ºá€á€¼á€„á€ºá€¸ â€¢ á€¡á€žá€­á€•á€Šá€¬á€™á€»á€¾á€á€±á€á€¼á€„á€ºá€¸ â€¢ á€”á€Šá€ºá€¸á€•á€Šá€¬á€á€­á€¯á€¸á€á€€á€ºá€™á€¾á€¯á€¡á€¬á€¸á€•á€±á€¸á€á€¼á€„á€ºá€¸",
+    slogan: "á€™á€¼á€”á€ºá€™á€¬á€·á€’á€…á€ºá€‚á€»á€…á€ºá€á€šá€ºá€¡á€”á€¬á€‚á€á€ºá€€á€­á€¯ á€¡á€á€°á€á€€á€½á€á€Šá€ºá€†á€±á€¬á€€á€ºá€€á€¼á€™á€šá€º",
+    join: "á€…á€¬á€›á€„á€ºá€¸á€žá€½á€„á€ºá€¸á€™á€šá€º",
+    feeds: "Feeds á€€á€¼á€Šá€·á€ºá€™á€šá€º",
+    login: "Login á€á€„á€ºá€™á€šá€º",
+    directory: "Directory á€€á€¼á€Šá€·á€ºá€™á€šá€º",
+    explore: "Platform á€€á€­á€¯ á€œá€±á€·á€œá€¬á€™á€šá€º",
+    sectionTitle: "Alumni Network á€™á€¾á€¬ á€˜á€¬á€á€½á€± á€¡á€žá€¯á€¶á€¸á€•á€¼á€¯á€”á€­á€¯á€„á€ºá€œá€²?",
     cards: [
       {
         title: "Feeds",
         href: "/feeds",
         icon: Newspaper,
         description:
-          "ကျောင်းသားဟောင်းများ၏ ပို့စ်၊ ကြေညာချက်၊ သတင်းနှင့် event များကို ဖတ်နိုင်သည်။",
-        button: "Feeds ဖွင့်မယ်",
+          "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸á€™á€»á€¬á€¸á á€•á€­á€¯á€·á€…á€ºáŠ á€€á€¼á€±á€Šá€¬á€á€»á€€á€ºáŠ á€žá€á€„á€ºá€¸á€”á€¾á€„á€·á€º event á€™á€»á€¬á€¸á€€á€­á€¯ á€–á€á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+        button: "Feeds á€–á€½á€„á€·á€ºá€™á€šá€º",
       },
       {
         title: "Directory",
         href: "/directory",
         icon: Users,
         description:
-          "အမည်၊ ဌာန၊ ကျောင်းပြီးနှစ်နှင့် အလုပ်အကိုင်အချက်အလက်များဖြင့် alumni များကို ရှာနိုင်သည်။",
-        button: "Directory ကြည့်မယ်",
+          "á€¡á€™á€Šá€ºáŠ á€Œá€¬á€”áŠ á€€á€»á€±á€¬á€„á€ºá€¸á€•á€¼á€®á€¸á€”á€¾á€…á€ºá€”á€¾á€„á€·á€º á€¡á€œá€¯á€•á€ºá€¡á€€á€­á€¯á€„á€ºá€¡á€á€»á€€á€ºá€¡á€œá€€á€ºá€™á€»á€¬á€¸á€–á€¼á€„á€·á€º alumni á€™á€»á€¬á€¸á€€á€­á€¯ á€›á€¾á€¬á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+        button: "Directory á€€á€¼á€Šá€·á€ºá€™á€šá€º",
       },
       {
         title: "Jobs",
         href: "/jobs",
         icon: Briefcase,
         description:
-          "Alumni များမျှဝေထားသော အလုပ်အကိုင်အခွင့်အလမ်းများကို ကြည့်နိုင်သည်။",
-        button: "Jobs ကြည့်မယ်",
+          "Alumni á€™á€»á€¬á€¸á€™á€»á€¾á€á€±á€‘á€¬á€¸á€žá€±á€¬ á€¡á€œá€¯á€•á€ºá€¡á€€á€­á€¯á€„á€ºá€¡á€á€½á€„á€·á€ºá€¡á€œá€™á€ºá€¸á€™á€»á€¬á€¸á€€á€­á€¯ á€€á€¼á€Šá€·á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+        button: "Jobs á€€á€¼á€Šá€·á€ºá€™á€šá€º",
       },
       {
         title: "Messages",
         href: "/messages",
         icon: MessageCircle,
         description:
-          "Alumni များနှင့် တိုက်ရိုက် message ပို့ပြီး ဆက်သွယ်နိုင်သည်။",
-        button: "Message ပို့မယ်",
+          "Alumni á€™á€»á€¬á€¸á€”á€¾á€„á€·á€º á€á€­á€¯á€€á€ºá€›á€­á€¯á€€á€º message á€•á€­á€¯á€·á€•á€¼á€®á€¸ á€†á€€á€ºá€žá€½á€šá€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+        button: "Message á€•á€­á€¯á€·á€™á€šá€º",
       },
       {
         title: "Contact",
         href: "/contact",
         icon: Mail,
         description:
-          "တက္ကသိုလ် သို့မဟုတ် alumni network office ကို ဆက်သွယ်နိုင်သည်။",
-        button: "ဆက်သွယ်မယ်",
+          "á€á€€á€¹á€€á€žá€­á€¯á€œá€º á€žá€­á€¯á€·á€™á€Ÿá€¯á€á€º alumni network office á€€á€­á€¯ á€†á€€á€ºá€žá€½á€šá€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+        button: "á€†á€€á€ºá€žá€½á€šá€ºá€™á€šá€º",
       },
       {
         title: "Profile",
         href: "/profile",
         icon: UserRound,
         description:
-          "ကိုယ်ရေးအချက်အလက်၊ ပညာရေး၊ skill နှင့် experience များကို ပြင်ဆင်နိုင်သည်။",
-        button: "Profile ကြည့်မယ်",
+          "á€€á€­á€¯á€šá€ºá€›á€±á€¸á€¡á€á€»á€€á€ºá€¡á€œá€€á€ºáŠ á€•á€Šá€¬á€›á€±á€¸áŠ skill á€”á€¾á€„á€·á€º experience á€™á€»á€¬á€¸á€€á€­á€¯ á€•á€¼á€„á€ºá€†á€„á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+        button: "Profile á€€á€¼á€Šá€·á€ºá€™á€šá€º",
       },
     ],
   },
@@ -164,7 +164,7 @@ export default function HomePage() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('/imgaes/background/background-3.jpg')",
+            backgroundImage: "url('/images/background/background-3.jpg')",
           }}
         />
 
@@ -248,7 +248,7 @@ export default function HomePage() {
 
                 <h3 className="text-base font-black text-slate-900">
                   {currentLang === "mm"
-                    ? `${card.title} ဆိုတာဘာလဲ?`
+                    ? `${card.title} á€†á€­á€¯á€á€¬á€˜á€¬á€œá€²?`
                     : `What is ${card.title}?`}
                 </h3>
 

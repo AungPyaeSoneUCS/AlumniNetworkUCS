@@ -5,8 +5,10 @@ import mongoose from "mongoose";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
+import { pusherServer } from "@/lib/pusher";
 import User from "@/models/User";
 import Post from "@/models/Post";
+import Notification from "@/models/Notification";
 
 type Props = {
   params: Promise<{
@@ -104,6 +106,42 @@ export async function POST(req: Request, { params }: Props) {
     });
 
     await post.save();
+
+    // Notify post author on comment (skip self-comment)
+    if (String(post.author) !== String(user._id)) {
+      try {
+        const commenter = await User.findById(user._id).select("name").lean();
+        const commenterName = (commenter as any)?.name || "Someone";
+        const truncatedComment =
+          parsed.data.content.length > 80
+            ? parsed.data.content.slice(0, 80) + "..."
+            : parsed.data.content;
+
+        const notification = await Notification.create({
+          receiver: post.author,
+          sender: user._id,
+          type: "comment",
+          title: "New Comment",
+          body: `${commenterName} commented: ${truncatedComment}`,
+          link: `/feeds?post=${id}`,
+          read: false,
+        });
+
+        await pusherServer.trigger(
+          `notifications-${post.author}`,
+          "new-notification",
+          {
+            _id: String(notification._id),
+            title: notification.title,
+            body: notification.body,
+            link: notification.link,
+            read: false,
+          }
+        );
+      } catch (notifyErr) {
+        console.error("Comment notification error:", notifyErr);
+      }
+    }
 
     // Populate the newly added comment author data
     const updatedPost: any = await Post.findById(id)

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Send, Trash2, Edit2, Check, X, UserRound, Ban } from "lucide-react";
+import { ArrowLeft, Send, Trash2, Edit2, Check, X, UserRound, Ban, SmilePlus, Smile } from "lucide-react";
 
 import { getPusherClient } from "@/lib/pusher-client";
 
@@ -23,6 +23,11 @@ type UserInfo = {
   graduatedYear?: number | null;
 };
 
+type Reaction = {
+  emoji: string;
+  users: string[];
+};
+
 type Message = {
   _id: string;
   text: string;
@@ -34,7 +39,10 @@ type Message = {
   updatedAt?: string;
   sender: UserInfo;
   receiver: UserInfo;
+  reactions?: Reaction[];
 };
+
+const EMOJI_OPTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
 const MESSAGE_DRAFT_KEY = "ucsh-message-draft";
 const MESSAGE_SCROLL_KEY = "ucsh-message-scroll";
@@ -106,6 +114,10 @@ export default function ChatPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+
+  // Emoji reaction picker
+  const [reactionFor, setReactionFor] = useState<string | null>(null);
+  const reactionPickerRef = useRef<HTMLDivElement | null>(null);
 
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -225,6 +237,18 @@ export default function ChatPage() {
       });
     });
 
+    channel.bind("message-reaction", (incoming: Message) => {
+      setMessages((prev) => {
+        const index = prev.findIndex((item) => item._id === incoming._id);
+        if (index > -1) {
+          const updated = [...prev];
+          updated[index] = incoming;
+          return updated;
+        }
+        return prev;
+      });
+    });
+
     return () => {
       channel.unbind_all();
       pusherClient.unsubscribe(channelName);
@@ -335,6 +359,49 @@ export default function ChatPage() {
     }
   }
 
+  async function toggleReaction(messageId: string, emoji: string) {
+    if (!messageId || !emoji) return;
+
+    try {
+      const res = await fetch(`/api/messages/${userId}/react`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId, emoji }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setMessages((prev) =>
+          prev.map((m) => (m._id === messageId ? { ...m, ...updated } : m))
+        );
+      }
+    } catch (error) {
+      console.error("React message failed:", error);
+    } finally {
+      setReactionFor(null);
+    }
+  }
+
+  // Close reaction picker when clicking outside
+  useEffect(() => {
+    function handleClickOutsideReaction(event: MouseEvent) {
+      if (
+        reactionPickerRef.current &&
+        !reactionPickerRef.current.contains(event.target as Node)
+      ) {
+        setReactionFor(null);
+      }
+    }
+
+    if (reactionFor) {
+      document.addEventListener("mousedown", handleClickOutsideReaction);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutsideReaction);
+    };
+  }, [reactionFor]);
+
   const isRestrictedAdminChat = useMemo(() => {
     return me?.role?.toLowerCase() !== "admin" && receiver?.role?.toLowerCase() === "admin";
   }, [me, receiver]);
@@ -435,10 +502,15 @@ export default function ChatPage() {
                       )}
 
                       <div
-                        className={`flex max-w-[85%] items-end gap-1.5 sm:max-w-[65%] ${
-                          mine ? "flex-row" : "flex-row-reverse"
+                        className={`flex max-w-[85%] flex-col items-end gap-0.5 sm:max-w-[65%] ${
+                          mine ? "" : "items-start"
                         }`}
                       >
+                        <div
+                          className={`flex items-end gap-1.5 ${
+                            mine ? "flex-row" : "flex-row-reverse"
+                          }`}
+                        >
                         {/* TIMESTAMP placed strictly outside bubble */}
                         <span className="mb-1 shrink-0 text-[10px] font-semibold text-slate-400 select-none">
                           {formatTime(message.createdAt)}
@@ -478,28 +550,119 @@ export default function ChatPage() {
                             </div>
                           )}
 
-                          {/* Hover Floating Action Menu (Edit / Delete) */}
-                          {mine && !message.isDeleted && !isEditingThis && (
-                            <div className="absolute -left-16 top-1/2 z-10 hidden -translate-y-1/2 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-md group-hover:flex">
-                              <button
-                                type="button"
-                                onClick={() => startEditing(message)}
-                                title="Edit"
-                                className="rounded-lg p-1 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600"
-                              >
-                                <Edit2 size={13} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => deleteMessage(message._id)}
-                                disabled={deletingId === message._id}
-                                title="Delete"
-                                className="rounded-lg p-1 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
-                              >
-                                <Trash2 size={13} />
-                              </button>
+                          {/* Hover Floating Action Menu (React / Edit / Delete) */}
+                          <div
+                            className={`${
+                              mine && !message.isDeleted && !isEditingThis
+                                ? "-left-16"
+                                : !mine && !message.isDeleted
+                                  ? "-right-16"
+                                  : ""
+                            } absolute top-1/2 z-10 hidden -translate-y-1/2 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-md group-hover:flex ${
+                              message.isDeleted ? "hidden" : ""
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setReactionFor((prev) =>
+                                  prev === message._id ? null : message._id
+                                )
+                              }
+                              title="React"
+                              className="rounded-lg p-1 text-slate-500 transition hover:bg-teal-50 hover:text-teal-600"
+                            >
+                              <SmilePlus size={13} />
+                            </button>
+
+                            {mine && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => startEditing(message)}
+                                  title="Edit"
+                                  className="rounded-lg p-1 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteMessage(message._id)}
+                                  disabled={deletingId === message._id}
+                                  title="Delete"
+                                  className="rounded-lg p-1 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Emoji Reaction Picker Popover */}
+                          {reactionFor === message._id && (
+                            <div
+                              ref={reactionPickerRef}
+                              className={`absolute top-1/2 z-20 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl ${
+                                mine ? "-left-20" : "-right-20"
+                              }`}
+                            >
+                              <div className="flex items-center gap-0.5">
+                                {EMOJI_OPTIONS.map((emoji) => (
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={() =>
+                                      toggleReaction(message._id, emoji)
+                                    }
+                                    className="rounded-xl p-1.5 text-xl leading-none transition hover:scale-125 hover:bg-slate-100"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           )}
+                        </div>
+                        </div>
+
+                        {/* Reactions row */}
+                        {message.reactions && message.reactions.length > 0 && (
+                          <div
+                            className={`flex flex-wrap gap-1 ${
+                              mine ? "justify-end" : "justify-start"
+                            }`}
+                          >
+                            {message.reactions.map((reaction) => {
+                              const isMine = reaction.users.includes(
+                                String(me?._id)
+                              );
+                              return (
+                                <button
+                                  key={reaction.emoji}
+                                  type="button"
+                                  onClick={() =>
+                                    toggleReaction(message._id, reaction.emoji)
+                                  }
+                                  title={`${reaction.users.length} reaction${
+                                    reaction.users.length > 1 ? "s" : ""
+                                  }`}
+                                  className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-sm shadow-sm transition ${
+                                    isMine
+                                      ? "border-teal-400 bg-teal-50"
+                                      : "border-slate-200 bg-white"
+                                  }`}
+                                >
+                                  <span className="leading-none">
+                                    {reaction.emoji}
+                                  </span>
+                                  <span className="text-[10px] font-black text-slate-600">
+                                    {reaction.users.length}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                         </div>
                       </div>
                     </div>

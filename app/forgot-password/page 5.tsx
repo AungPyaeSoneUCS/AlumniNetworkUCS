@@ -1,4 +1,4 @@
-// file: app/forgot-password/page.tsx
+﻿// file: app/forgot-password/page.tsx
 
 "use client";
 
@@ -190,7 +190,7 @@ export default function ForgotPasswordPage() {
       console.error("Send OTP failed:", error);
       setMessage(
         currentLang === "mm"
-          ? "OTP ပို့ရန် မအောင်မြင်ပါ။"
+          ? "OTP á€•á€­á€¯á€·á€›á€”á€º á€™á€¡á€±á€¬á€„á€ºá€™á€¼á€„á€ºá€•á€«á‹"
           : "Failed to send OTP.",
       );
     } finally {
@@ -204,7 +204,7 @@ export default function ForgotPasswordPage() {
     if (otpCode.length !== OTP_LENGTH) {
       setMessage(
         currentLang === "mm"
-          ? "OTP သည် ဂဏန်း ၆ လုံး ဖြစ်ရမည်။"
+          ? "OTP á€žá€Šá€º á€‚á€á€”á€ºá€¸ á† á€œá€¯á€¶á€¸ á€–á€¼á€…á€ºá€›á€™á€Šá€ºá‹"
           : "OTP must be 6 digits.",
       );
       return;
@@ -285,7 +285,7 @@ export default function ForgotPasswordPage() {
       console.error("Reset password failed:", error);
       setMessage(
         currentLang === "mm"
-          ? "စကားဝှက် ပြန်သတ်မှတ်မှု မအောင်မြင်ပါ။"
+          ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€•á€¼á€”á€ºá€žá€á€ºá€™á€¾á€á€ºá€™á€¾á€¯ á€™á€¡á€±á€¬á€„á€ºá€™á€¼á€„á€ºá€•á€«á‹"
           : "Failed to reset password.",
       );
     } finally {
@@ -301,7 +301,7 @@ export default function ForgotPasswordPage() {
 
           <div className="relative z-10 flex items-center gap-3 rounded-2xl border border-white/25 bg-white/90 px-6 py-5 text-sm font-black text-[#008B8B] shadow-2xl backdrop-blur-2xl">
             <Loader2 className="h-5 w-5 animate-spin" />
-            {currentLang === "mm" ? "စစ်ဆေးနေသည်..." : "Checking session..."}
+            {currentLang === "mm" ? "á€…á€…á€ºá€†á€±á€¸á€”á€±á€žá€Šá€º..." : "Checking session..."}
           </div>
         </section>
       </main>
@@ -318,7 +318,7 @@ export default function ForgotPasswordPage() {
             <div className="animate-in-1 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-white shadow-lg backdrop-blur">
               <Sparkles size={15} className="text-[#f1cd72]" />
               {currentLang === "mm"
-                ? "ကျောင်းသားဟောင်း ကွန်ရက်"
+                ? "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸ á€€á€½á€”á€ºá€›á€€á€º"
                 : "Alumni Network"}
             </div>
 
@@ -333,13 +333,13 @@ export default function ForgotPasswordPage() {
 
             <h2 className="animate-in-4 mt-4 text-xl font-black text-white hero-subtitle sm:text-2xl">
               {currentLang === "mm"
-                ? "စကားဝှက် ပြန်သတ်မှတ်ရန်"
+                ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€•á€¼á€”á€ºá€žá€á€ºá€™á€¾á€á€ºá€›á€”á€º"
                 : "Reset Alumni Account"}
             </h2>
 
             <p className="animate-in-5 mt-4 max-w-lg text-base font-semibold leading-7 text-white/90 drop-shadow-lg sm:text-lg">
               {currentLang === "mm"
-                ? "သင့် Email သို့ OTP ပို့ပြီး စကားဝှက်အသစ် ပြန်သတ်မှတ်နိုင်ပါသည်။"
+                ? "á€žá€„á€·á€º Email á€žá€­á€¯á€· OTP á€•á€­á€¯á€·á€•á€¼á€®á€¸ á€…á€€á€¬á€¸á€á€¾á€€á€ºá€¡á€žá€…á€º á€•á€¼á€”á€ºá€žá€á€ºá€™á€¾á€á€ºá€”á€­á€¯á€„á€ºá€•á€«á€žá€Šá€ºá‹"
                 : "Reset your Alumni Network password securely using OTP verification."}
             </p>
 
@@ -356,7 +356,7 @@ export default function ForgotPasswordPage() {
                 href="/login"
                 className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#f1cd72] px-6 text-sm font-black text-slate-950 shadow-lg transition duration-300 hover:-translate-y-1 hover:bg-yellow-200 hover:shadow-xl"
               >
-                {currentLang === "mm" ? "ဝင်မည်" : "Login"}
+                {currentLang === "mm" ? "á€á€„á€ºá€™á€Šá€º" : "Login"}
                 <ArrowRight
                   size={17}
                   className="transition group-hover:translate-x-1"
@@ -389,7 +389,7 @@ export default function ForgotPasswordPage() {
               <form onSubmit={sendOtp} className="space-y-4">
                 <MinimalText>
                   {currentLang === "mm"
-                    ? "သင့် Email ထည့်ပြီး OTP ရယူပါ။"
+                    ? "á€žá€„á€·á€º Email á€‘á€Šá€·á€ºá€•á€¼á€®á€¸ OTP á€›á€šá€°á€•á€«á‹"
                     : "Enter your email to receive OTP."}
                 </MinimalText>
 
@@ -416,10 +416,10 @@ export default function ForgotPasswordPage() {
                   {loading && <Loader2 size={18} className="animate-spin" />}
                   {loading
                     ? currentLang === "mm"
-                      ? "ပို့နေသည်..."
+                      ? "á€•á€­á€¯á€·á€”á€±á€žá€Šá€º..."
                       : "Sending..."
                     : currentLang === "mm"
-                      ? "OTP ပို့မည်"
+                      ? "OTP á€•á€­á€¯á€·á€™á€Šá€º"
                       : "Send OTP"}
                 </PrimaryButton>
               </form>
@@ -429,7 +429,7 @@ export default function ForgotPasswordPage() {
               <form onSubmit={verifyOtp} className="space-y-5">
                 <MinimalText>
                   {currentLang === "mm"
-                    ? "သင့် Email သို့ ပို့ထားသော OTP ၆ လုံးကို ထည့်ပါ။"
+                    ? "á€žá€„á€·á€º Email á€žá€­á€¯á€· á€•á€­á€¯á€·á€‘á€¬á€¸á€žá€±á€¬ OTP á† á€œá€¯á€¶á€¸á€€á€­á€¯ á€‘á€Šá€·á€ºá€•á€«á‹"
                     : "Enter the 6-digit OTP sent to your email."}
                 </MinimalText>
 
@@ -463,11 +463,11 @@ export default function ForgotPasswordPage() {
                     }}
                     className="h-11 rounded-xl border border-[#25C9C8]/30 bg-white px-5 text-sm font-black text-[#008B8B] transition hover:bg-[#eaffff]"
                   >
-                    {currentLang === "mm" ? "နောက်သို့" : "Back"}
+                    {currentLang === "mm" ? "á€”á€±á€¬á€€á€ºá€žá€­á€¯á€·" : "Back"}
                   </button>
 
                   <PrimaryButton disabled={otpCode.length !== OTP_LENGTH}>
-                    {currentLang === "mm" ? "OTP စစ်မည်" : "Verify OTP"}
+                    {currentLang === "mm" ? "OTP á€…á€…á€ºá€™á€Šá€º" : "Verify OTP"}
                   </PrimaryButton>
                 </div>
               </form>
@@ -477,16 +477,16 @@ export default function ForgotPasswordPage() {
               <form onSubmit={resetPassword} className="space-y-4">
                 <MinimalText>
                   {currentLang === "mm"
-                    ? "စကားဝှက်အသစ် ထည့်ပါ။"
+                    ? "á€…á€€á€¬á€¸á€á€¾á€€á€ºá€¡á€žá€…á€º á€‘á€Šá€·á€ºá€•á€«á‹"
                     : "Enter your new password."}
                 </MinimalText>
 
                 <PasswordInput
                   name="newPassword"
-                  label={currentLang === "mm" ? "စကားဝှက်အသစ်" : "New Password"}
+                  label={currentLang === "mm" ? "á€…á€€á€¬á€¸á€á€¾á€€á€ºá€¡á€žá€…á€º" : "New Password"}
                   placeholder={
                     currentLang === "mm"
-                      ? "စကားဝှက်အသစ် ထည့်ပါ"
+                      ? "á€…á€€á€¬á€¸á€á€¾á€€á€ºá€¡á€žá€…á€º á€‘á€Šá€·á€ºá€•á€«"
                       : "Enter new password"
                   }
                   value={newPassword}
@@ -513,12 +513,12 @@ export default function ForgotPasswordPage() {
                   name="confirmPassword"
                   label={
                     currentLang === "mm"
-                      ? "စကားဝှက် အတည်ပြု"
+                      ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€¡á€á€Šá€ºá€•á€¼á€¯"
                       : "Confirm Password"
                   }
                   placeholder={
                     currentLang === "mm"
-                      ? "စကားဝှက် ပြန်ထည့်ပါ"
+                      ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€•á€¼á€”á€ºá€‘á€Šá€·á€ºá€•á€«"
                       : "Confirm password"
                   }
                   value={confirmPassword}
@@ -540,7 +540,7 @@ export default function ForgotPasswordPage() {
                 {showMatchSuccess && (
                   <p className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700">
                     {currentLang === "mm"
-                      ? "စကားဝှက် တူညီပါသည်။"
+                      ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€á€°á€Šá€®á€•á€«á€žá€Šá€ºá‹"
                       : "Passwords match."}
                   </p>
                 )}
@@ -554,17 +554,17 @@ export default function ForgotPasswordPage() {
                     }}
                     className="h-11 rounded-xl border border-[#25C9C8]/30 bg-white px-5 text-sm font-black text-[#008B8B] transition hover:bg-[#eaffff]"
                   >
-                    {currentLang === "mm" ? "နောက်သို့" : "Back"}
+                    {currentLang === "mm" ? "á€”á€±á€¬á€€á€ºá€žá€­á€¯á€·" : "Back"}
                   </button>
 
                   <PrimaryButton disabled={!canReset || loading}>
                     {loading && <Loader2 size={18} className="animate-spin" />}
                     {loading
                       ? currentLang === "mm"
-                        ? "ပြောင်းနေသည်..."
+                        ? "á€•á€¼á€±á€¬á€„á€ºá€¸á€”á€±á€žá€Šá€º..."
                         : "Resetting..."
                       : currentLang === "mm"
-                        ? "စကားဝှက် ပြန်သတ်မှတ်မည်"
+                        ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€•á€¼á€”á€ºá€žá€á€ºá€™á€¾á€á€ºá€™á€Šá€º"
                         : "Reset Password"}
                   </PrimaryButton>
                 </div>
@@ -579,13 +579,13 @@ export default function ForgotPasswordPage() {
 
                 <h1 className="mt-5 text-3xl font-black tracking-tight text-slate-950">
                   {currentLang === "mm"
-                    ? "စကားဝှက် ပြောင်းပြီးပါပြီ"
+                    ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€•á€¼á€±á€¬á€„á€ºá€¸á€•á€¼á€®á€¸á€•á€«á€•á€¼á€®"
                     : "Password Reset"}
                 </h1>
 
                 <p className="mt-3 text-sm font-bold leading-relaxed text-slate-500">
                   {currentLang === "mm"
-                    ? "Login page သို့ ပြန်သွားပါ။"
+                    ? "Login page á€žá€­á€¯á€· á€•á€¼á€”á€ºá€žá€½á€¬á€¸á€•á€«á‹"
                     : "Please login again."}
                 </p>
 
@@ -593,7 +593,7 @@ export default function ForgotPasswordPage() {
                   href="/login"
                   className="mt-6 flex h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
                 >
-                  {currentLang === "mm" ? "ဝင်မည်" : "Login"}
+                  {currentLang === "mm" ? "á€á€„á€ºá€™á€Šá€º" : "Login"}
                 </Link>
               </div>
             )}
@@ -603,7 +603,7 @@ export default function ForgotPasswordPage() {
                 href="/login"
                 className="mt-6 flex items-center justify-center gap-2 text-sm font-black text-[#008B8B] transition hover:text-[#00BFC4] hover:underline"
               >
-                {currentLang === "mm" ? "ဝင်ရန် ပြန်သွားမည်" : "Back to login"}
+                {currentLang === "mm" ? "á€á€„á€ºá€›á€”á€º á€•á€¼á€”á€ºá€žá€½á€¬á€¸á€™á€Šá€º" : "Back to login"}
               </Link>
             )}
           </div>
@@ -671,7 +671,7 @@ function BackgroundPhoto() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: "url('/imgaes/background/background-0.jpg')",
+          backgroundImage: "url('/images/background/background-0.jpg')",
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/62 to-slate-950/28" />
@@ -816,13 +816,13 @@ function getEmailError(email: string, lang: string) {
 
   if (!value.includes("@")) {
     return lang === "mm"
-      ? "Email တွင် @ ထည့်ရန်လိုအပ်ပါသည်။"
+      ? "Email á€á€½á€„á€º @ á€‘á€Šá€·á€ºá€›á€”á€ºá€œá€­á€¯á€¡á€•á€ºá€•á€«á€žá€Šá€ºá‹"
       : "Email must include @.";
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
     return lang === "mm"
-      ? "Email format မမှန်ပါ။ example@gmail.com ပုံစံဖြစ်ရမည်။"
+      ? "Email format á€™á€™á€¾á€”á€ºá€•á€«á‹ example@gmail.com á€•á€¯á€¶á€…á€¶á€–á€¼á€…á€ºá€›á€™á€Šá€ºá‹"
       : "Invalid email format. Example: example@gmail.com";
   }
 
@@ -838,13 +838,13 @@ function getPasswordError(
 
   if (password.length < 8) {
     return lang === "mm"
-      ? "စကားဝှက်သည် အနည်းဆုံး ၈ လုံး ဖြစ်ရမည်။"
+      ? "á€…á€€á€¬á€¸á€á€¾á€€á€ºá€žá€Šá€º á€¡á€”á€Šá€ºá€¸á€†á€¯á€¶á€¸ áˆ á€œá€¯á€¶á€¸ á€–á€¼á€…á€ºá€›á€™á€Šá€ºá‹"
       : "Password must be at least 8 characters.";
   }
 
   if (strength.passedCount < 3) {
     return lang === "mm"
-      ? "စကားဝှက်တွင် အနည်းဆုံး ၃ မျိုး ပါရမည်။"
+      ? "á€…á€€á€¬á€¸á€á€¾á€€á€ºá€á€½á€„á€º á€¡á€”á€Šá€ºá€¸á€†á€¯á€¶á€¸ áƒ á€™á€»á€­á€¯á€¸ á€•á€«á€›á€™á€Šá€ºá‹"
       : "Password needs at least 3 types: uppercase, lowercase, number, or special character.";
   }
 
@@ -859,7 +859,7 @@ function getConfirmPasswordError(
   if (!confirmPassword) return "";
 
   if (password !== confirmPassword) {
-    return lang === "mm" ? "စကားဝှက် မတူပါ။" : "Passwords do not match.";
+    return lang === "mm" ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€™á€á€°á€•á€«á‹" : "Passwords do not match.";
   }
 
   return "";
@@ -892,15 +892,15 @@ function PasswordStrength({
   const items = [
     {
       pass: strength.hasUpper,
-      label: lang === "mm" ? "အကြီးစာလုံး" : "Uppercase",
+      label: lang === "mm" ? "á€¡á€€á€¼á€®á€¸á€…á€¬á€œá€¯á€¶á€¸" : "Uppercase",
     },
     {
       pass: strength.hasLower,
-      label: lang === "mm" ? "အသေးစာလုံး" : "Lowercase",
+      label: lang === "mm" ? "á€¡á€žá€±á€¸á€…á€¬á€œá€¯á€¶á€¸" : "Lowercase",
     },
     {
       pass: strength.hasNumber,
-      label: lang === "mm" ? "နံပါတ်" : "Number",
+      label: lang === "mm" ? "á€”á€¶á€•á€«á€á€º" : "Number",
     },
     {
       pass: strength.hasSpecial,

@@ -1,4 +1,4 @@
-// file: app/admin/page.tsx
+﻿// file: app/admin/page.tsx
 
 import type React from "react";
 import Image from "next/image";
@@ -30,7 +30,7 @@ const text = {
     title2: "Admin Portal",
     subtitle:
       "Manage users, staff, analytics, posts, jobs, register data and contact information from one secure dashboard.",
-    slogan: "Secure Control • Fast Management • Mobile Ready",
+    slogan: "Secure Control â€¢ Fast Management â€¢ Mobile Ready",
     login: "Admin Login",
     secure: "Secure",
     secureText: "Admin only",
@@ -57,10 +57,10 @@ const text = {
     title1: "Alumni Network",
     title2: "Admin Portal",
     subtitle:
-      "Users, staff, analytics, posts, jobs, register data နှင့် contact information များကို secure dashboard တစ်ခုထဲကနေ စီမံနိုင်သည်။",
-    slogan: "Secure Control • Fast Management • Mobile Ready",
+      "Users, staff, analytics, posts, jobs, register data á€”á€¾á€„á€·á€º contact information á€™á€»á€¬á€¸á€€á€­á€¯ secure dashboard á€á€…á€ºá€á€¯á€‘á€²á€€á€”á€± á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+    slogan: "Secure Control â€¢ Fast Management â€¢ Mobile Ready",
     login: "Admin Login",
-    secure: "လုံခြုံမှု",
+    secure: "á€œá€¯á€¶á€á€¼á€¯á€¶á€™á€¾á€¯",
     secureText: "Admin only",
     responsive: "Responsive",
     responsiveText: "Mobile ready",
@@ -68,17 +68,17 @@ const text = {
     fastText: "Clean control",
     features: "Admin Features",
     users: "Users",
-    usersText: "Alumni account နှင့် profile data များကို စီမံနိုင်သည်။",
-    staff: "Staff စီမံခန့်ခွဲမှု", // Added
-    staffText: "Staff အသစ်ထည့်ခြင်း၊ ပြင်ဆင်ခြင်း၊ ဖျက်ခြင်းတို့ကို စီမံနိုင်သည်။", // Added
+    usersText: "Alumni account á€”á€¾á€„á€·á€º profile data á€™á€»á€¬á€¸á€€á€­á€¯ á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+    staff: "Staff á€…á€®á€™á€¶á€á€”á€·á€ºá€á€½á€²á€™á€¾á€¯", // Added
+    staffText: "Staff á€¡á€žá€…á€ºá€‘á€Šá€·á€ºá€á€¼á€„á€ºá€¸áŠ á€•á€¼á€„á€ºá€†á€„á€ºá€á€¼á€„á€ºá€¸áŠ á€–á€»á€€á€ºá€á€¼á€„á€ºá€¸á€á€­á€¯á€·á€€á€­á€¯ á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹", // Added
     analytics: "Analytics",
-    analyticsText: "Graduated year, salary နှင့် job status graph များကို ကြည့်နိုင်သည်။",
+    analyticsText: "Graduated year, salary á€”á€¾á€„á€·á€º job status graph á€™á€»á€¬á€¸á€€á€­á€¯ á€€á€¼á€Šá€·á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
     posts: "Posts",
-    postsText: "News, events, general နှင့် job posts များကို စီမံနိုင်သည်။",
+    postsText: "News, events, general á€”á€¾á€„á€·á€º job posts á€™á€»á€¬á€¸á€€á€­á€¯ á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
     jobs: "Jobs",
-    jobsText: "Alumni job နှင့် experience data များကို ကြည့်နိုင်သည်။",
+    jobsText: "Alumni job á€”á€¾á€„á€·á€º experience data á€™á€»á€¬á€¸á€€á€­á€¯ á€€á€¼á€Šá€·á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
     registerData: "Register Data",
-    registerDataText: "Approved student data များကို import/control လုပ်နိုင်သည်။",
+    registerDataText: "Approved student data á€™á€»á€¬á€¸á€€á€­á€¯ import/control á€œá€¯á€•á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
   },
 };
 
@@ -108,7 +108,7 @@ export default async function AdminHomePage({
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
       <Image
-        src="/imgaes/background/background-0.jpg"
+        src="/images/background/background-0.jpg"
         alt="University of Computer Studies, Hinthada"
         fill
         priority

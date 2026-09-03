@@ -1,10 +1,11 @@
 // file: app/vote/team/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Cropper from "react-easy-crop";
 
 type Project = {
   _id: string;
@@ -38,9 +39,17 @@ const translations = {
     formDescPlaceholder: "သင့်ပရောဂျက်၏ လုပ်ဆောင်ချက်များကို ရှင်းပြပါ...",
     formTools: "နည်းပညာများ (ကော်မာဖြင့် ခြားပါ)",
     formToolsPlaceholder: "React, Node.js, MongoDB, Tailwind",
-    formImages: "ပရောဂျက် ပုံလင့်ခ်များ (URLs)",
-    formImagePlaceholder: "https://example.com/screenshot.png",
-    addMoreBtn: "+ ပုံလင့်ခ် အသစ်ထည့်မည်",
+    formImages: "ပရောဂျက် ပုံများ (Upload + Crop)",
+    formImagesHint: "ပုံတစ်ခုကို ရွေးပြီး လိုအပ်သလို ဖြတ်တောက်နိုင်ပါသည်။",
+    uploadBtn: "ပုံ တင်မည်",
+    reuploadBtn: "ပုံ အသစ်ပြန်တင်မည်",
+    uploadingBtn: "တင်နေပါသည်...",
+    removeBtn: "ဖယ်ရှားမည်",
+    addMoreBtn: "+ ပုံ အသစ်ထည့်မည်",
+    cropTitle: "ပုံ ဖြတ်တောက်ရန်",
+    cropCancel: "မဖြတ်တော့ပါ",
+    cropApply: "ဖြတ်တောက်ပြီး တင်မည်",
+    cropApplying: "ဖြတ်တောက်နေပါသည်...",
     savingBtn: "သိမ်းဆည်းနေပါသည်...",
     updateBtn: "ပရောဂျက်ကို ပြင်ဆင်မည်",
     submitBtn: "ပရောဂျက်ကို တင်သွင်းမည်",
@@ -69,9 +78,17 @@ const translations = {
     formDescPlaceholder: "Explain your project features and technical architecture...",
     formTools: "Languages & Tools (Comma-separated)",
     formToolsPlaceholder: "React, Node.js, MongoDB, Tailwind",
-    formImages: "Project Image URLs",
-    formImagePlaceholder: "https://example.com/screenshot.png",
-    addMoreBtn: "+ Add another image URL",
+    formImages: "Project Photos (Upload & Crop)",
+    formImagesHint: "Upload an image and crop it to fit your project showcase.",
+    uploadBtn: "Upload Photo",
+    reuploadBtn: "Re-upload",
+    uploadingBtn: "Uploading...",
+    removeBtn: "Remove",
+    addMoreBtn: "+ Add another photo",
+    cropTitle: "Crop Photo",
+    cropCancel: "Cancel",
+    cropApply: "Apply & Upload",
+    cropApplying: "Processing...",
     savingBtn: "Saving...",
     updateBtn: "Update Project",
     submitBtn: "Submit Project",
@@ -95,6 +112,18 @@ export default function TeamDashboard() {
   const [description, setDescription] = useState("");
   const [languagesInput, setLanguagesInput] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([""]);
+
+  // Upload / Crop state
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [cropModal, setCropModal] = useState(false);
+  const [cropIndex, setCropIndex] = useState(0);
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [isApplyingCrop, setIsApplyingCrop] = useState(false);
+
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // UI feedback state
   const [isLoading, setIsLoading] = useState(false);
@@ -137,19 +166,114 @@ export default function TeamDashboard() {
     fetchTeamProject();
   }, [status, session]);
 
-  // Helper to update specific photo inputs
-  const handlePhotoChange = (index: number, value: string) => {
-    const newPhotos = [...photoUrls];
-    newPhotos[index] = value;
-    setPhotoUrls(newPhotos);
+  // Helper to convert an image to a resized, cropped blob via canvas
+  const getCroppedBlob = async (
+    imageSrc: string,
+    pixelCrop: any
+  ): Promise<Blob> => {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = (err) => reject(err);
+      img.src = imageSrc;
+    });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas not supported");
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+
+    return new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("Canvas error"))),
+        "image/jpeg",
+        0.9
+      );
+    });
   };
 
-  const addPhotoInput = () => {
-    setPhotoUrls([...photoUrls, ""]);
+  // Select a file -> show the crop modal
+  const handleFileSelected = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropIndex(index);
+      setCropImage(reader.result as string);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
+      setCropModal(true);
+    };
+    reader.readAsDataURL(file);
+    // Reset so the same file can be re-selected
+    e.target.value = "";
+  };
+
+  const onCropComplete = useCallback(
+    (_croppedArea: any, croppedAreaPixels: any) => {
+      setCroppedAreaPixels(croppedAreaPixels);
+    },
+    []
+  );
+
+  // Apply crop -> upload -> store returned URL into photoUrls[cropIndex]
+  const applyCropAndUpload = async () => {
+    if (!cropImage || !croppedAreaPixels) return;
+    setIsApplyingCrop(true);
+    setUploadingIndex(cropIndex);
+    try {
+      const blob = await getCroppedBlob(cropImage, croppedAreaPixels);
+      const formData = new FormData();
+      formData.append("file", blob, "photo.jpg");
+
+      const res = await fetch("/api/vote/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed.");
+
+      const newPhotos = [...photoUrls];
+      newPhotos[cropIndex] = data.url;
+      setPhotoUrls(newPhotos);
+      setCropModal(false);
+      setCropImage(null);
+      setMessage({ type: "success", text: "Photo uploaded!" });
+    } catch (err: any) {
+      setMessage({ type: "error", text: err.message });
+    } finally {
+      setIsApplyingCrop(false);
+      setUploadingIndex(null);
+    }
   };
 
   const removePhotoInput = (index: number) => {
     setPhotoUrls(photoUrls.filter((_, i) => i !== index));
+  };
+
+  const addPhotoInput = () => {
+    setPhotoUrls([...photoUrls, ""]);
   };
 
   // Handle Submit (Create or Update)
@@ -230,8 +354,8 @@ export default function TeamDashboard() {
               <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center shadow-lg">
                 <span className="text-white font-extrabold text-lg">T</span>
               </div>
-              <span className="font-bold text-lg tracking-tight hidden sm:block">
-                {t.portalName} <span className="text-purple-600 dark:text-purple-400 font-medium">({user.name})</span>
+              <span className="font-bold text-lg tracking-tight text-purple-600 dark:text-purple-400 hidden sm:block">
+                {user.name}
               </span>
             </div>
             
@@ -399,31 +523,60 @@ export default function TeamDashboard() {
 
                   <div>
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{t.formImages}</label>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">{t.formImagesHint}</p>
                     <div className="space-y-3 bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
                       {photoUrls.map((url, index) => (
-                        <div key={index} className="flex gap-2">
+                        <div
+                          key={index}
+                          className="flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3"
+                        >
+                          {/* Preview */}
+                          <div className="w-16 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex-shrink-0 flex items-center justify-center">
+                            {url ? (
+                              <img src={url} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            )}
+                          </div>
+
+                          {/* Upload / re-upload button */}
                           <input
-                            type="url"
-                            value={url}
-                            onChange={(e) => handlePhotoChange(index, e.target.value)}
-                            className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm shadow-sm"
-                            placeholder={t.formImagePlaceholder}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            ref={(el) => { fileInputRefs.current[index] = el; }}
+                            onChange={(e) => handleFileSelected(e, index)}
                           />
-                          {photoUrls.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removePhotoInput(index)}
-                              className="px-3 py-2 text-red-600 hover:text-white hover:bg-red-600 border border-red-200 dark:border-red-900/50 rounded-lg font-bold transition-colors shadow-sm"
-                            >
-                              ✕
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => fileInputRefs.current[index]?.click()}
+                            disabled={uploadingIndex === index}
+                            className="flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors disabled:opacity-50"
+                          >
+                            {uploadingIndex === index ? (
+                              <svg className="animate-spin h-4 w-4 text-purple-600 dark:text-purple-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            )}
+                            {uploadingIndex === index ? t.uploadingBtn : url ? t.reuploadBtn : t.uploadBtn}
+                          </button>
+
+                          {/* Remove button */}
+                          <button
+                            type="button"
+                            onClick={() => removePhotoInput(index)}
+                            disabled={photoUrls.length <= 1 || uploadingIndex === index}
+                            className="text-sm font-bold px-3 py-2 rounded-lg text-red-600 hover:text-white hover:bg-red-600 border border-red-200 dark:border-red-900/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {t.removeBtn}
+                          </button>
                         </div>
                       ))}
                       <button
                         type="button"
                         onClick={addPhotoInput}
-                        className="mt-2 inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 font-bold px-2 py-1 rounded-md transition-colors"
+                        disabled={photoUrls.length >= 5}
+                        className="mt-2 inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 font-bold px-2 py-1 rounded-md transition-colors disabled:opacity-40"
                       >
                         {t.addMoreBtn}
                       </button>
@@ -454,6 +607,74 @@ export default function TeamDashboard() {
           </div>
         </main>
       </div>
+
+      {/* --- Crop Modal --- */}
+      {cropModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 dark:border-gray-700 animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+              <h2 className="text-lg font-extrabold text-gray-900 dark:text-white">{t.cropTitle}</h2>
+              <button
+                type="button"
+                onClick={() => setCropModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            {/* Cropper */}
+            <div className="relative w-full h-72 bg-gray-100 dark:bg-gray-900">
+              {cropImage && (
+                <Cropper
+                  image={cropImage}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={4 / 3}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                />
+              )}
+            </div>
+
+            {/* Zoom Slider */}
+            <div className="px-6 py-4">
+              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">
+                Zoom
+              </label>
+              <input
+                type="range"
+                value={zoom}
+                min={1}
+                max={3}
+                step={0.01}
+                aria-label="Zoom"
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full accent-purple-600"
+              />
+            </div>
+
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCropModal(false)}
+                className="flex-1 py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                {t.cropCancel}
+              </button>
+              <button
+                type="button"
+                onClick={applyCropAndUpload}
+                disabled={isApplyingCrop}
+                className="flex-1 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md disabled:bg-purple-400 transition-colors"
+              >
+                {isApplyingCrop ? t.cropApplying : t.cropApply}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

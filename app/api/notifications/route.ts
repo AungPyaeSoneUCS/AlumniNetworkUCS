@@ -48,6 +48,7 @@ export async function GET(req: Request) {
       unreadCount,
       notifications: notifications.map((item: any) => ({
         _id: String(item._id),
+        type: item.type || "message",
         title: item.title || "",
         body: item.body || "",
         link: item.link || "/messages",

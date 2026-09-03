@@ -354,7 +354,16 @@ function JobsContent() {
       groups[title].push(job);
     });
 
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([title, groupJobs]) => [
+        title,
+        [...groupJobs].sort(
+          (jobA, jobB) =>
+            (getSalaryNumber(jobA.salary) ?? Infinity) -
+            (getSalaryNumber(jobB.salary) ?? Infinity),
+        ),
+      ]);
   }, [filteredJobs, t.positionNotProvided]);
 
   function clearFilters() {

@@ -217,6 +217,35 @@ function DirectoryContent() {
     });
   }, [allUsers, search, degree, year]);
 
+  // Group alumni by graduated year, and sort each group A-Z by name
+  const yearGroups = useMemo(() => {
+    const groups = new Map<string, User[]>();
+
+    filteredUsers.forEach((user) => {
+      const yearKey = String(user.graduatedYear || "Unknown").trim();
+      const list = groups.get(yearKey);
+      if (list) {
+        list.push(user);
+      } else {
+        groups.set(yearKey, [user]);
+      }
+    });
+
+    // Sort years descending (newest first), then names A-Z within each group
+    const sortedYears = Array.from(groups.keys()).sort((a, b) => {
+      if (a === "Unknown") return 1;
+      if (b === "Unknown") return -1;
+      return b.localeCompare(a);
+    });
+
+    return sortedYears.map((year) => ({
+      yearKey: year,
+      users: [...(groups.get(year) as User[])].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    }));
+  }, [filteredUsers]);
+
   // Sync state to URL and SessionStorage
   useEffect(() => {
     const filters: SavedFilters = { search, degree, year };
@@ -318,15 +347,31 @@ function DirectoryContent() {
         ) : filteredUsers.length === 0 ? (
           <EmptyState title={t.empty} description={t.emptyText} />
         ) : (
-          <div className="grid gap-3 pb-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredUsers.map((user, index) => (
-              <DirectoryCard
-                key={user._id}
-                user={user}
-                index={index}
-                t={t}
-                onViewProfile={saveScrollPosition}
-              />
+          <div className="pb-8">
+            {yearGroups.map((group) => (
+              <section key={group.yearKey} className="mb-8 scroll-mt-28">
+                <div className="mb-3 flex items-center gap-3">
+                  <h2 className="shrink-0 text-sm font-black uppercase tracking-wide text-[var(--ucsh-primary-dark)] sm:text-base">
+                    {group.yearKey}
+                  </h2>
+                  <span className="h-px flex-1 bg-[var(--ucsh-primary)]/20" />
+                  <span className="rounded-full bg-cyan-50 px-2.5 py-0.5 text-[11px] font-black text-[var(--ucsh-primary-dark)] ring-1 ring-cyan-200 dark:bg-cyan-950/40 dark:ring-cyan-900">
+                    {group.users.length}
+                  </span>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {group.users.map((user, index) => (
+                    <DirectoryCard
+                      key={user._id}
+                      user={user}
+                      index={index}
+                      t={t}
+                      onViewProfile={saveScrollPosition}
+                    />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         )}

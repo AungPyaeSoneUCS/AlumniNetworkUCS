@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Contact,
   FileSpreadsheet,
+  ExternalLink,
   GraduationCap,
   LayoutDashboard,
   LineChart,
@@ -41,7 +42,8 @@ type ActivePage =
   | "register-users"
   | "contact"
   | "settings" // <-- Added settings type
-  | "profile";
+  | "profile"
+  | "visit";
 
 type NavItem = {
   key: ActivePage;
@@ -139,6 +141,8 @@ export default function AdminSidebar({
         contact: "Contacts",
         settings: "Settings", // <-- Added English label
         profile: "Profile ",
+        visit: "Visit",
+        goDashboard: "Go Dashboard",
         logout: "Logout",
         english: "English",
         myanmar: "Myanmar",
@@ -162,6 +166,8 @@ export default function AdminSidebar({
         contact: "ဆက်သွယ်ရန်",
         settings: "ဆက်တင်များ", // <-- Added Myanmar label
         profile: "ပရိုဖိုင် ",
+        visit: "Visit",
+        goDashboard: "Dashboard သို့သွားမည်",
         logout: "ထွက်ရန်",
         english: "English",
         myanmar: "မြန်မာ",
@@ -208,6 +214,7 @@ export default function AdminSidebar({
     // <-- Settings menu item placed right above Profile
     
     { key: "profile", label: t.profile, href: makeHref("/admin/profile"), icon: UserCircle },
+    { key: "visit", label: t.visit, href: "/feeds", icon: ExternalLink },
   ];
 
   function handleCollapseToggle() {
@@ -403,11 +410,11 @@ export default function AdminSidebar({
           </nav>
 
           {/* LANGUAGE TOGGLE */}
-          <div className="mt-5 rounded-[26px] border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900">
-            <div className={`grid gap-2 ${collapsed ? "grid-cols-1" : "grid-cols-2"}`}>
+          <div className="mt-5 rounded-[22px] border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-800 dark:bg-slate-900">
+            <div className={`grid gap-1.5 ${collapsed ? "grid-cols-1" : "grid-cols-2"}`}>
               <a
                 href={makeHref(currentPath, "en", true)}
-                className={`rounded-2xl px-3 py-2 text-center text-xs font-black transition ${
+                className={`rounded-xl px-2 py-1.5 text-center text-[10px] font-black transition ${
                   currentLang === "en"
                     ? "bg-slate-950 text-white shadow-md dark:bg-white dark:text-slate-950"
                     : "text-slate-500 hover:bg-white dark:hover:bg-slate-950"
@@ -418,7 +425,7 @@ export default function AdminSidebar({
 
               <a
                 href={makeHref(currentPath, "mm", true)}
-                className={`rounded-2xl px-3 py-2 text-center text-xs font-black transition ${
+                className={`rounded-xl px-2 py-1.5 text-center text-[10px] font-black transition ${
                   currentLang === "mm"
                     ? "bg-slate-950 text-white shadow-md dark:bg-white dark:text-slate-950"
                     : "text-slate-500 hover:bg-white dark:hover:bg-slate-950"

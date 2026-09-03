@@ -5,8 +5,10 @@ import mongoose from "mongoose";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
+import { pusherServer } from "@/lib/pusher";
 import User from "@/models/User";
 import Post from "@/models/Post";
+import Notification from "@/models/Notification";
 
 type Props = {
   params: Promise<{
@@ -217,14 +219,17 @@ export async function DELETE(req: Request, { params }: Props) {
       return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
     }
 
-    const post: any = await Post.findById(id).select("author").lean();
+    const post: any = await Post.findById(id)
+      .select("author content category")
+      .populate("author", "name email")
+      .lean();
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     // Ownership check (author or admin can delete)
-    const isOwner = String(post.author) === String(currentUser._id);
+    const isOwner = String(post.author?._id || post.author) === String(currentUser._id);
     const isAdmin = currentUser.role === "admin";
 
     if (!isOwner && !isAdmin) {
@@ -235,6 +240,38 @@ export async function DELETE(req: Request, { params }: Props) {
     }
 
     await Post.findByIdAndDelete(id);
+
+    // Notify the original author when an admin removes their post
+    const authorId = String(post.author?._id || post.author || "");
+    if (isAdmin && !isOwner && authorId) {
+      try {
+        const category = post.category || "General";
+        const notification = await Notification.create({
+          receiver: authorId,
+          sender: currentUser._id,
+          type: "admin",
+          title: "Post Removed",
+          body: `An admin removed your ${category} post: "${(post.content || "").slice(0, 80)}"`,
+          link: "/feeds",
+          read: false,
+        });
+
+        await pusherServer.trigger(
+          `notifications-${authorId}`,
+          "new-notification",
+          {
+            _id: String(notification._id),
+            type: "admin",
+            title: notification.title,
+            body: notification.body,
+            link: notification.link,
+            read: false,
+          }
+        );
+      } catch (notifyErr) {
+        console.error("Admin-delete notification error:", notifyErr);
+      }
+    }
 
     return NextResponse.json(
       {

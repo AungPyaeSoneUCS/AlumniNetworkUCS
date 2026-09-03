@@ -34,6 +34,10 @@ function cleanMessage(message: any) {
     updatedAt: message?.updatedAt || null,
     sender: cleanUser(message?.sender),
     receiver: cleanUser(message?.receiver),
+    reactions: (message?.reactions || []).map((r: any) => ({
+      emoji: r.emoji,
+      users: (r.users || []).map(String),
+    })),
   };
 }
 

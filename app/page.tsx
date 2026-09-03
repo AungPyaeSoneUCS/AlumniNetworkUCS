@@ -1,4 +1,4 @@
-// file: app/page.tsx
+﻿// file: app/page.tsx
 
 "use client";
 
@@ -16,9 +16,9 @@ const text = {
     line1: "University of Computer Studies (Hinthada)",
     line2: "Alumni Network",
 
-    subtitle: "• Connecting Alumni ",
-    subtitle2: "• Sharing Knowledge ",
-    subtitle3: "• Inspiring Innovation",
+    subtitle: "â€¢ Connecting Alumni ",
+    subtitle2: "â€¢ Sharing Knowledge ",
+    subtitle3: "â€¢ Inspiring Innovation",
 
     slogan: "Together Building Myanmar's Digital Future",
     join: "New Alumni Register",
@@ -30,22 +30,22 @@ const text = {
     about: "About Alumni Network",
   },
   mm: {
-    badge: "ကျောင်းသားဟောင်းများ ကွန်ရက်",
-    line1: "ကွန်ပျူတာတက္ကသိုလ် (ဟင်္သာတ)",
-    line2: "ကျောင်းသားဟောင်းများ ကွန်ရက်",
+    badge: "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸á€™á€»á€¬á€¸ á€€á€½á€”á€ºá€›á€€á€º",
+    line1: "á€€á€½á€”á€ºá€•á€»á€°á€á€¬á€á€€á€¹á€€á€žá€­á€¯á€œá€º (á€Ÿá€„á€ºá€¹á€žá€¬á€)",
+    line2: "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸á€™á€»á€¬á€¸ á€€á€½á€”á€ºá€›á€€á€º",
     
-    subtitle: "• ကျောင်းသားဟောင်းများချိတ်ဆက်ခြင်း ",
-    subtitle2: "• အသိပညာမျှဝေခြင်း ",
-    subtitle3: "• နည်းပညာတိုးတက်မှုအားပေးခြင်း",
+    subtitle: "â€¢ á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸á€™á€»á€¬á€¸á€á€»á€­á€á€ºá€†á€€á€ºá€á€¼á€„á€ºá€¸ ",
+    subtitle2: "â€¢ á€¡á€žá€­á€•á€Šá€¬á€™á€»á€¾á€á€±á€á€¼á€„á€ºá€¸ ",
+    subtitle3: "â€¢ á€”á€Šá€ºá€¸á€•á€Šá€¬á€á€­á€¯á€¸á€á€€á€ºá€™á€¾á€¯á€¡á€¬á€¸á€•á€±á€¸á€á€¼á€„á€ºá€¸",
 
-    slogan: "မြန်မာ့ဒစ်ဂျစ်တယ်အနာဂတ်ကို အတူတကွတည်ဆောက်ကြမယ်",
-    join: "အကောင့် ဖွင့်မယ်",
-    feeds: "Feeds ကြည့်မယ်",
-    login: "အကောင့် ဝင်မယ်",
+    slogan: "á€™á€¼á€”á€ºá€™á€¬á€·á€’á€…á€ºá€‚á€»á€…á€ºá€á€šá€ºá€¡á€”á€¬á€‚á€á€ºá€€á€­á€¯ á€¡á€á€°á€á€€á€½á€á€Šá€ºá€†á€±á€¬á€€á€ºá€€á€¼á€™á€šá€º",
+    join: "á€¡á€€á€±á€¬á€„á€·á€º á€–á€½á€„á€·á€ºá€™á€šá€º",
+    feeds: "Feeds á€€á€¼á€Šá€·á€ºá€™á€šá€º",
+    login: "á€¡á€€á€±á€¬á€„á€·á€º á€á€„á€ºá€™á€šá€º",
     staff: "Staff Portal",
     admin: "Admin Portal",
-    directory: "Directory ကြည့်မယ်",
-    about: "ကျောင်းသားဟောင်းများကွန်ရက်အကြောင်း",
+    directory: "Directory á€€á€¼á€Šá€·á€ºá€™á€šá€º",
+    about: "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸á€™á€»á€¬á€¸á€€á€½á€”á€ºá€›á€€á€ºá€¡á€€á€¼á€±á€¬á€„á€ºá€¸",
   },
 };
 
@@ -65,7 +65,7 @@ export default function HomePage() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('/imgaes/background/background-1.jpg')",
+            backgroundImage: "url('/images/background/background-1.jpg')",
           }}
         />
 

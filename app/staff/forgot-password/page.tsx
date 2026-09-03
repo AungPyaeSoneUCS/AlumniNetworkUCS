@@ -1,4 +1,4 @@
-// file: app/staff/forgot-password/page.tsx
+﻿// file: app/staff/forgot-password/page.tsx
 
 "use client";
 
@@ -274,7 +274,7 @@ export default function StaffForgotPasswordPage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
       <Image
-        src="/imgaes/background/background-0.jpg"
+        src="/images/background/background-0.jpg"
         alt="University of Computer Studies, Hinthada"
         fill
         priority
@@ -502,7 +502,7 @@ export default function StaffForgotPasswordPage() {
             )}
 
             <p className="mt-8 text-center text-xs font-bold text-slate-400">
-              © {new Date().getFullYear()} Alumni Network • Staff Control
+              Â© {new Date().getFullYear()} Alumni Network â€¢ Staff Control
             </p>
           </div>
         </div>

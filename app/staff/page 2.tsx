@@ -1,4 +1,4 @@
-// file: app/admin/page.tsx
+﻿// file: app/admin/page.tsx
 
 import Image from "next/image";
 import Link from "next/link";
@@ -52,25 +52,25 @@ const text = {
     title1: "Alumni Network",
     title2: "Admin Portal",
     subtitle:
-      "Users, analytics, posts, jobs, register data နှင့် contact information များကို secure dashboard တစ်ခုထဲကနေ စီမံနိုင်သည်။",
+      "Users, analytics, posts, jobs, register data á€”á€¾á€„á€·á€º contact information á€™á€»á€¬á€¸á€€á€­á€¯ secure dashboard á€á€…á€ºá€á€¯á€‘á€²á€€á€”á€± á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
     login: "Admin Login",
-    secure: "လုံခြုံမှု",
-    secureText: "Admin သီးသန့်ဝင်ခွင့်",
+    secure: "á€œá€¯á€¶á€á€¼á€¯á€¶á€™á€¾á€¯",
+    secureText: "Admin á€žá€®á€¸á€žá€”á€·á€ºá€á€„á€ºá€á€½á€„á€·á€º",
     responsive: "Responsive",
-    responsiveText: "Mobile အတွက်အသင့်တော်ဆုံး design",
-    fast: "မြန်ဆန်သော စီမံမှု",
-    fastText: "ရှင်းလင်းသော admin workflow",
+    responsiveText: "Mobile á€¡á€á€½á€€á€ºá€¡á€žá€„á€·á€ºá€á€±á€¬á€ºá€†á€¯á€¶á€¸ design",
+    fast: "á€™á€¼á€”á€ºá€†á€”á€ºá€žá€±á€¬ á€…á€®á€™á€¶á€™á€¾á€¯",
+    fastText: "á€›á€¾á€„á€ºá€¸á€œá€„á€ºá€¸á€žá€±á€¬ admin workflow",
     features: "Admin Features",
     users: "Users",
-    usersText: "Alumni account နှင့် profile data များကို စီမံနိုင်သည်။",
+    usersText: "Alumni account á€”á€¾á€„á€·á€º profile data á€™á€»á€¬á€¸á€€á€­á€¯ á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
     analytics: "Analytics",
-    analyticsText: "Graduated year, salary နှင့် job status graph များကို ကြည့်နိုင်သည်။",
+    analyticsText: "Graduated year, salary á€”á€¾á€„á€·á€º job status graph á€™á€»á€¬á€¸á€€á€­á€¯ á€€á€¼á€Šá€·á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
     posts: "Posts",
-    postsText: "News, events, general နှင့် job posts များကို စီမံနိုင်သည်။",
+    postsText: "News, events, general á€”á€¾á€„á€·á€º job posts á€™á€»á€¬á€¸á€€á€­á€¯ á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
     jobs: "Jobs",
-    jobsText: "Alumni job နှင့် experience data များကို ကြည့်နိုင်သည်။",
+    jobsText: "Alumni job á€”á€¾á€„á€·á€º experience data á€™á€»á€¬á€¸á€€á€­á€¯ á€€á€¼á€Šá€·á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
     registerData: "Register Data",
-    registerDataText: "Approved student data များကို import/control လုပ်နိုင်သည်။",
+    registerDataText: "Approved student data á€™á€»á€¬á€¸á€€á€­á€¯ import/control á€œá€¯á€•á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
   },
 };
 
@@ -100,7 +100,7 @@ export default async function AdminHomePage({
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
       <Image
-        src="/imgaes/background/background-0.jpg"
+        src="/images/background/background-0.jpg"
         alt="University of Computer Studies, Hinthada"
         fill
         priority

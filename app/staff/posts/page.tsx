@@ -13,7 +13,6 @@ import {
   MessageCircle,
   Newspaper,
   Search,
-  Trash2,
   ChevronDown,
   Download,
   FileSpreadsheet,
@@ -27,6 +26,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import Post from "@/models/Post";
 import StaffSidebar from "@/components/staff/staff-sidebar";
+import ConfirmDelete from "@/components/admin/confirm-delete";
 import PrintUsersButton from "@/components/admin/print-users-button";
 
 type Lang = "en" | "mm";
@@ -50,6 +50,9 @@ const text = {
     date: "Date",
     actions: "Action",
     delete: "Delete",
+    cancel: "Cancel",
+    deleteConfirm: "Delete Post",
+    cannotUndo: "This action cannot be undone.",
     noPosts: "No Posts Found",
     noPostsText: "Alumni posts will appear here.",
     unknownAlumni: "Unknown Alumni",
@@ -88,6 +91,9 @@ const text = {
     date: "ရက်စွဲ",
     actions: "လုပ်ဆောင်ချက်",
     delete: "ဖျက်ရန်",
+    cancel: "မဖျက်တော့ပါ",
+    deleteConfirm: "ပို့စ် ဖျက်မည်လား",
+    cannotUndo: "ဤလုပ်ဆောင်ချက်ကို ပြန်ပြင်၍မရပါ။",
     noPosts: "ပို့စ် မတွေ့ပါ",
     noPostsText: "Alumni posts ရှိလာပါက ဒီနေရာတွင် ပြပါမည်။",
     unknownAlumni: "အမည်မရှိသော Alumni",
@@ -1487,18 +1493,13 @@ function PostActions({
         mobile ? "grid grid-cols-1" : "justify-end"
       }`}
     >
-      <form action={deletePost} className="w-full">
-        <input
-          type="hidden"
-          name="id"
-          value={String(post._id)}
-        />
-
-        <button className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white">
-          <Trash2 size={14} />
-          {t.delete}
-        </button>
-      </form>
+      <ConfirmDelete
+        action={deletePost}
+        id={String(post._id)}
+        t={{ deleteConfirm: t.deleteConfirm, cancel: t.cancel, delete: t.delete, cannotUndo: t.cannotUndo }}
+        label={t.delete}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition-colors hover:bg-red-500 hover:text-white active:scale-95 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white"
+      />
     </div>
   );
 }

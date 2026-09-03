@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const { name, email, password, secretKey } = body;
 
     // 1. Verify the Secret Key
-    const envSecret = process.env.ADMIN_SECRET_KEY;
+    const envSecret = process.env.VOTE_ADMIN_SETUP_SECRET;
     
     if (!envSecret) {
       return NextResponse.json(

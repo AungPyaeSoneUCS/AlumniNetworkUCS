@@ -146,6 +146,7 @@ const text = {
       invalidEmail: "Please enter a valid mail.",
       invalidPhone: "Please enter a valid phone number.",
       invalidSalary: "Income must be at least 3 digits.",
+      studentSalary: "Student income cannot exceed 1,000,000.",
       invalidUrl: "Website URL must start with http:// or https://.",
       invalidDate: "End Date must be after Start Date.",
     },
@@ -191,6 +192,7 @@ const text = {
       invalidEmail: "မှန်ကန်သော မေးလ် ထည့်ပါ။",
       invalidPhone: "မှန်ကန်သော ဖုန်းနံပါတ် ထည့်ပါ။",
       invalidSalary: "လစာသည် အနည်းဆုံး ၃ လုံး ဖြစ်ရမည်။",
+      studentSalary: "ကျောင်းသား ဝင်ငွေသည် ၁,၀၀၀,၀၀၀ ထက် မကျော်ရပါ။",
       invalidUrl: "Website URL သည် http:// သို့မဟုတ် https:// ဖြင့် စရမည်။",
       invalidDate: "End Date သည် Start Date ထက် နောက်ကျရမည်။",
     },
@@ -402,6 +404,12 @@ export default function SettingsPage() {
 
       if (exp.salary && !/^\d{3,}$/.test(exp.salary.replace(/[,\s]/g, ""))) {
         errors.push(`Experience ${i + 1}: ${t.validation.invalidSalary}`);
+        if (!firstErrorTab) firstErrorTab = "experience";
+      }
+
+      const salaryNum = exp.salary ? Number(exp.salary.replace(/[,\s]/g, "")) : NaN;
+      if (exp.employmentType === "Student" && !Number.isNaN(salaryNum) && salaryNum > 1000000) {
+        errors.push(`Experience ${i + 1}: ${t.validation.studentSalary}`);
         if (!firstErrorTab) firstErrorTab = "experience";
       }
 
@@ -691,7 +699,13 @@ export default function SettingsPage() {
                       </div>
 
                       <Input required label={t.location} value={exp.location || ""} onChange={(v) => updateExperience(idx, "location", v)} />
-                      <Input required label={t.salary} type="number" min="100" value={exp.salary || ""} onChange={(v) => updateExperience(idx, "salary", v)} />
+                      <Input required label={t.salary} type="number" min="100" max={exp.employmentType === "Student" ? "1000000" : undefined} value={exp.salary || ""} onChange={(v) => updateExperience(idx, "salary", v)} />
+
+                      {exp.employmentType === "Student" && (
+                        <p className="-mt-2 text-[11px] font-bold text-amber-600 md:col-span-2">
+                          {t.validation.studentSalary}
+                        </p>
+                      )}
                       <Input required label={t.experienceYear} type="number" min="0" value={exp.experienceYear || ""} onChange={(v) => updateExperience(idx, "experienceYear", v)} />
                       <Input required label={t.startDate} type="month" value={exp.startDate || ""} onChange={(v) => updateExperience(idx, "startDate", v)} />
                       <Input required={!exp.isCurrent} label={t.endDate} type="month" value={exp.endDate || ""} disabled={Boolean(exp.isCurrent)} onChange={(v) => updateExperience(idx, "endDate", v)} />

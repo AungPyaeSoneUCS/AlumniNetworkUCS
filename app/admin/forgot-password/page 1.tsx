@@ -1,4 +1,4 @@
-// file: app/admin/forgot-password/page.tsx
+﻿// file: app/admin/forgot-password/page.tsx
 
 "use client";
 
@@ -204,7 +204,7 @@ export default function AdminForgotPasswordPage() {
       console.error("Admin Send OTP failed:", error);
       setMessage(
         currentLang === "mm"
-          ? "စနစ် စစ်ဆေးမှု မအောင်မြင်ပါ။"
+          ? "á€…á€”á€…á€º á€…á€…á€ºá€†á€±á€¸á€™á€¾á€¯ á€™á€¡á€±á€¬á€„á€ºá€™á€¼á€„á€ºá€•á€«á‹"
           : "System verification failed.",
       );
     } finally {
@@ -218,7 +218,7 @@ export default function AdminForgotPasswordPage() {
     if (otpCode.length !== OTP_LENGTH) {
       setMessage(
         currentLang === "mm"
-          ? "လုံခြုံရေးကုဒ် ၆ လုံး ပြည့်စုံစွာ ထည့်ပါ။"
+          ? "á€œá€¯á€¶á€á€¼á€¯á€¶á€›á€±á€¸á€€á€¯á€’á€º á† á€œá€¯á€¶á€¸ á€•á€¼á€Šá€·á€ºá€…á€¯á€¶á€…á€½á€¬ á€‘á€Šá€·á€ºá€•á€«á‹"
           : "Please enter the full 6-digit security token.",
       );
       return;
@@ -307,7 +307,7 @@ export default function AdminForgotPasswordPage() {
       console.error("Admin Reset password failed:", error);
       setMessage(
         currentLang === "mm"
-          ? "အုပ်ချုပ်သူ စကားဝှက် ပြောင်းလဲမှု မအောင်မြင်ပါ။"
+          ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° á€…á€€á€¬á€¸á€á€¾á€€á€º á€•á€¼á€±á€¬á€„á€ºá€¸á€œá€²á€™á€¾á€¯ á€™á€¡á€±á€¬á€„á€ºá€™á€¼á€„á€ºá€•á€«á‹"
           : "Admin credential update failed.",
       );
     } finally {
@@ -323,7 +323,7 @@ export default function AdminForgotPasswordPage() {
 
           <div className="relative z-10 flex items-center gap-3 rounded-2xl border border-amber-500/30 bg-slate-900/90 px-6 py-5 text-sm font-black text-amber-500 shadow-2xl backdrop-blur-2xl">
             <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
-            {currentLang === "mm" ? "လုံခြုံရေး စစ်ဆေးနေသည်..." : "Verifying Administrative Clearance..."}
+            {currentLang === "mm" ? "á€œá€¯á€¶á€á€¼á€¯á€¶á€›á€±á€¸ á€…á€…á€ºá€†á€±á€¸á€”á€±á€žá€Šá€º..." : "Verifying Administrative Clearance..."}
           </div>
         </section>
       </main>
@@ -340,7 +340,7 @@ export default function AdminForgotPasswordPage() {
             <div className="animate-in-1 inline-flex items-center gap-2 rounded-full border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.2em] text-amber-400 shadow-lg backdrop-blur">
               <ShieldCheck size={16} className="text-amber-400" />
               {currentLang === "mm"
-                ? "အုပ်ချုပ်သူ အထူးကွန်ရက်"
+                ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° á€¡á€‘á€°á€¸á€€á€½á€”á€ºá€›á€€á€º"
                 : "UCSH Executive Control"}
             </div>
 
@@ -355,13 +355,13 @@ export default function AdminForgotPasswordPage() {
 
             <h2 className="animate-in-4 mt-4 text-xl font-black text-slate-300 hero-subtitle sm:text-2xl">
               {currentLang === "mm"
-                ? "အုပ်ချုပ်မှုအဆင့် စကားဝှက် ပြန်သတ်မှတ်ရန်"
+                ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€™á€¾á€¯á€¡á€†á€„á€·á€º á€…á€€á€¬á€¸á€á€¾á€€á€º á€•á€¼á€”á€ºá€žá€á€ºá€™á€¾á€á€ºá€›á€”á€º"
                 : "Authorized Personnel Only"}
             </h2>
 
             <p className="animate-in-5 mt-4 max-w-lg text-base font-semibold leading-7 text-slate-400 drop-shadow-lg sm:text-lg">
               {currentLang === "mm"
-                ? "အုပ်ချုပ်သူ Email သို့ လျှို့ဝှက်ကုဒ် ပို့ပြီး စနစ်ဒက်ရှ်ဘုတ်သို့ တိုက်ရိုက် ပြန်လည်ဝင်ရောက်ပါ။"
+                ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° Email á€žá€­á€¯á€· á€œá€»á€¾á€­á€¯á€·á€á€¾á€€á€ºá€€á€¯á€’á€º á€•á€­á€¯á€·á€•á€¼á€®á€¸ á€…á€”á€…á€ºá€’á€€á€ºá€›á€¾á€ºá€˜á€¯á€á€ºá€žá€­á€¯á€· á€á€­á€¯á€€á€ºá€›á€­á€¯á€€á€º á€•á€¼á€”á€ºá€œá€Šá€ºá€á€„á€ºá€›á€±á€¬á€€á€ºá€•á€«á‹"
                 : "Execute an encrypted credential override. All recovery attempts are logged to the central security audit ledger."}
             </p>
 
@@ -378,7 +378,7 @@ export default function AdminForgotPasswordPage() {
                 href="/admin/login"
                 className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-500 px-6 text-sm font-black text-slate-950 shadow-lg transition duration-300 hover:-translate-y-1 hover:bg-amber-400 hover:shadow-amber-500/20 hover:shadow-xl"
               >
-                {currentLang === "mm" ? "အုပ်ချုပ်သူ ဝင်ပေါက်" : "Admin Login"}
+                {currentLang === "mm" ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° á€á€„á€ºá€•á€±á€«á€€á€º" : "Admin Login"}
                 <ArrowRight
                   size={17}
                   className="transition group-hover:translate-x-1"
@@ -413,7 +413,7 @@ export default function AdminForgotPasswordPage() {
               <form onSubmit={sendOtp} className="space-y-4">
                 <MinimalText>
                   {currentLang === "mm"
-                    ? "မှတ်ပုံတင်ထားသော အုပ်ချုပ်သူ Email အတိအကျ ထည့်ပါ။"
+                    ? "á€™á€¾á€á€ºá€•á€¯á€¶á€á€„á€ºá€‘á€¬á€¸á€žá€±á€¬ á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° Email á€¡á€á€­á€¡á€€á€» á€‘á€Šá€·á€ºá€•á€«á‹"
                     : "Enter your assigned Executive Administrator Email."}
                 </MinimalText>
 
@@ -440,10 +440,10 @@ export default function AdminForgotPasswordPage() {
                   {loading && <Loader2 size={18} className="animate-spin" />}
                   {loading
                     ? currentLang === "mm"
-                      ? "တောင်းဆိုနေသည်..."
+                      ? "á€á€±á€¬á€„á€ºá€¸á€†á€­á€¯á€”á€±á€žá€Šá€º..."
                       : "Dispatching Token..."
                     : currentLang === "mm"
-                      ? "လုံခြုံရေးကုဒ် ပို့မည်"
+                      ? "á€œá€¯á€¶á€á€¼á€¯á€¶á€›á€±á€¸á€€á€¯á€’á€º á€•á€­á€¯á€·á€™á€Šá€º"
                       : "Transmit Security Token"}
                 </PrimaryButton>
               </form>
@@ -453,7 +453,7 @@ export default function AdminForgotPasswordPage() {
               <form onSubmit={verifyOtp} className="space-y-5">
                 <MinimalText>
                   {currentLang === "mm"
-                    ? "အုပ်ချုပ်သူ Email သို့ ရောက်ရှိလာသော ဂဏန်း ၆ လုံးကို ထည့်ပါ။"
+                    ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° Email á€žá€­á€¯á€· á€›á€±á€¬á€€á€ºá€›á€¾á€­á€œá€¬á€žá€±á€¬ á€‚á€á€”á€ºá€¸ á† á€œá€¯á€¶á€¸á€€á€­á€¯ á€‘á€Šá€·á€ºá€•á€«á‹"
                     : "Enter the 6-digit Level-1 Authorization Token."}
                 </MinimalText>
 
@@ -487,11 +487,11 @@ export default function AdminForgotPasswordPage() {
                     }}
                     className="h-11 rounded-xl border border-slate-800 bg-slate-950 px-5 text-sm font-black text-slate-400 transition hover:bg-slate-800 hover:text-white"
                   >
-                    {currentLang === "mm" ? "နောက်သို့" : "Abort"}
+                    {currentLang === "mm" ? "á€”á€±á€¬á€€á€ºá€žá€­á€¯á€·" : "Abort"}
                   </button>
 
                   <PrimaryButton disabled={otpCode.length !== OTP_LENGTH}>
-                    {currentLang === "mm" ? "တိုကင် စစ်မည်" : "Authorize Token"}
+                    {currentLang === "mm" ? "á€á€­á€¯á€€á€„á€º á€…á€…á€ºá€™á€Šá€º" : "Authorize Token"}
                   </PrimaryButton>
                 </div>
               </form>
@@ -501,16 +501,16 @@ export default function AdminForgotPasswordPage() {
               <form onSubmit={resetPassword} className="space-y-4">
                 <MinimalText>
                   {currentLang === "mm"
-                    ? "လုံခြုံရေးအဆင့်မြင့် စကားဝှက်အသစ် သတ်မှတ်ပါ။"
+                    ? "á€œá€¯á€¶á€á€¼á€¯á€¶á€›á€±á€¸á€¡á€†á€„á€·á€ºá€™á€¼á€„á€·á€º á€…á€€á€¬á€¸á€á€¾á€€á€ºá€¡á€žá€…á€º á€žá€á€ºá€™á€¾á€á€ºá€•á€«á‹"
                     : "Establish a high-entropy Executive Passkey."}
                 </MinimalText>
 
                 <PasswordInput
                   name="newPassword"
-                  label={currentLang === "mm" ? "အုပ်ချုပ်သူ စကားဝှက်အသစ်" : "New Executive Key"}
+                  label={currentLang === "mm" ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° á€…á€€á€¬á€¸á€á€¾á€€á€ºá€¡á€žá€…á€º" : "New Executive Key"}
                   placeholder={
                     currentLang === "mm"
-                      ? "စကားဝှက်အသစ် ရိုက်ထည့်ပါ"
+                      ? "á€…á€€á€¬á€¸á€á€¾á€€á€ºá€¡á€žá€…á€º á€›á€­á€¯á€€á€ºá€‘á€Šá€·á€ºá€•á€«"
                       : "Enter encrypted passkey"
                   }
                   value={newPassword}
@@ -537,12 +537,12 @@ export default function AdminForgotPasswordPage() {
                   name="confirmPassword"
                   label={
                     currentLang === "mm"
-                      ? "အတည်ပြု စကားဝှက်"
+                      ? "á€¡á€á€Šá€ºá€•á€¼á€¯ á€…á€€á€¬á€¸á€á€¾á€€á€º"
                       : "Confirm Executive Key"
                   }
                   placeholder={
                     currentLang === "mm"
-                      ? "စကားဝှက် ထပ်မံရိုက်ထည့်ပါ"
+                      ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€‘á€•á€ºá€™á€¶á€›á€­á€¯á€€á€ºá€‘á€Šá€·á€ºá€•á€«"
                       : "Re-verify passkey"
                   }
                   value={confirmPassword}
@@ -564,7 +564,7 @@ export default function AdminForgotPasswordPage() {
                 {showMatchSuccess && (
                   <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-black text-emerald-400">
                     {currentLang === "mm"
-                      ? "စကားဝှက် ကိုက်ညီမှု အတည်ပြုပြီးပါပြီ။"
+                      ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€€á€­á€¯á€€á€ºá€Šá€®á€™á€¾á€¯ á€¡á€á€Šá€ºá€•á€¼á€¯á€•á€¼á€®á€¸á€•á€«á€•á€¼á€®á‹"
                       : "Passkey cryptographic parity verified."}
                   </p>
                 )}
@@ -578,17 +578,17 @@ export default function AdminForgotPasswordPage() {
                     }}
                     className="h-11 rounded-xl border border-slate-800 bg-slate-950 px-5 text-sm font-black text-slate-400 transition hover:bg-slate-800 hover:text-white"
                   >
-                    {currentLang === "mm" ? "နောက်သို့" : "Back"}
+                    {currentLang === "mm" ? "á€”á€±á€¬á€€á€ºá€žá€­á€¯á€·" : "Back"}
                   </button>
 
                   <PrimaryButton disabled={!canReset || loading}>
                     {loading && <Loader2 size={18} className="animate-spin text-slate-950" />}
                     {loading
                       ? currentLang === "mm"
-                        ? "ချိတ်ဆက်နေသည်..."
+                        ? "á€á€»á€­á€á€ºá€†á€€á€ºá€”á€±á€žá€Šá€º..."
                         : "Hydrating Session..."
                       : currentLang === "mm"
-                        ? "စကားဝှက် အတည်ပြုပြီး ဝင်မည်"
+                        ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€¡á€á€Šá€ºá€•á€¼á€¯á€•á€¼á€®á€¸ á€á€„á€ºá€™á€Šá€º"
                         : "Commit & Auto-Login"}
                   </PrimaryButton>
                 </div>
@@ -603,13 +603,13 @@ export default function AdminForgotPasswordPage() {
 
                 <h1 className="mt-5 text-2xl font-black tracking-tight text-white sm:text-3xl">
                   {currentLang === "mm"
-                    ? "စကားဝှက် အောင်မြင်စွာ ပြောင်းလဲပြီးပါပြီ"
+                    ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€¡á€±á€¬á€„á€ºá€™á€¼á€„á€ºá€…á€½á€¬ á€•á€¼á€±á€¬á€„á€ºá€¸á€œá€²á€•á€¼á€®á€¸á€•á€«á€•á€¼á€®"
                     : "Clearance Granted"}
                 </h1>
 
                 <p className="mt-3 text-xs font-bold leading-relaxed text-slate-400 max-w-sm mx-auto">
                   {currentLang === "mm"
-                    ? "စနစ်ဒက်ရှ်ဘုတ်သို့ အလိုအလျောက် ခေါ်ဆောင်သွားနေပါသည်။ ခေတ္တစောင့်ဆိုင်းပေးပါ။"
+                    ? "á€…á€”á€…á€ºá€’á€€á€ºá€›á€¾á€ºá€˜á€¯á€á€ºá€žá€­á€¯á€· á€¡á€œá€­á€¯á€¡á€œá€»á€±á€¬á€€á€º á€á€±á€«á€ºá€†á€±á€¬á€„á€ºá€žá€½á€¬á€¸á€”á€±á€•á€«á€žá€Šá€ºá‹ á€á€±á€á€¹á€á€…á€±á€¬á€„á€·á€ºá€†á€­á€¯á€„á€ºá€¸á€•á€±á€¸á€•á€«á‹"
                     : "Cryptographic handshakes completed. Redirecting your authenticated session to the Central Executive Dashboard..."}
                 </p>
 
@@ -626,7 +626,7 @@ export default function AdminForgotPasswordPage() {
                 className="mt-6 flex items-center justify-center gap-2 text-xs font-black text-slate-500 transition hover:text-amber-400"
               >
                 <Lock size={13} />
-                {currentLang === "mm" ? "အုပ်ချုပ်သူ ဝင်ပေါက်သို့ ပြန်သွားမည်" : "Return to Executive Sign-In"}
+                {currentLang === "mm" ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° á€á€„á€ºá€•á€±á€«á€€á€ºá€žá€­á€¯á€· á€•á€¼á€”á€ºá€žá€½á€¬á€¸á€™á€Šá€º" : "Return to Executive Sign-In"}
               </Link>
             )}
           </div>
@@ -694,7 +694,7 @@ function BackgroundPhoto() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 grayscale filter"
         style={{
-          backgroundImage: "url('/imgaes/background/background-0.jpg')",
+          backgroundImage: "url('/images/background/background-0.jpg')",
         }}
       />
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-950/70" />
@@ -839,13 +839,13 @@ function getEmailError(email: string, lang: string) {
 
   if (!value.includes("@")) {
     return lang === "mm"
-      ? "Email တွင် @ ပါဝင်ရမည်။"
+      ? "Email á€á€½á€„á€º @ á€•á€«á€á€„á€ºá€›á€™á€Šá€ºá‹"
       : "Malformed administrative identifier (@ missing).";
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
     return lang === "mm"
-      ? "အုပ်ချုပ်သူ Email ပုံစံ မမှန်ကန်ပါ။"
+      ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° Email á€•á€¯á€¶á€…á€¶ á€™á€™á€¾á€”á€ºá€€á€”á€ºá€•á€«á‹"
       : "Invalid domain structure for executive clearance.";
   }
 
@@ -861,13 +861,13 @@ function getPasswordError(
 
   if (password.length < 8) {
     return lang === "mm"
-      ? "အုပ်ချုပ်သူ လျှို့ဝှက်ကုဒ်သည် အနည်းဆုံး ဂဏန်း ၈ လုံး ရှိရမည်။"
+      ? "á€¡á€¯á€•á€ºá€á€»á€¯á€•á€ºá€žá€° á€œá€»á€¾á€­á€¯á€·á€á€¾á€€á€ºá€€á€¯á€’á€ºá€žá€Šá€º á€¡á€”á€Šá€ºá€¸á€†á€¯á€¶á€¸ á€‚á€á€”á€ºá€¸ áˆ á€œá€¯á€¶á€¸ á€›á€¾á€­á€›á€™á€Šá€ºá‹"
       : "Executive keys require a minimum entropy length of 8 characters.";
   }
 
   if (strength.passedCount < 3) {
     return lang === "mm"
-      ? "စာလုံးအကြီး၊ အသေး၊ နံပါတ် သို့မဟုတ် သင်္ကေတ အနည်းဆုံး ၃ မျိုး ပါဝင်ရမည်။"
+      ? "á€…á€¬á€œá€¯á€¶á€¸á€¡á€€á€¼á€®á€¸áŠ á€¡á€žá€±á€¸áŠ á€”á€¶á€•á€«á€á€º á€žá€­á€¯á€·á€™á€Ÿá€¯á€á€º á€žá€„á€ºá€¹á€€á€±á€ á€¡á€”á€Šá€ºá€¸á€†á€¯á€¶á€¸ áƒ á€™á€»á€­á€¯á€¸ á€•á€«á€á€„á€ºá€›á€™á€Šá€ºá‹"
       : "Key complexity requirement failed: incorporate at least 3 character sets.";
   }
 
@@ -882,7 +882,7 @@ function getConfirmPasswordError(
   if (!confirmPassword) return "";
 
   if (password !== confirmPassword) {
-    return lang === "mm" ? "စကားဝှက်များ မကိုက်ညီပါ။" : "Cryptographic verification mismatch.";
+    return lang === "mm" ? "á€…á€€á€¬á€¸á€á€¾á€€á€ºá€™á€»á€¬á€¸ á€™á€€á€­á€¯á€€á€ºá€Šá€®á€•á€«á‹" : "Cryptographic verification mismatch.";
   }
 
   return "";
@@ -913,9 +913,9 @@ function PasswordStrength({
   lang: string;
 }) {
   const items = [
-    { pass: strength.hasUpper, label: lang === "mm" ? "ABC အကြီး" : "Uppercase" },
-    { pass: strength.hasLower, label: lang === "mm" ? "abc အသေး" : "Lowercase" },
-    { pass: strength.hasNumber, label: lang === "mm" ? "123 နံပါတ်" : "Digits" },
+    { pass: strength.hasUpper, label: lang === "mm" ? "ABC á€¡á€€á€¼á€®á€¸" : "Uppercase" },
+    { pass: strength.hasLower, label: lang === "mm" ? "abc á€¡á€žá€±á€¸" : "Lowercase" },
+    { pass: strength.hasNumber, label: lang === "mm" ? "123 á€”á€¶á€•á€«á€á€º" : "Digits" },
     { pass: strength.hasSpecial, label: "Symbol (@#$)" },
   ];
 

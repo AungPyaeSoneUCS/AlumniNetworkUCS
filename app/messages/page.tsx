@@ -115,6 +115,7 @@ export default function MessagesPage() {
   const [selectedUser, setSelectedUser] = useState<UserInfo | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [search, setSearch] = useState("");
+  const [yearFilter, setYearFilter] = useState<string>("all");
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
@@ -371,6 +372,19 @@ export default function MessagesPage() {
    *    - Admins cannot see other Admins (since Admins cannot message Admins).
    * 3. Apply search filter by name, email, or department.
    */
+  // Distinct graduated years available for the horizontal year filter
+  const years = useMemo(() => {
+    const yearSet = new Set<string>();
+    users.forEach((user) => {
+      if (user?.role?.toLowerCase() === "admin" || user?.role?.toLowerCase() === "staff") return;
+      if (String(user._id) === String(me?._id)) return;
+      if (user.graduatedYear != null && user.graduatedYear !== 0) {
+        yearSet.add(String(user.graduatedYear));
+      }
+    });
+    return Array.from(yearSet).sort((a, b) => b.localeCompare(a));
+  }, [users, me]);
+
   const filteredUsers = useMemo(() => {
     return users
       .filter((user) => String(user._id) !== String(me?._id))
@@ -380,8 +394,12 @@ export default function MessagesPage() {
           .join(" ")
           .toLowerCase()
           .includes(search.toLowerCase()),
-      );
-  }, [users, me, search]);
+      )
+      .filter((user) => {
+        if (yearFilter === "all") return true;
+        return String(user.graduatedYear ?? "") === yearFilter;
+      });
+  }, [users, me, search, yearFilter]);
 
   /**
    * UI RESTRICTIONS:
@@ -397,11 +415,11 @@ export default function MessagesPage() {
     <main className="mm fixed inset-x-0 bottom-0 top-[72px] overflow-hidden bg-[var(--ucsh-bg)] p-2 text-[var(--ucsh-text)] sm:top-[80px] sm:p-3">
       <div className="relative z-10 mx-auto flex h-full w-full max-w-7xl overflow-hidden rounded-2xl border border-[var(--ucsh-border)] bg-white/80 shadow-xl backdrop-blur-xl dark:bg-slate-950/80">
         <aside
-          className={`h-full w-full shrink-0 bg-white/70 dark:bg-slate-950/70 md:block md:w-[330px] md:border-r md:border-[var(--ucsh-border)] lg:w-[360px] ${
-            selectedUser ? "hidden" : "block"
+          className={`h-full w-full shrink-0 flex-col bg-white/70 dark:bg-slate-950/70 md:flex md:w-[330px] md:border-r md:border-[var(--ucsh-border)] lg:w-[360px] ${
+            selectedUser ? "hidden" : "flex"
           }`}
         >
-          <div className="border-b border-[var(--ucsh-border)] p-3">
+          <div className="shrink-0 border-b border-[var(--ucsh-border)] p-3">
             <div className="flex items-center gap-2.5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] text-white shadow-sm">
                 <MessageCircle size={20} />
@@ -426,9 +444,39 @@ export default function MessagesPage() {
                 className="h-full min-w-0 flex-1 bg-transparent text-xs font-bold outline-none placeholder:text-slate-400 sm:text-sm"
               />
             </div>
+
+            {/* Horizontal year filter row */}
+            <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button
+                type="button"
+                onClick={() => setYearFilter("all")}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black transition ${
+                  yearFilter === "all"
+                    ? "bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] text-white shadow-sm"
+                    : "border border-[var(--ucsh-border)] bg-white/70 text-[var(--ucsh-muted)] hover:bg-white dark:bg-slate-900/70"
+                }`}
+              >
+                All
+              </button>
+
+              {years.map((yr) => (
+                <button
+                  key={yr}
+                  type="button"
+                  onClick={() => setYearFilter(yr)}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black transition ${
+                    yearFilter === yr
+                      ? "bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] text-white shadow-sm"
+                      : "border border-[var(--ucsh-border)] bg-white/70 text-[var(--ucsh-muted)] hover:bg-white dark:bg-slate-900/70"
+                  }`}
+                >
+                  {yr}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="h-[calc(100%-105px)] overflow-y-auto p-2">
+          <div className="h-0 min-h-0 flex-1 overflow-y-auto p-2">
             {filteredUsers.length === 0 ? (
               <div className="rounded-xl border border-[var(--ucsh-border)] bg-white/70 p-4 text-center text-sm font-bold text-[var(--ucsh-muted)] dark:bg-slate-900/70">
                 No alumni found

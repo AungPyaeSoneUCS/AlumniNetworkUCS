@@ -1,4 +1,4 @@
-// file: app/download/page.tsx
+﻿// file: app/download/page.tsx
 
 "use client";
 
@@ -13,9 +13,9 @@ const text = {
     line1: "Alumni Network App",
     line2: "Download the Official APK",
     
-    subtitle: "• Stay connected on the go ",
-    subtitle2: "• Get real-time updates ",
-    subtitle3: "• Access the directory anywhere",
+    subtitle: "â€¢ Stay connected on the go ",
+    subtitle2: "â€¢ Get real-time updates ",
+    subtitle3: "â€¢ Access the directory anywhere",
 
     slogan: "Take the UCSH Community with you",
     
@@ -26,20 +26,20 @@ const text = {
     backHome: "Back to Home",
   },
   mm: {
-    line1: "ကျောင်းသားဟောင်းများ ကွန်ရက် App",
-    line2: "တရားဝင် APK ကို ဒေါင်းလုဒ်လုပ်ပါ",
+    line1: "á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸á€™á€»á€¬á€¸ á€€á€½á€”á€ºá€›á€€á€º App",
+    line2: "á€á€›á€¬á€¸á€á€„á€º APK á€€á€­á€¯ á€’á€±á€«á€„á€ºá€¸á€œá€¯á€’á€ºá€œá€¯á€•á€ºá€•á€«",
     
-    subtitle: "• အမြဲတမ်းချိတ်ဆက်နေပါ ",
-    subtitle2: "• အချိန်နှင့်တပြေးညီ သတင်းများရယူပါ ",
-    subtitle3: "• Directory ကို ဖုန်းထဲမှကြည့်ရှုပါ",
+    subtitle: "â€¢ á€¡á€™á€¼á€²á€á€™á€ºá€¸á€á€»á€­á€á€ºá€†á€€á€ºá€”á€±á€•á€« ",
+    subtitle2: "â€¢ á€¡á€á€»á€­á€”á€ºá€”á€¾á€„á€·á€ºá€á€•á€¼á€±á€¸á€Šá€® á€žá€á€„á€ºá€¸á€™á€»á€¬á€¸á€›á€šá€°á€•á€« ",
+    subtitle3: "â€¢ Directory á€€á€­á€¯ á€–á€¯á€”á€ºá€¸á€‘á€²á€™á€¾á€€á€¼á€Šá€·á€ºá€›á€¾á€¯á€•á€«",
 
-    slogan: "UCSH ကွန်ရက်ကို သင့်ဖုန်းထဲမှာ အလွယ်တကူသုံးပါ",
+    slogan: "UCSH á€€á€½á€”á€ºá€›á€€á€ºá€€á€­á€¯ á€žá€„á€·á€ºá€–á€¯á€”á€ºá€¸á€‘á€²á€™á€¾á€¬ á€¡á€œá€½á€šá€ºá€á€€á€°á€žá€¯á€¶á€¸á€•á€«",
     
-    directDownload: "တိုက်ရိုက် ဒေါင်းလုဒ်",
-    driveDownload: "Google Drive မှ ဒေါင်းလုဒ်",
-    telegramDownload: "Telegram မှ ဒေါင်းလုဒ်",
+    directDownload: "á€á€­á€¯á€€á€ºá€›á€­á€¯á€€á€º á€’á€±á€«á€„á€ºá€¸á€œá€¯á€’á€º",
+    driveDownload: "Google Drive á€™á€¾ á€’á€±á€«á€„á€ºá€¸á€œá€¯á€’á€º",
+    telegramDownload: "Telegram á€™á€¾ á€’á€±á€«á€„á€ºá€¸á€œá€¯á€’á€º",
     githubSource: "GitHub Source Code",
-    backHome: "ပင်မစာမျက်နှာသို့",
+    backHome: "á€•á€„á€ºá€™á€…á€¬á€™á€»á€€á€ºá€”á€¾á€¬á€žá€­á€¯á€·",
   },
 };
 
@@ -54,7 +54,7 @@ export default function DownloadPage() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: "url('/imgaes/background/background-1.jpg')",
+            backgroundImage: "url('/images/background/background-1.jpg')",
           }}
         />
 

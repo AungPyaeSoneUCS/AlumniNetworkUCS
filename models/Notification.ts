@@ -2,7 +2,7 @@
 
 import mongoose, { Schema, models, model, type Model, type Types } from "mongoose";
 
-export type NotificationType = "message" | "system" | "job" | "post" | "admin";
+export type NotificationType = "message" | "system" | "job" | "post" | "admin" | "like" | "comment";
 
 export type NotificationDocument = {
   _id: Types.ObjectId;
@@ -35,7 +35,7 @@ const NotificationSchema = new Schema<NotificationDocument>(
 
     type: {
       type: String,
-      enum: ["message", "system", "job", "post", "admin"],
+      enum: ["message", "system", "job", "post", "admin", "like", "comment"],
       default: "message",
       index: true,
     },

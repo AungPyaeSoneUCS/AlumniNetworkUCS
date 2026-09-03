@@ -4,17 +4,31 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, Trash2, X } from "lucide-react";
+import { Bell, CheckCheck, Heart, MessageCircle, FileText, Trash2, X } from "lucide-react";
 
 import { getPusherClient } from "@/lib/pusher-client";
 
 type NotificationItem = {
   _id: string;
+  type: string;
   title: string;
   body: string;
   link: string;
   read: boolean;
 };
+
+function getNotificationIcon(type: string) {
+  switch (type) {
+    case "like":
+      return { icon: Heart, color: "text-red-500", bg: "bg-red-50" };
+    case "comment":
+      return { icon: MessageCircle, color: "text-blue-500", bg: "bg-blue-50" };
+    case "post":
+      return { icon: FileText, color: "text-[#008B8B]", bg: "bg-[#EFFFFF]" };
+    default:
+      return { icon: Bell, color: "text-[#008B8B]", bg: "bg-[#EFFFFF]" };
+  }
+}
 
 export default function NotificationBell({ userId }: { userId?: string }) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -224,8 +238,11 @@ export default function NotificationBell({ userId }: { userId?: string }) {
                       className="block px-4 py-3 pr-12"
                     >
                       <div className="flex gap-3">
-                        <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#EFFFFF] text-[#008B8B]">
-                          <Bell size={16} />
+                        <div className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${getNotificationIcon(item.type).bg} ${getNotificationIcon(item.type).color}`}>
+                          {(() => {
+                            const { icon: Icon } = getNotificationIcon(item.type);
+                            return <Icon size={16} />;
+                          })()}
                         </div>
 
                         <div className="min-w-0 flex-1">

@@ -5,8 +5,10 @@ import mongoose from "mongoose";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
+import { pusherServer } from "@/lib/pusher";
 import User from "@/models/User";
 import Post from "@/models/Post";
+import Notification from "@/models/Notification";
 
 const PostSchema = z.object({
   content: z.string().trim().min(1, "Post content is required").max(3000),
@@ -207,6 +209,50 @@ export async function POST(req: Request) {
       .populate("author", "name email image department graduatedYear")
       .populate("comments.author", "name image department graduatedYear")
       .lean();
+
+    // Notify all users except the author
+    try {
+      const authorName = currentUser.name || "Someone";
+      const category = parsed.data.category || "General";
+      const truncatedContent =
+        parsed.data.content.length > 80
+          ? parsed.data.content.slice(0, 80) + "..."
+          : parsed.data.content;
+
+      const allUsers = await User.find({ _id: { $ne: currentUser._id } })
+        .select("_id")
+        .lean();
+
+      if (allUsers.length > 0) {
+        const notificationDocs = allUsers.map((u: any) => ({
+          receiver: u._id,
+          sender: currentUser._id,
+          type: "post" as const,
+          title: `New ${category} Post`,
+          body: `${authorName} posted: ${truncatedContent}`,
+          link: `/feeds?post=${post._id}`,
+          read: false,
+        }));
+
+        const created = await Notification.insertMany(notificationDocs);
+
+        // Send real-time via Pusher to each user
+        await Promise.allSettled(
+          created.map((n: any) =>
+            pusherServer.trigger(`notifications-${n.receiver}`, "new-notification", {
+              _id: String(n._id),
+              type: "post",
+              title: n.title,
+              body: n.body,
+              link: n.link,
+              read: false,
+            })
+          )
+        );
+      }
+    } catch (notifyErr) {
+      console.error("Post notification error:", notifyErr);
+    }
 
     return NextResponse.json(
       cleanPost(populatedPost, String(currentUser._id)),
