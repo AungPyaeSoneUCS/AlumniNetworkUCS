@@ -480,7 +480,7 @@ export default function RegisterPage() {
           <BackgroundPhoto />
           <div className="relative z-10 flex items-center gap-3 rounded-2xl border border-white/25 bg-white/90 px-6 py-5 text-sm font-black text-[#008B8B] shadow-2xl backdrop-blur-2xl">
             <Loader2 className="h-5 w-5 animate-spin" />
-            {currentLang === "mm" ? "á€…á€…á€ºá€†á€±á€¸á€”á€±á€žá€Šá€º..." : "Checking session..."}
+            {currentLang === "mm" ? "အကောင့်ဝင်နေဆဲ..." : "Checking session..."}
           </div>
         </section>
       </main>

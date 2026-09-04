@@ -57,10 +57,10 @@ const text = {
     title1: "Alumni Network",
     title2: "Admin Portal",
     subtitle:
-      "Users, staff, analytics, posts, jobs, register data á€”á€¾á€„á€·á€º contact information á€™á€»á€¬á€¸á€€á€­á€¯ secure dashboard á€á€…á€ºá€á€¯á€‘á€²á€€á€”á€± á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+      "Users, staff, analytics, posts, jobs, register data နှင့် contact information များကို secure dashboard တစ်ခုတည်းမှ အလွယ်တကူစီမံနိုင်ပါသည်။",
     slogan: "Secure Control • Fast Management • Mobile Ready",
     login: "Admin Login",
-    secure: "á€œá€¯á€¶á€á€¼á€¯á€¶á€™á€¾á€¯",
+    secure: "လုံခြုံပြီးယုံကြည်ရ",
     secureText: "Admin only",
     responsive: "Responsive",
     responsiveText: "Mobile ready",
@@ -68,17 +68,17 @@ const text = {
     fastText: "Clean control",
     features: "Admin Features",
     users: "Users",
-    usersText: "Alumni account á€”á€¾á€„á€·á€º profile data á€™á€»á€¬á€¸á€€á€­á€¯ á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
-    staff: "Staff á€…á€®á€™á€¶á€á€”á€·á€ºá€á€½á€²á€™á€¾á€¯", // Added
-    staffText: "Staff á€¡á€žá€…á€ºá€‘á€Šá€·á€ºá€á€¼á€„á€ºá€¸áŠ á€•á€¼á€„á€ºá€†á€„á€ºá€á€¼á€„á€ºá€¸áŠ á€–á€»á€€á€ºá€á€¼á€„á€ºá€¸á€á€­á€¯á€·á€€á€­á€¯ á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹", // Added
+    usersText: "Alumni account နှင့် profile data များကို အလွယ်တကူစီမံနိုင်ပါသည်။",
+    staff: "Staff အလွယ်တကူစီမံရန်", // Added
+    staffText: "Staff အသေးစိတ်ထည့်သွင်းခြင်း၊ ပြင်ဆင်ခြင်းနှင့် ဖျက်သိမ်းခြင်းများကို အလွယ်တကူစီမံနိုင်ပါသည်။", // Added
     analytics: "Analytics",
-    analyticsText: "Graduated year, salary á€”á€¾á€„á€·á€º job status graph á€™á€»á€¬á€¸á€€á€­á€¯ á€€á€¼á€Šá€·á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+    analyticsText: "Graduated year, salary နှင့် job status graph များကို ကြည့်ရှုနိုင်ပါသည်။",
     posts: "Posts",
-    postsText: "News, events, general á€”á€¾á€„á€·á€º job posts á€™á€»á€¬á€¸á€€á€­á€¯ á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+    postsText: "News, events, general နှင့် job posts များကို အလွယ်တကူစီမံနိုင်ပါသည်။",
     jobs: "Jobs",
-    jobsText: "Alumni job á€”á€¾á€„á€·á€º experience data á€™á€»á€¬á€¸á€€á€­á€¯ á€€á€¼á€Šá€·á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+    jobsText: "Alumni job နှင့် experience data များကို ကြည့်ရှုနိုင်ပါသည်။",
     registerData: "Register Data",
-    registerDataText: "Approved student data á€™á€»á€¬á€¸á€€á€­á€¯ import/control á€œá€¯á€•á€ºá€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
+    registerDataText: "Approved student data များကို import/control လုပ်နိုင်ပါသည်။",
   },
 };
 
