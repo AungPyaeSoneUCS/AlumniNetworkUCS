@@ -152,10 +152,9 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Allow redirects to your custom production domains & legacy URL
+      // Allow redirects to your custom production domains
       if (
         url.startsWith("https://alumni.ucsh.edu.mm") ||
-        url.startsWith("https://alumna.ucsh.edu.mm") ||
         url.startsWith("https://ucshalumninetwork.netlify.app")
       ) {
         return url;

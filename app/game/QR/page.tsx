@@ -7,7 +7,7 @@ import { Download, Link as LinkIcon, QrCode, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export default function QRGenerator() {
-  const [url, setUrl] = useState("https://alumna.ucsh.edu.mm");
+  const [url, setUrl] = useState("https://alumni.ucsh.edu.mm");
   const [mounted, setMounted] = useState(false);
 
   // Trigger entrance animations after mount
@@ -68,7 +68,7 @@ export default function QRGenerator() {
             <input
               type="url"
               className="block w-full pl-11 pr-4 py-4 border border-slate-800 rounded-2xl focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 outline-none transition-all text-slate-200 bg-slate-950/60 placeholder:text-slate-600 shadow-inner text-sm sm:text-base"
-              placeholder="https://alumna.ucsh.edu.mm"
+              placeholder="https://alumni.ucsh.edu.mm"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />

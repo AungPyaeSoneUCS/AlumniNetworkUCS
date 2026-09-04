@@ -105,7 +105,7 @@ export default function ChitSuWaiPortfolio() {
           </div>
 
           <a 
-            href="https://alumna.ucsh.edu.mm/" 
+            href="https://alumni.ucsh.edu.mm/" 
             target="_blank" 
             rel="noopener noreferrer"
             className="group block mb-8 p-8 rounded-3xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 border border-indigo-100 dark:border-indigo-800 hover:border-indigo-300 dark:hover:border-indigo-600 transition-all hover:-translate-y-1 shadow-sm hover:shadow-md"
@@ -123,7 +123,7 @@ export default function ChitSuWaiPortfolio() {
             </p>
             <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
               <Globe size={16} />
-              alumna.ucsh.edu.mm
+              alumni.ucsh.edu.mm
             </span>
           </a>
 

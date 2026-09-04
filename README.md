@@ -208,7 +208,7 @@ Configure NGINX to handle web traffic securely and serve uploaded files directly
 
 1. **Create the NGINX Configuration:**
 ```bash
-sudo nano /etc/nginx/sites-available/alumna.ucsh.edu.mm
+sudo nano /etc/nginx/sites-available/alumni.ucsh.edu.mm
 
 ```
 
@@ -217,7 +217,7 @@ sudo nano /etc/nginx/sites-available/alumna.ucsh.edu.mm
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name alumna.ucsh.edu.mm;
+    server_name alumni.ucsh.edu.mm;
 
     # SSL Configuration 
     ssl_certificate /etc/ssl/certs/ucsh_fullchain.crt;
@@ -245,7 +245,7 @@ server {
 # HTTP to HTTPS Redirect
 server {
     listen 80;
-    server_name alumna.ucsh.edu.mm;
+    server_name alumni.ucsh.edu.mm;
     return 301 https://$host$request_uri;
 }
 
@@ -254,7 +254,7 @@ server {
 
 3. **Enable and Restart NGINX:**
 ```bash
-sudo ln -s /etc/nginx/sites-available/alumna.ucsh.edu.mm /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/alumni.ucsh.edu.mm /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 

@@ -113,7 +113,7 @@ export default function AungPyaeSonePortfolio() {
           </div>
 
           <a 
-            href="https://alumna.ucsh.edu.mm/" 
+            href="https://alumni.ucsh.edu.mm/" 
             target="_blank" 
             rel="noopener noreferrer"
             className="group block mb-8 p-8 rounded-3xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border border-blue-100 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-600 transition-all hover:-translate-y-1 shadow-sm hover:shadow-md"
@@ -131,7 +131,7 @@ export default function AungPyaeSonePortfolio() {
             </p>
             <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-2">
               <Globe size={16} />
-              alumna.ucsh.edu.mm
+              alumni.ucsh.edu.mm
             </span>
           </a>
 
