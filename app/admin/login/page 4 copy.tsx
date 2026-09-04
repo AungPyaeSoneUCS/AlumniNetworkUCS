@@ -157,7 +157,7 @@ export default function AdminLoginPage() {
           {/*
 
           <p className="admin-fade-up-delay-2 mt-4 max-w-2xl text-xl font-black leading-tight text-[#77edec] sm:text-2xl">
-            Secure Control â€¢ Fast Management
+            Secure Control • Fast Management
           </p>
 
           
@@ -237,7 +237,7 @@ export default function AdminLoginPage() {
             </form>
 
             <p className="mt-6 text-center text-xs font-bold text-slate-400">
-              Â© {new Date().getFullYear()} Alumni Network
+              © {new Date().getFullYear()} Alumni Network
             </p>
           </div>
         </div>

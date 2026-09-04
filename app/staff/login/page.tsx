@@ -234,7 +234,7 @@ export default function StaffLoginPage() {
             </form>
 
             <p className="mt-6 text-center text-xs font-bold text-slate-400">
-              Â© {new Date().getFullYear()} Alumni Network
+              © {new Date().getFullYear()} Alumni Network
             </p>
           </div>
         </div>

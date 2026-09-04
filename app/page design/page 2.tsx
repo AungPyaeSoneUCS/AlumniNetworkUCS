@@ -99,7 +99,7 @@ export default async function HomePage() {
             </h1>
 
             <p className="mt-5 max-w-[660px] text-[19px] font-medium leading-snug text-white drop-shadow-lg sm:text-[23px] md:text-[27px]">
-              Connecting Alumni â€¢ Sharing Knowledge â€¢ Inspiring Innovation
+              Connecting Alumni • Sharing Knowledge • Inspiring Innovation
             </p>
 
             <p className="mt-4 max-w-[700px] text-[23px] font-bold leading-tight text-[#f1cd72] drop-shadow-lg sm:text-[27px] md:text-[32px]">

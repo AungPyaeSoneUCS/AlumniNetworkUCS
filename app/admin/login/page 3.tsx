@@ -155,7 +155,7 @@ export default function AdminLoginPage() {
           </p>
 
           <p className="admin-fade-up-delay-2 mt-4 max-w-2xl text-xl font-black leading-tight text-[#77edec] sm:text-2xl">
-            Secure Control â€¢ Fast Management â€¢ Mobile Ready
+            Secure Control • Fast Management • Mobile Ready
           </p>
 
           <div className="admin-fade-up-delay-3 mt-8 grid gap-3 sm:grid-cols-3">
@@ -229,7 +229,7 @@ export default function AdminLoginPage() {
             </form>
 
             <p className="mt-6 text-center text-xs font-bold text-slate-400">
-              Â© {new Date().getFullYear()} Alumni Network
+              © {new Date().getFullYear()} Alumni Network
             </p>
           </div>
         </div>

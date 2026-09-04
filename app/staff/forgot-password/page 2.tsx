@@ -501,7 +501,7 @@ export default function AdminForgotPasswordPage() {
             )}
 
             <p className="mt-8 text-center text-xs font-bold text-slate-400">
-              Â© {new Date().getFullYear()} Alumni Network â€¢ Executive Control
+              © {new Date().getFullYear()} Alumni Network • Executive Control
             </p>
           </div>
         </div>

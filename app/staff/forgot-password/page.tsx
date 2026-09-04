@@ -502,7 +502,7 @@ export default function StaffForgotPasswordPage() {
             )}
 
             <p className="mt-8 text-center text-xs font-bold text-slate-400">
-              Â© {new Date().getFullYear()} Alumni Network â€¢ Staff Control
+              © {new Date().getFullYear()} Alumni Network • Staff Control
             </p>
           </div>
         </div>

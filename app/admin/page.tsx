@@ -30,7 +30,7 @@ const text = {
     title2: "Admin Portal",
     subtitle:
       "Manage users, staff, analytics, posts, jobs, register data and contact information from one secure dashboard.",
-    slogan: "Secure Control â€¢ Fast Management â€¢ Mobile Ready",
+    slogan: "Secure Control • Fast Management • Mobile Ready",
     login: "Admin Login",
     secure: "Secure",
     secureText: "Admin only",
@@ -58,7 +58,7 @@ const text = {
     title2: "Admin Portal",
     subtitle:
       "Users, staff, analytics, posts, jobs, register data á€”á€¾á€„á€·á€º contact information á€™á€»á€¬á€¸á€€á€­á€¯ secure dashboard á€á€…á€ºá€á€¯á€‘á€²á€€á€”á€± á€…á€®á€™á€¶á€”á€­á€¯á€„á€ºá€žá€Šá€ºá‹",
-    slogan: "Secure Control â€¢ Fast Management â€¢ Mobile Ready",
+    slogan: "Secure Control • Fast Management • Mobile Ready",
     login: "Admin Login",
     secure: "á€œá€¯á€¶á€á€¼á€¯á€¶á€™á€¾á€¯",
     secureText: "Admin only",
