@@ -34,13 +34,13 @@ function getEmailError(email: string, lang: Lang) {
 
   if (!value.includes("@")) {
     return lang === "mm"
-      ? "Email á€á€½á€„á€º @ á€‘á€Šá€·á€ºá€›á€”á€ºá€œá€­á€¯á€¡á€•á€ºá€•á€«á€žá€Šá€ºá‹"
+      ? "Email ထည့်ရန် @ ပါဝင်ရမည်။"
       : "Email must include @.";
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
     return lang === "mm"
-      ? "Email format á€™á€™á€¾á€”á€ºá€•á€«á‹ example@gmail.com á€•á€¯á€¶á€…á€¶á€–á€¼á€…á€ºá€›á€™á€Šá€ºá‹"
+      ? "Email format မှားနေသည်။ ဥပမာ - example@gmail.com"
       : "Invalid email format. Example: example@gmail.com";
   }
 
@@ -52,7 +52,7 @@ function getPasswordError(password: string, lang: Lang) {
 
   if (password.length < 8) {
     return lang === "mm"
-      ? "á€…á€€á€¬á€¸á€á€¾á€€á€ºá€žá€Šá€º á€¡á€”á€Šá€ºá€¸á€†á€¯á€¶á€¸ áˆ á€œá€¯á€¶á€¸ á€–á€¼á€…á€ºá€›á€™á€Šá€ºá‹"
+      ? "စကားဝှက်သည် အနည်းဆုံး အက္ခရာ ၈ လုံး ရှိရမည်။"
       : "Password must be at least 8 characters.";
   }
 
@@ -155,7 +155,7 @@ function LoginContent() {
       if (result?.error) {
         setMessage(
           currentLang === "mm"
-            ? "Email á€žá€­á€¯á€·á€™á€Ÿá€¯á€á€º á€…á€€á€¬á€¸á€á€¾á€€á€º á€™á€¾á€¬á€¸á€”á€±á€•á€«á€žá€Šá€ºá‹"
+            ? "အီးမေးလ် သို့မဟုတ် စကားဝှက် မှားနေသည်။"
             : "Invalid email or password.",
         );
         return;
@@ -170,7 +170,7 @@ function LoginContent() {
     } catch (error) {
       console.error("Login failed:", error);
       setMessage(
-        currentLang === "mm" ? "á€á€„á€ºá€›á€±á€¬á€€á€ºá€™á€¾á€¯ á€™á€¡á€±á€¬á€„á€ºá€™á€¼á€„á€ºá€•á€«á‹" : "Login failed.",
+        currentLang === "mm" ? "ဝင်ရောက်မှု မအောင်မြင်ပါ။" : "Login failed.",
       );
     } finally {
       setLoading(false);
@@ -185,7 +185,7 @@ function LoginContent() {
 
           <div className="relative z-10 flex items-center gap-3 rounded-2xl border border-white/25 bg-white/90 px-6 py-5 text-sm font-black text-[#008B8B] shadow-2xl backdrop-blur-2xl">
             <Loader2 className="h-5 w-5 animate-spin" />
-            {currentLang === "mm" ? "á€…á€…á€ºá€†á€±á€¸á€”á€±á€žá€Šá€º..." : "Checking session..."}
+            {currentLang === "mm" ? "အကောင့်ဝင်နေဆဲ..." : "Checking session..."}
           </div>
         </section>
       </main>
@@ -218,7 +218,7 @@ function LoginContent() {
 
             <p className="animate-hero-5 mt-3 max-w-[520px] text-[15px] font-bold leading-snug text-white sm:text-[17px] md:text-[18px] hero-stroke-subtitle">
               {currentLang === "mm"
-                ? "á€žá€„á€ºá á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸á€¡á€€á€±á€¬á€„á€·á€ºá€–á€¼á€„á€·á€º á€á€„á€ºá€›á€±á€¬á€€á€ºá á€€á€»á€±á€¬á€„á€ºá€¸á€žá€¬á€¸á€Ÿá€±á€¬á€„á€ºá€¸á€€á€½á€”á€ºá€›á€€á€ºá€á€½á€„á€º á€á€»á€­á€á€ºá€†á€€á€ºá€•á€«á‹"
+                ? "သင့်ကျောင်းသားဟောင်း အကောင့်ဖြင့် ဝင်ရောက်ပြီး ကျောင်းသားဟောင်းကွန်ရက်တွင် ပါဝင်ပါ။"
                 : "Login with your alumni account and join the alumni network."}
             </p>
 
@@ -228,14 +228,14 @@ function LoginContent() {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-6 text-sm font-black text-white shadow-lg backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/20"
               >
                 <Home size={17} />
-                {currentLang === "mm" ? "á€•á€„á€ºá€™á€…á€¬á€™á€»á€€á€ºá€”á€¾á€¬" : "Home"}
+                {currentLang === "mm" ? "ပင်မစာမျက်နှာ" : "Home"}
               </Link>
 
               <Link
                 href="/register"
                 className="group inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#f1cd72] px-6 text-sm font-black text-slate-950 shadow-lg transition duration-300 hover:-translate-y-1 hover:bg-yellow-200 hover:shadow-xl"
               >
-                {currentLang === "mm" ? "á€¡á€€á€±á€¬á€„á€·á€º á€–á€½á€„á€·á€ºá€™á€šá€º" : "Create Account"}
+                {currentLang === "mm" ? "အကောင့် ဖန်တီးရန်" : "Create Account"}
                 <ArrowRight
                   size={17}
                   className="transition group-hover:translate-x-1"
@@ -250,12 +250,12 @@ function LoginContent() {
           <div className="animate-card w-full rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-xl backdrop-blur-xl transition duration-300 sm:p-8">
             <div className="mb-6 text-center">
               <h2 className="text-2xl font-black text-slate-900 sm:text-3xl">
-                {currentLang === "mm" ? "á€•á€¼á€”á€ºá€œá€Šá€ºá€€á€¼á€­á€¯á€†á€­á€¯á€•á€«á€á€šá€º" : "Welcome Back!"}
+                {currentLang === "mm" ? "ပြန်လည်ကြိုဆိုပါ၏" : "Welcome Back!"}
               </h2>
 
               <p className="mt-2 text-sm font-bold text-slate-600">
                 {currentLang === "mm"
-                  ? "Email á€”á€¾á€„á€·á€º password á€–á€¼á€„á€·á€º login á€á€„á€ºá€•á€«á‹"
+                  ? "အီးမေးလ်နှင့် စကားဝှက်ဖြင့် ဝင်ရောက်ပါ။"
                   : "Login with your email and password."}
               </p>
             </div>
@@ -282,9 +282,9 @@ function LoginContent() {
 
               <PasswordInput
                 name="password"
-                label={currentLang === "mm" ? "á€…á€€á€¬á€¸á€á€¾á€€á€º" : "Password"}
+                label={currentLang === "mm" ? "စကားဝှက်" : "Password"}
                 placeholder={
-                  currentLang === "mm" ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€‘á€Šá€·á€ºá€•á€«" : "Enter password"
+                  currentLang === "mm" ? "စကားဝှက် ထည့်ပါ" : "Enter password"
                 }
                 value={password}
                 onFocus={() =>
@@ -308,7 +308,7 @@ function LoginContent() {
                   className="text-sm font-black text-[#008B8B] transition hover:text-[#00BFC4] hover:underline"
                 >
                   {currentLang === "mm"
-                    ? "á€…á€€á€¬á€¸á€á€¾á€€á€º á€™á€±á€·á€”á€±á€•á€«á€žá€œá€¬á€¸?"
+                    ? "စကားဝှက် မေ့နေပါသလား?"
                     : "Forgot password?"}
                 </Link>
               </div>
@@ -323,23 +323,23 @@ function LoginContent() {
                 {loading && <Loader2 size={18} className="animate-spin" />}
                 {loading
                   ? currentLang === "mm"
-                    ? "á€á€á€…á€±á€¬á€„á€·á€ºá€•á€«..."
+                    ? "ကျေးဇူးပြု၍ စောင့်ပါ..."
                     : "Please wait..."
                   : currentLang === "mm"
-                    ? "á€á€„á€ºá€™á€Šá€º"
+                    ? "ဝင်ရောက်ရန်"
                     : "Login"}
               </button>
             </form>
 
             <p className="mt-6 text-center text-sm font-bold text-slate-600">
               {currentLang === "mm"
-                ? "á€¡á€€á€±á€¬á€„á€·á€ºá€™á€›á€¾á€­á€žá€±á€¸á€•á€«á€žá€œá€¬á€¸?"
+                ? "အကောင့် မရှိသေးပါလား?"
                 : "No account yet?"}{" "}
               <Link
                 href="/register"
                 className="font-black text-[#008B8B] transition hover:text-[#00BFC4] hover:underline"
               >
-                {currentLang === "mm" ? "á€¡á€€á€±á€¬á€„á€·á€º á€–á€½á€„á€·á€ºá€™á€šá€º" : "Create Account"}
+                {currentLang === "mm" ? "အကောင့် ဖန်တီးရန်" : "Create Account"}
               </Link>
             </p>
           </div>

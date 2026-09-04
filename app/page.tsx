@@ -16,9 +16,9 @@ const text = {
     line1: "University of Computer Studies (Hinthada)",
     line2: "Alumni Network",
 
-    subtitle: "â€¢ Connecting Alumni ",
-    subtitle2: "â€¢ Sharing Knowledge ",
-    subtitle3: "â€¢ Inspiring Innovation",
+    subtitle: "• Connecting Alumni ",
+    subtitle2: "• Sharing Knowledge ",
+    subtitle3: "• Inspiring Innovation",
 
     slogan: "Together Building Myanmar's Digital Future",
     join: "New Alumni Register",

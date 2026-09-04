@@ -4,19 +4,18 @@
 
 import Image from "next/image";
 import type React from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Camera,
   Check,
   ImagePlus,
   Loader2,
-  Minus,
-  Plus,
   RotateCcw,
   RotateCw,
-  Trash2,
   Upload,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 
 type Props = {
@@ -30,8 +29,6 @@ type Props = {
 };
 
 type Point = { x: number; y: number };
-type Crop = { x: number; y: number; size: number };
-type ImageSize = { naturalW: number; naturalH: number; displayW: number; displayH: number };
 
 export default function ImageUploadEditor({
   image,
@@ -47,11 +44,8 @@ export default function ImageUploadEditor({
   const stageRef = useRef<HTMLDivElement | null>(null);
 
   const dragRef = useRef<{
-    type: "move-image" | "move-crop" | "resize-crop";
-    corner?: "tl" | "tr" | "bl" | "br";
     startMouse: Point;
-    startImage: Point;
-    startCrop: Crop;
+    startPos: Point;
   } | null>(null);
 
   const [open, setOpen] = useState(false);
@@ -60,14 +54,13 @@ export default function ImageUploadEditor({
 
   const [zoom, setZoom] = useState(1);
   const [rotate, setRotate] = useState(0);
-  const [imagePos, setImagePos] = useState<Point>({ x: 0, y: 0 });
-  const [crop, setCrop] = useState<Crop>({ x: 90, y: 60, size: 280 });
-  const [imageSize, setImageSize] = useState<ImageSize | null>(null);
+  const [imgPos, setImgPos] = useState<Point>({ x: 0, y: 0 });
+  const [imgDisplay, setImgDisplay] = useState<{ w: number; h: number } | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const cropShape = rounded === "full" ? "rounded-full" : "rounded-3xl";
+  const cropShape = rounded === "full" ? "rounded-full" : "rounded-[2rem]";
 
   useEffect(() => {
     return () => {
@@ -77,197 +70,150 @@ export default function ImageUploadEditor({
 
   function selectImage(file?: File) {
     if (!file) return;
-
     if (!file.type.startsWith("image/")) {
       setError("Please choose a valid image file.");
       return;
     }
-
     if (preview) URL.revokeObjectURL(preview);
 
     setPreview(URL.createObjectURL(file));
     setFileName(file.name || "profile-photo.jpg");
     setZoom(1);
     setRotate(0);
-    setImagePos({ x: 0, y: 0 });
-    setCrop({ x: 90, y: 60, size: 280 });
-    setImageSize(null);
+    setImgPos({ x: 0, y: 0 });
+    setImgDisplay(null);
     setError("");
     setOpen(true);
 
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  function setupImageSize() {
+  function onImageLoad() {
     const img = imgRef.current;
     const stage = stageRef.current;
     if (!img || !stage) return;
 
     const stageRect = stage.getBoundingClientRect();
+    const stageSize = Math.min(stageRect.width, stageRect.height);
+    const cropSize = stageSize * 0.78;
+
     const naturalW = img.naturalWidth;
     const naturalH = img.naturalHeight;
-
-    const stageRatio = stageRect.width / stageRect.height;
     const imageRatio = naturalW / naturalH;
 
     let displayW: number;
     let displayH: number;
 
-    if (imageRatio > stageRatio) {
-      displayW = stageRect.width;
-      displayH = stageRect.width / imageRatio;
+    if (imageRatio > 1) {
+      displayH = cropSize;
+      displayW = cropSize * imageRatio;
     } else {
-      displayH = stageRect.height;
-      displayW = stageRect.height * imageRatio;
+      displayW = cropSize;
+      displayH = cropSize / imageRatio;
     }
 
-    setImageSize({ naturalW, naturalH, displayW, displayH });
-
-    const size = Math.min(stageRect.width, stageRect.height) * 0.68;
-    setCrop({
-      x: (stageRect.width - size) / 2,
-      y: (stageRect.height - size) / 2,
-      size,
-    });
+    setImgDisplay({ w: displayW, h: displayH });
   }
 
-  function clampCrop(next: Crop) {
+  function clampPosition(next: Point): Point {
     const stage = stageRef.current;
-    if (!stage) return next;
+    if (!stage || !imgDisplay) return next;
 
     const rect = stage.getBoundingClientRect();
-    const min = 120;
-    const max = Math.min(rect.width, rect.height) - 24;
+    const stageSize = Math.min(rect.width, rect.height);
+    const cropSize = stageSize * 0.78;
+    const halfCrop = cropSize / 2;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
 
-    const size = Math.max(min, Math.min(max, next.size));
-    const x = Math.max(12, Math.min(rect.width - size - 12, next.x));
-    const y = Math.max(12, Math.min(rect.height - size - 12, next.y));
+    const scaledW = imgDisplay.w * zoom;
+    const scaledH = imgDisplay.h * zoom;
 
-    return { x, y, size };
+    const minX = -(scaledW / 2) + halfCrop;
+    const maxX = (scaledW / 2) - halfCrop;
+    const minY = -(scaledH / 2) + halfCrop;
+    const maxY = (scaledH / 2) - halfCrop;
+
+    const clampedX = scaledW <= cropSize ? 0 : Math.max(minX, Math.min(maxX, next.x));
+    const clampedY = scaledH <= cropSize ? 0 : Math.max(minY, Math.min(maxY, next.y));
+
+    return { x: clampedX, y: clampedY };
   }
 
-  function onPointerDown(
-    e: React.PointerEvent<HTMLDivElement>,
-    type: "move-image" | "move-crop" | "resize-crop",
-    corner?: "tl" | "tr" | "bl" | "br",
-  ) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    e.currentTarget.setPointerCapture(e.pointerId);
-
-    dragRef.current = {
-      type,
-      corner,
-      startMouse: { x: e.clientX, y: e.clientY },
-      startImage: imagePos,
-      startCrop: crop,
-    };
+  function onPointerDown(e: React.PointerEvent) {
+    if (!dragRef.current && e.button === 0) {
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      dragRef.current = {
+        startMouse: { x: e.clientX, y: e.clientY },
+        startPos: { ...imgPos },
+      };
+    }
   }
 
-  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+  function onPointerMove(e: React.PointerEvent) {
     if (!dragRef.current) return;
-
     const dx = e.clientX - dragRef.current.startMouse.x;
     const dy = e.clientY - dragRef.current.startMouse.y;
-
-    if (dragRef.current.type === "move-image") {
-      setImagePos({
-        x: dragRef.current.startImage.x + dx,
-        y: dragRef.current.startImage.y + dy,
-      });
-      return;
-    }
-
-    if (dragRef.current.type === "move-crop") {
-      setCrop(
-        clampCrop({
-          ...dragRef.current.startCrop,
-          x: dragRef.current.startCrop.x + dx,
-          y: dragRef.current.startCrop.y + dy,
-        }),
-      );
-      return;
-    }
-
-    const start = dragRef.current.startCrop;
-    const corner = dragRef.current.corner;
-    let next = { ...start };
-
-    if (corner === "br") next.size = start.size + Math.max(dx, dy);
-
-    if (corner === "tl") {
-      const change = Math.max(-dx, -dy);
-      next.size = start.size + change;
-      next.x = start.x - change;
-      next.y = start.y - change;
-    }
-
-    if (corner === "tr") {
-      const change = Math.max(dx, -dy);
-      next.size = start.size + change;
-      next.y = start.y - change;
-    }
-
-    if (corner === "bl") {
-      const change = Math.max(-dx, dy);
-      next.size = start.size + change;
-      next.x = start.x - change;
-    }
-
-    setCrop(clampCrop(next));
+    setImgPos(clampPosition({
+      x: dragRef.current.startPos.x + dx,
+      y: dragRef.current.startPos.y + dy,
+    }));
   }
 
-  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+  function onPointerUp(e: React.PointerEvent) {
     dragRef.current = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+  }
 
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
+  function setZoomClamped(v: number) {
+    setZoom(Math.max(0.5, Math.min(4, v)));
+    setImgPos((p) => clampPosition(p));
   }
 
   async function createCroppedFile(): Promise<File> {
     const img = imgRef.current;
     const stage = stageRef.current;
-
-    if (!img || !stage || !imageSize) {
-      throw new Error("Image not ready.");
-    }
+    if (!img || !stage || !imgDisplay) throw new Error("Image not ready.");
 
     const stageRect = stage.getBoundingClientRect();
+    const stageSize = Math.min(stageRect.width, stageRect.height);
+    const cropSize = stageSize * 0.78;
     const outputSize = 900;
-    const scale = outputSize / crop.size;
+    const scale = outputSize / cropSize;
 
     const canvas = document.createElement("canvas");
     canvas.width = outputSize;
     canvas.height = outputSize;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas not supported.");
-
-    const imageCenterX = stageRect.width / 2 + imagePos.x;
-    const imageCenterY = stageRect.height / 2 + imagePos.y;
 
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, outputSize, outputSize);
 
     ctx.save();
 
+    if (rounded === "full") {
+      ctx.beginPath();
+      ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
+      ctx.clip();
+    }
+
+    const imageCenterX = stageRect.width / 2 + imgPos.x;
+    const imageCenterY = stageRect.height / 2 + imgPos.y;
+
     ctx.translate(
-      (imageCenterX - crop.x) * scale,
-      (imageCenterY - crop.y) * scale,
+      (imageCenterX - stageRect.width / 2) * scale,
+      (imageCenterY - stageRect.height / 2) * scale,
     );
 
     ctx.rotate((rotate * Math.PI) / 180);
     ctx.scale(zoom, zoom);
 
-    ctx.drawImage(
-      img,
-      (-imageSize.displayW * scale) / 2,
-      (-imageSize.displayH * scale) / 2,
-      imageSize.displayW * scale,
-      imageSize.displayH * scale,
-    );
+    const drawW = imgDisplay.w * scale;
+    const drawH = imgDisplay.h * scale;
+
+    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
 
     ctx.restore();
 
@@ -275,7 +221,6 @@ export default function ImageUploadEditor({
       canvas.toBlob(
         (blob) => {
           if (!blob) return reject(new Error("Crop failed."));
-
           const cleanName = fileName.replace(/\.[^/.]+$/, "");
           resolve(new File([blob], `${cleanName}-cropped.jpg`, { type: "image/jpeg" }));
         },
@@ -294,16 +239,11 @@ export default function ImageUploadEditor({
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(uploadUrl, {
-        method: "POST",
-        body: formData,
-      });
-
+      const res = await fetch(uploadUrl, { method: "POST", body: formData });
       if (!res.ok) throw new Error("Upload failed.");
 
       const data = await res.json();
       const uploadedUrl = data.image || data.url || data.secure_url || "";
-
       if (!uploadedUrl) throw new Error("Upload URL missing.");
 
       onChange(uploadedUrl);
@@ -317,10 +257,11 @@ export default function ImageUploadEditor({
 
   return (
     <>
+      {/* Thumbnail trigger */}
       <div
         className={
           compact
-            ? "group relative h-24 w-24 overflow-hidden rounded-full border-4 border-white bg-slate-100 shadow-xl dark:border-slate-950"
+            ? "group relative h-24 w-24 overflow-hidden rounded-full border-[3px] border-white bg-slate-100 shadow-lg dark:border-slate-950 dark:bg-slate-900"
             : "rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
         }
       >
@@ -329,64 +270,56 @@ export default function ImageUploadEditor({
             {image ? (
               <Image src={image} alt={title} fill className="object-cover" />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-slate-400">
-                <ImagePlus size={30} />
+              <div className="flex h-full w-full items-center justify-center text-slate-300 dark:text-slate-600">
+                <ImagePlus size={28} />
               </div>
             )}
-
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition group-hover:opacity-100"
+              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-[2px] transition-all duration-200 group-hover:opacity-100"
             >
-              <Camera size={22} />
+              <Camera size={20} strokeWidth={2.5} />
             </button>
           </>
         ) : (
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="relative h-32 w-32 overflow-hidden rounded-full bg-slate-100 shadow-xl dark:bg-slate-900">
+            <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full bg-slate-100 shadow-xl dark:bg-slate-900">
               {image ? (
                 <Image src={image} alt={title} fill className="object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-slate-400">
+                <div className="flex h-full w-full items-center justify-center text-slate-300">
                   <ImagePlus size={38} />
                 </div>
               )}
-
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg"
+                className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg transition-transform hover:scale-105"
               >
                 <Camera size={18} />
               </button>
             </div>
 
             <div className="flex-1">
-              <h3 className="text-xl font-black text-slate-950 dark:text-white">
-                {title}
-              </h3>
-              <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-                {description}
-              </p>
-
+              <h3 className="text-xl font-black text-slate-950 dark:text-white">{title}</h3>
+              <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">{description}</p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() => inputRef.current?.click()}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white dark:bg-white dark:text-slate-950"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
                 >
                   <Upload size={17} />
                   Upload Photo
                 </button>
-
                 {image && (
                   <button
                     type="button"
                     onClick={() => onChange("")}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-5 py-3 text-sm font-black text-red-600 dark:bg-red-950/30"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-red-50 px-5 py-3 text-sm font-black text-red-600 transition-colors hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50"
                   >
-                    <Trash2 size={17} />
+                    <X size={17} />
                     Remove
                   </button>
                 )}
@@ -404,169 +337,178 @@ export default function ImageUploadEditor({
         onChange={(e) => selectImage(e.target.files?.[0])}
       />
 
+      {/* Crop Modal */}
       {open && preview && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/75 p-3 backdrop-blur-md sm:items-center">
-          <div className="w-full max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-2xl dark:bg-slate-950">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-              <div>
-                <h2 className="text-lg font-black text-slate-950 dark:text-white">
-                  Crop profile photo
-                </h2>
-                <p className="text-xs font-bold text-slate-400">
-                  Move photo or resize crop from four corners.
-                </p>
+        <div className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-xl">
+          {/* Top bar */}
+          <div className="flex items-center justify-between px-5 py-4">
+            <div>
+              <h2 className="text-base font-bold text-white">Crop Photo</h2>
+              <p className="text-xs text-white/50">Drag to reposition</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {error && (
+            <div className="mx-5 rounded-2xl bg-red-500/10 px-4 py-3 text-sm font-bold text-red-400 ring-1 ring-red-500/20">
+              {error}
+            </div>
+          )}
+
+          {/* Crop area */}
+          <div className="flex flex-1 items-center justify-center px-5 py-4">
+            <div
+              ref={stageRef}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+              className="relative w-full max-w-[460px] aspect-square cursor-grab overflow-hidden active:cursor-grabbing"
+            >
+              {/* Image */}
+              {imgDisplay && (
+                <img
+                  ref={imgRef}
+                  src={preview}
+                  alt="Crop"
+                  draggable={false}
+                  className="pointer-events-none absolute left-1/2 top-1/2 select-none"
+                  style={{
+                    width: imgDisplay.w,
+                    height: imgDisplay.h,
+                    transform: `translate(-50%, -50%) translate(${imgPos.x}px, ${imgPos.y}px) rotate(${rotate}deg) scale(${zoom})`,
+                    transformOrigin: "center",
+                  }}
+                />
+              )}
+
+              {/* Preview image before load */}
+              {!imgDisplay && (
+                <img
+                  ref={imgRef}
+                  src={preview}
+                  alt="Crop"
+                  draggable={false}
+                  onLoad={onImageLoad}
+                  className="hidden"
+                />
+              )}
+
+              {/* Dark overlay with cutout */}
+              <div className="pointer-events-none absolute inset-0">
+                {rounded === "full" ? (
+                  <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <defs>
+                      <mask id="cropMask">
+                        <rect width="100" height="100" fill="white" />
+                        <circle cx="50" cy="50" r="39" fill="black" />
+                      </mask>
+                    </defs>
+                    <rect width="100" height="100" fill="rgba(0,0,0,0.6)" mask="url(#cropMask)" />
+                    <circle cx="50" cy="50" r="39" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="0.5" />
+                  </svg>
+                ) : (
+                  <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <defs>
+                      <mask id="cropMaskSq">
+                        <rect width="100" height="100" fill="white" />
+                        <rect x="11" y="11" width="78" height="78" rx="10" fill="black" />
+                      </mask>
+                    </defs>
+                    <rect width="100" height="100" fill="rgba(0,0,0,0.6)" mask="url(#cropMaskSq)" />
+                    <rect x="11" y="11" width="78" height="78" rx="10" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="0.4" />
+                  </svg>
+                )}
               </div>
+            </div>
+          </div>
+
+          {/* Bottom controls */}
+          <div className="mx-5 mb-6 rounded-3xl bg-white/10 p-4 backdrop-blur-md ring-1 ring-white/10">
+            {/* Zoom slider */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setZoomClamped(zoom - 0.15)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+              >
+                <ZoomOut size={16} />
+              </button>
+              <input
+                type="range"
+                min="0.5"
+                max="4"
+                step="0.05"
+                value={zoom}
+                onChange={(e) => {
+                  setZoom(Number(e.target.value));
+                  setImgPos((p) => clampPosition(p));
+                }}
+                className="w-full accent-teal-400"
+              />
+              <button
+                type="button"
+                onClick={() => setZoomClamped(zoom + 0.15)}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+              >
+                <ZoomIn size={16} />
+              </button>
+            </div>
+
+            {/* Rotate + Actions */}
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setRotate((v) => v - 90)}
+                className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+              >
+                <RotateCcw size={14} />
+                Left
+              </button>
+              <button
+                type="button"
+                onClick={() => setRotate((v) => v + 90)}
+                className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+              >
+                <RotateCw size={14} />
+                Right
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setZoom(1);
+                  setRotate(0);
+                  setImgPos({ x: 0, y: 0 });
+                }}
+                className="rounded-xl bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+              >
+                Reset
+              </button>
+
+              <div className="flex-1" />
 
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-2xl bg-slate-100 p-3 dark:bg-slate-900"
+                className="rounded-xl bg-white/10 px-5 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
               >
-                <X size={18} />
+                Cancel
               </button>
-            </div>
-
-            {error && (
-              <div className="mx-5 mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
-                {error}
-              </div>
-            )}
-
-            <div className="p-5">
-              <div
-                ref={stageRef}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerUp}
-                className="relative mx-auto h-[430px] max-h-[65vh] w-full overflow-hidden rounded-[28px] bg-slate-950"
+              <button
+                type="button"
+                onClick={saveImage}
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-teal-500/25 transition-all hover:bg-teal-400 disabled:opacity-50"
               >
-                <div
-                  onPointerDown={(e) => onPointerDown(e, "move-image")}
-                  className="absolute inset-0 cursor-grab active:cursor-grabbing"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    ref={imgRef}
-                    src={preview}
-                    alt="Crop photo"
-                    draggable={false}
-                    onLoad={setupImageSize}
-                    className="pointer-events-none absolute left-1/2 top-1/2 select-none"
-                    style={{
-                      width: imageSize?.displayW || "auto",
-                      height: imageSize?.displayH || "auto",
-                      transform: `translate(-50%, -50%) translate(${imagePos.x}px, ${imagePos.y}px) rotate(${rotate}deg) scale(${zoom})`,
-                      transformOrigin: "center",
-                    }}
-                  />
-                </div>
-
-                <div className="pointer-events-none absolute inset-0 bg-black/45" />
-
-                <div
-                  className={`absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] ${cropShape}`}
-                  style={{
-                    left: crop.x,
-                    top: crop.y,
-                    width: crop.size,
-                    height: crop.size,
-                  }}
-                >
-                  <div
-                    onPointerDown={(e) => onPointerDown(e, "move-crop")}
-                    className="absolute inset-4 cursor-move"
-                  />
-
-                  {(["tl", "tr", "bl", "br"] as const).map((corner) => (
-                    <div
-                      key={corner}
-                      onPointerDown={(e) => onPointerDown(e, "resize-crop", corner)}
-                      className={`absolute h-8 w-8 rounded-full border-4 border-white bg-teal-500 shadow-xl ${
-                        corner === "tl"
-                          ? "-left-4 -top-4 cursor-nwse-resize"
-                          : corner === "tr"
-                            ? "-right-4 -top-4 cursor-nesw-resize"
-                            : corner === "bl"
-                              ? "-bottom-4 -left-4 cursor-nesw-resize"
-                              : "-bottom-4 -right-4 cursor-nwse-resize"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-5 rounded-3xl border border-slate-200 p-4 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setZoom((v) => Math.max(0.3, Number((v - 0.1).toFixed(2))))}
-                    className="rounded-2xl bg-slate-100 p-3 dark:bg-slate-900"
-                  >
-                    <Minus size={16} />
-                  </button>
-
-                  <input
-                    type="range"
-                    min="0.3"
-                    max="4"
-                    step="0.05"
-                    value={zoom}
-                    onChange={(e) => setZoom(Number(e.target.value))}
-                    className="w-full accent-teal-600"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setZoom((v) => Math.min(4, Number((v + 0.1).toFixed(2))))}
-                    className="rounded-2xl bg-slate-100 p-3 dark:bg-slate-900"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <button
-                    type="button"
-                    onClick={() => setRotate((v) => v - 90)}
-                    className="flex items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black dark:bg-slate-900"
-                  >
-                    <RotateCcw size={16} />
-                    Left
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRotate((v) => v + 90)}
-                    className="flex items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black dark:bg-slate-900"
-                  >
-                    <RotateCw size={16} />
-                    Right
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setZoom(1);
-                      setRotate(0);
-                      setImagePos({ x: 0, y: 0 });
-                      setupImageSize();
-                    }}
-                    className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black dark:bg-slate-900"
-                  >
-                    Reset
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={saveImage}
-                    disabled={saving}
-                    className="flex items-center justify-center gap-2 rounded-2xl bg-teal-600 px-4 py-3 text-sm font-black text-white disabled:opacity-60"
-                  >
-                    {saving ? <Loader2 size={17} className="animate-spin" /> : <Check size={17} />}
-                    Save
-                  </button>
-                </div>
-              </div>
+                {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                Save
+              </button>
             </div>
           </div>
         </div>
