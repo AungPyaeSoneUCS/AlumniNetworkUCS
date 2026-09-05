@@ -21,7 +21,7 @@ type Props = {
     searchPlaceholder: string;
     allDegree: string;
     allYear: string;
-    reset: string;
+    reset?: string;
   };
 };
 
@@ -130,7 +130,7 @@ export default function AutoSubmitManageUsersFilters({
         onClick={resetFilters}
         className="inline-flex h-[46px] shrink-0 items-center justify-center rounded-xl bg-slate-100 px-4 text-xs font-black text-slate-600 transition hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 sm:text-sm"
       >
-        {labels.reset}
+        {labels.reset ?? (lang === "mm" ? "ပြန်စရန်" : "Reset")}
       </button>
     </div>
   );
