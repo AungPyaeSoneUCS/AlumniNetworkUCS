@@ -105,7 +105,10 @@ export default function AutoSubmitJobsFilters({
     const nextCompany = nextValues.company ?? localCompany;
     const nextLocation = nextValues.location ?? localLocation;
     const nextType = nextValues.type ?? localType;
-    const nextStatus = statusToValue(nextValues.status ?? localStatus);
+    const nextStatus =
+      nextValues.status !== undefined
+        ? nextValues.status
+        : statusToValue(localStatus);
 
     if (nextQ.trim()) params.set("q", nextQ.trim());
     if (nextCompany) params.set("company", nextCompany);

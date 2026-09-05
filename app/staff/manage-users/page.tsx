@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   ChevronDown,
   Download,
+  Eye,
   FileSpreadsheet,
   Mail,
   Users,
@@ -43,6 +44,7 @@ const text = {
     phone: "Phone Number",
     actions: "Actions",
     delete: "Delete",
+    view: "View",
     cancel: "Cancel",
     deleteConfirm: "Delete Alumni",
     cannotUndo: "This action cannot be undone.",
@@ -78,6 +80,7 @@ const text = {
     phone: "ဖုန်းနံပါတ်",
     actions: "လုပ်ဆောင်ချက်များ",
     delete: "ဖျက်ရန်",
+    view: "ကြည့်ရန်",
     cancel: "မဖျက်တော့ပါ",
     deleteConfirm: "ကျောင်းသားဟောင်း ဖျက်မည်လား",
     cannotUndo: "ဤလုပ်ဆောင်ချက်ကို ပြန်ပြင်၍မရပါ။",
@@ -755,6 +758,13 @@ export default async function StaffManageUsersPage({
 
                         <td className="px-4 py-3.5">
                           <div className="flex justify-end gap-2">
+                            <Link
+                              href={`/staff/view-profile/${user._id}`}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-50 px-3 py-2 text-[11px] font-black text-[#008B8B] transition-colors hover:bg-[#008B8B] hover:text-white active:scale-95 dark:bg-[#008B8B]/10 dark:text-cyan-400 dark:hover:bg-[#008B8B] dark:hover:text-white"
+                            >
+                              <Eye size={13} />
+                              {t.view}
+                            </Link>
                             <ConfirmDelete
                               action={deleteUserAccount}
                               id={String(user._id)}
@@ -797,7 +807,14 @@ export default async function StaffManageUsersPage({
                     />
                   </div>
 
-                  <div className="mt-4 flex justify-end">
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Link
+                      href={`/staff/view-profile/${user._id}`}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-50 px-4 py-2 text-[11px] font-black text-[#008B8B] transition-colors hover:bg-[#008B8B] hover:text-white active:scale-95 dark:bg-[#008B8B]/10 dark:text-cyan-400 dark:hover:bg-[#008B8B] dark:hover:text-white"
+                    >
+                      <Eye size={13} />
+                      {t.view}
+                    </Link>
                     <ConfirmDelete
                       action={deleteUserAccount}
                       id={String(user._id)}

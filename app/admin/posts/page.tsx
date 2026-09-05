@@ -71,6 +71,7 @@ const text = {
     next: "Next",
     from: "From",
     to: "To",
+    clearDate: "Clear",
   },
 
   mm: {
@@ -112,6 +113,7 @@ const text = {
     next: "နောက်သို့",
     from: "မှ",
     to: "ထိ",
+    clearDate: "ရှင်းမည်",
   },
 };
 
@@ -1260,6 +1262,7 @@ export default async function AdminPostsPage({
                     from: t.from,
                     to: t.to,
                     reset: t.reset,
+                    clearDate: t.clearDate,
                   }}
                 />
               </div>

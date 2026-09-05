@@ -9,6 +9,7 @@ import {
   Briefcase,
   ChevronDown,
   Contact,
+  ExternalLink,
   FileSpreadsheet,
   GraduationCap,
   LayoutDashboard,
@@ -17,7 +18,7 @@ import {
   Menu,
   Newspaper,
   TrendingUp,
-  UserCircle, 
+  UserCircle,
   Users,
   X,
 } from "lucide-react";
@@ -37,7 +38,8 @@ type ActivePage =
   | "posts"
   | "register-users"
   | "contact"
-  | "profile";
+  | "profile"
+  | "visit";
 
 type NavItem = {
   key: ActivePage;
@@ -126,13 +128,15 @@ export default function StaffSidebar({
         manageUsers: "Manage Alumni",
         jobs: "Manage Jobs",
         posts: "Manage Posts",
-        users: "User Analysis",
+        users: "Alumni Analysis",
         graduatedYears: "Yearly Graduate Count",
         salaryRanges: "Income Range",
         jobStatus: "Alumni Job Status",
         registerUsers: "Alumni Registration Lists",
         contact: "Contacts",
         profile: "Profile ",
+        visit: "Visit",
+        goDashboard: "Go Dashboard",
         logout: "Logout",
         english: "English",
         myanmar: "Myanmar",
@@ -143,17 +147,19 @@ export default function StaffSidebar({
         closeMenu: "Close staff menu",
       },
       mm: {
-        dashboard: "Dashboard",
-        manageUsers: "Alumni စီမံခန့်ခွဲမှု",
+        dashboard: "ပင်မစာမျက်နှာ",
+        manageUsers: "ကျောင်းသားဟောင်းစီမံခန့်ခွဲမှု",
         jobs: "အလုပ်အကိုင်များ စီမံခန့်ခွဲမှု",
         posts: "ပို့စ်များ စီမံခန့်ခွဲမှု",
-        users: "User Analysis",
+        users: "Alumni Analysis",
         graduatedYears: "နှစ်အလိုက်ဘွဲ့ရ အရေအတွက်",
         salaryRanges: "ဝင်ငွေနှုန်း အပိုင်းအခြား",
         jobStatus: "ဘွဲ့ရအလုပ်အကိုင် အခြေအနေ",
         registerUsers: "စာရင်းသွင်းပြီးကျောင်းသားများ",
         contact: "ဆက်သွယ်ရန်",
         profile: "ပရိုဖိုင် ",
+        visit: "Visit",
+        goDashboard: "Dashboard သို့သွားမည်",
         logout: "ထွက်ရန်",
         english: "English",
         myanmar: "မြန်မာ",
@@ -196,6 +202,7 @@ export default function StaffSidebar({
     { key: "register-users", label: t.registerUsers, href: makeHref("/staff/register-users"), icon: FileSpreadsheet },
     { key: "contact", label: t.contact, href: makeHref("/staff/contact"), icon: Contact },
     { key: "profile", label: t.profile, href: makeHref("/staff/profile"), icon: UserCircle },
+    { key: "visit", label: t.visit, href: "/feeds", icon: ExternalLink },
   ];
 
   function handleCollapseToggle() {
