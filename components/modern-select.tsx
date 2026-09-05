@@ -10,6 +10,7 @@ type ModernSelectProps = {
   onChange: (value: string) => void;
   options: string[];
   placeholder: string;
+  displayOptions?: Record<string, string>;
 };
 
 export default function ModernSelect({
@@ -17,6 +18,7 @@ export default function ModernSelect({
   onChange,
   options,
   placeholder,
+  displayOptions,
 }: ModernSelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -40,7 +42,9 @@ export default function ModernSelect({
     };
   }, []);
 
-  const selectedLabel = value || placeholder;
+  const selectedLabel = value
+    ? (displayOptions?.[value] ?? value)
+    : placeholder;
 
   return (
     <div ref={ref} className="relative">
@@ -97,7 +101,7 @@ export default function ModernSelect({
                     : "text-slate-700 hover:bg-[#94EFEE]/40 dark:text-slate-200 dark:hover:bg-slate-800"
                 }`}
               >
-                <span className="truncate">{option}</span>
+                <span className="truncate">{displayOptions?.[option] ?? option}</span>
                 {isSelected && <Check size={15} className="shrink-0" />}
               </button>
             );

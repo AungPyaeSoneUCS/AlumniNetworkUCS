@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { useI18n } from "@/components/providers";
+import ModernSelect from "@/components/modern-select";
 
 type Category = "General" | "Job" | "Event" | "News";
 type Lang = "en" | "mm";
@@ -925,18 +926,13 @@ function FeedFilters({
           {t.allAuthors}
         </label>
 
-        <select
+        <ModernSelect
           value={filterAuthor}
-          onChange={(event) => onAuthorChange(event.target.value)}
-          className="ucsh-input h-12 text-sm font-bold"
-        >
-          <option value="">{t.allAuthors}</option>
-          {authors.map((author) => (
-            <option key={author.id} value={author.id}>
-              {author.name}
-            </option>
-          ))}
-        </select>
+          onChange={onAuthorChange}
+          options={authors.map((author) => author.id)}
+          displayOptions={Object.fromEntries(authors.map((author) => [author.id, author.name]))}
+          placeholder={t.allAuthors}
+        />
       </div>
 
       <div className="mt-5">
