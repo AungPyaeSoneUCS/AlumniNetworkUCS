@@ -6,7 +6,7 @@ import type React from "react";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { ExternalLink, Globe, Loader2, Mail, MapPin, Phone, Save } from "lucide-react";
+import { Globe, Loader2, Mail, MapPin, Phone, Save } from "lucide-react";
 import { FaFacebookF } from "react-icons/fa6";
 
 import StaffSidebar from "@/components/staff/staff-sidebar";
@@ -208,12 +208,12 @@ function StaffContactContent() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50/50 text-slate-950 dark:bg-slate-950 dark:text-white lg:h-screen lg:overflow-hidden">
-      <div className="flex h-full w-full flex-col lg:flex-row">
+    <div className="min-h-screen w-full bg-slate-50/50 text-slate-950 dark:bg-slate-950 dark:text-white">
+      <div className="flex min-h-screen">
         <StaffSidebar active="contact" lang={currentLang} />
 
-        <section className="flex min-w-0 flex-1 flex-col px-4 pb-8 pt-16 sm:px-6 md:px-8 lg:h-full lg:overflow-hidden lg:pt-8">
-          <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-col lg:h-full lg:overflow-y-auto lg:pr-3">
+        <section className="min-w-0 flex-1 px-4 pb-8 pt-16 sm:px-6 md:px-8 lg:pt-8">
+          <div className="mx-auto max-w-7xl">
             {loading ? (
               <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
                 <Loader2 className="h-10 w-10 animate-spin text-[#008B8B]" />
@@ -224,7 +224,7 @@ function StaffContactContent() {
                 className="relative z-20 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50"
               >
                 {/* Form Fields Section */}
-                <div className="space-y-4 p-4 sm:p-6">
+                <div className="space-y-3 p-4 sm:p-5">
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <InputCard icon={<Phone size={17} />} label={t.phone1} value={form.phone1} onChange={(value) => updateField("phone1", value)} placeholder="044 22725" />
                     <InputCard icon={<Phone size={17} />} label={t.phone2} value={form.phone2} onChange={(value) => updateField("phone2", value)} placeholder="09783543901" />
@@ -243,7 +243,7 @@ function StaffContactContent() {
                       value={form.mapUrl}
                       onChange={(value) => updateField("mapUrl", value)}
                       placeholder="https://www.google.com/maps?q=...&output=embed"
-                      rows={8}
+                      rows={3}
                     />
 
                     <MapPreview
@@ -252,7 +252,6 @@ function StaffContactContent() {
                       title={t.mapPreview}
                       subtitle={t.mapPreviewSubtitle}
                       emptyText={t.mapEmpty}
-                      openText={t.openMap}
                       invalidText={t.invalidMap}
                     />
                   </div>
@@ -373,7 +372,7 @@ function TextareaCard({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="min-h-[110px] w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#00BFC4] focus:ring-4 focus:ring-[#00BFC4]/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4]"
+        className="min-h-[88px] w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-bold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#00BFC4] focus:ring-4 focus:ring-[#00BFC4]/10 dark:border-slate-800 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4]"
       />
     </label>
   );
@@ -385,7 +384,6 @@ function MapPreview({
   title,
   subtitle,
   emptyText,
-  openText,
   invalidText,
 }: {
   safeMapUrl: string;
@@ -393,7 +391,6 @@ function MapPreview({
   title: string;
   subtitle: string;
   emptyText: string;
-  openText: string;
   invalidText: string;
 }) {
   return (
@@ -408,21 +405,9 @@ function MapPreview({
           </div>
           <p className="mt-1 pl-[46px] text-xs font-bold text-slate-400 dark:text-slate-500">{subtitle}</p>
         </div>
-
-        {safeMapUrl && (
-          <a
-            href={safeMapUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700/50"
-          >
-            <ExternalLink size={14} />
-            {openText}
-          </a>
-        )}
       </div>
 
-      <div className="min-h-[260px] flex-1 bg-slate-100 dark:bg-slate-950 sm:min-h-[320px] lg:min-h-[360px]">
+      <div className="min-h-[220px] flex-1 bg-slate-100 dark:bg-slate-950 lg:min-h-[140px]">
         {safeMapUrl ? (
           <iframe
             key={safeMapUrl}

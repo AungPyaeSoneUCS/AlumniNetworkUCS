@@ -15,7 +15,6 @@ import {
   LockKeyhole,
   Mail,
   User as UserIcon,
-  UserCircle,
   XCircle,
 } from "lucide-react";
 
@@ -74,6 +73,13 @@ export default function ProfileClientForm({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmError, setConfirmError] = useState("");
+
+  function validatePassword(value: string) {
+    if (!value) return "";
+    return value.length >= 8 ? "" : t.passwordLength;
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -128,18 +134,13 @@ export default function ProfileClientForm({
 
   return (
     <div className="relative z-20 overflow-visible rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 sm:p-8">
-      <div className="flex items-center gap-4 border-b border-slate-100 pb-6 dark:border-slate-800/60">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#00BFC4] to-[#008B8B] text-white shadow-xl shadow-cyan-500/25">
-          <UserCircle className="h-7 w-7" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-            {t.title}
-          </h1>
-          <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400 sm:text-sm">
-            {t.subtitle}
-          </p>
-        </div>
+      <div className="border-b border-slate-100 pb-6 text-center dark:border-slate-800/60">
+        <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+          {t.title}
+        </h1>
+        <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400 sm:text-sm">
+          {t.subtitle}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="mx-auto mt-8 max-w-2xl space-y-5">
@@ -180,19 +181,28 @@ export default function ProfileClientForm({
             <PasswordField
               label={t.newPassword}
               value={password}
-              onChange={setPassword}
+              onChange={(value) => {
+                setPassword(value);
+                setPasswordError(validatePassword(value));
+                setConfirmError(value && confirm && value !== confirm ? t.passwordMismatch : "");
+              }}
               show={showPassword}
               setShow={setShowPassword}
               required={false}
+              error={passwordError}
             />
 
             <PasswordField
               label={t.confirmPassword}
               value={confirm}
-              onChange={setConfirm}
+              onChange={(value) => {
+                setConfirm(value);
+                setConfirmError(value && value !== password ? t.passwordMismatch : "");
+              }}
               show={showPassword}
               setShow={setShowPassword}
               required={false}
+              error={confirmError}
             />
           </div>
         </div>
@@ -222,7 +232,7 @@ export default function ProfileClientForm({
 
           <button
             type="submit"
-            disabled={loading || !name.trim()}
+            disabled={loading || !name.trim() || !!passwordError || !!confirmError}
             className="order-1 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] px-8 text-sm font-black text-white shadow-xl shadow-cyan-500/20 transition hover:-translate-y-1 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {loading ? (
@@ -248,6 +258,7 @@ function InputField({
   placeholder,
   icon,
   disabled = false,
+  error,
 }: {
   label: string;
   type: string;
@@ -256,6 +267,7 @@ function InputField({
   placeholder: string;
   icon: React.ReactNode;
   disabled?: boolean;
+  error?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -275,13 +287,16 @@ function InputField({
           value={value}
           onChange={onChange ? (event) => onChange(event.target.value) : undefined}
           placeholder={placeholder}
-          className={`h-12 w-full rounded-xl border pl-12 pr-4 text-sm font-bold outline-none transition placeholder:text-slate-400 
-            ${disabled 
-              ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-500" 
-              : "border-slate-200 bg-slate-50 text-slate-900 focus:border-[#00BFC4] focus:bg-white focus:ring-4 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4] dark:focus:bg-slate-900 dark:focus:ring-cyan-900/30"
-            }`}
+          className={`h-12 w-full rounded-xl border pl-12 pr-4 text-sm font-bold outline-none transition placeholder:text-slate-400 focus:ring-4 ${
+            error
+              ? "border-red-300 bg-red-50 text-slate-900 focus:border-red-400 focus:bg-red-50 focus:ring-red-100 dark:border-red-500/50 dark:bg-red-500/10 dark:text-white dark:focus:border-red-500 dark:focus:ring-red-500/20"
+              : disabled
+              ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-500"
+              : "border-slate-200 bg-slate-50 text-slate-900 focus:border-[#00BFC4] focus:bg-white focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4] dark:focus:bg-slate-900 dark:focus:ring-cyan-900/30"
+          }`}
         />
       </div>
+      {error && <p className="text-xs font-bold text-red-500 dark:text-red-400">{error}</p>}
     </div>
   );
 }
@@ -293,6 +308,7 @@ function PasswordField({
   show,
   setShow,
   required = true,
+  error,
 }: {
   label: string;
   value: string;
@@ -300,6 +316,7 @@ function PasswordField({
   show: boolean;
   setShow: (value: boolean) => void;
   required?: boolean;
+  error?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -316,7 +333,11 @@ function PasswordField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder="••••••••"
-          className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-14 text-sm font-bold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#00BFC4] focus:ring-4 focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4] dark:focus:ring-cyan-900/30"
+          className={`h-12 w-full rounded-xl border bg-white pr-14 pl-12 text-sm font-bold outline-none transition placeholder:text-slate-400 focus:ring-4 ${
+            error
+              ? "border-red-300 bg-red-50 text-slate-900 focus:border-red-400 focus:ring-red-100 dark:border-red-500/50 dark:bg-red-500/10 dark:text-white dark:focus:border-red-500 dark:focus:ring-red-500/20"
+              : "border-slate-200 text-slate-900 focus:border-[#00BFC4] focus:ring-cyan-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4] dark:focus:ring-cyan-900/30"
+          }`}
         />
         <button
           type="button"
@@ -326,6 +347,7 @@ function PasswordField({
           {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>
+      {error && <p className="text-xs font-bold text-red-500 dark:text-red-400">{error}</p>}
     </div>
   );
 }
