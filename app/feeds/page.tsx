@@ -1443,7 +1443,10 @@ function PostCard({
       className={`ucsh-card ucsh-animate overflow-hidden p-0 scroll-mt-28 transition ${
         active ? "ring-4 ring-[var(--ucsh-primary)]/35" : ""
       }`}
-      style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}
+      style={{
+        padding: 0,
+        animationDelay: `${Math.min(index, 12) * 45}ms`,
+      }}
     >
       <div className="h-1.5 bg-gradient-to-r from-[var(--ucsh-primary)] via-[var(--ucsh-secondary)] to-[var(--ucsh-accent)]" />
 
@@ -1567,7 +1570,7 @@ function PostCard({
           </div>
         )}
 
-        <div className="mt-5 grid grid-cols-2 gap-2 border-t border-[var(--ucsh-border)] pt-4">
+        <div className="mt-3 grid grid-cols-2 gap-2 border-t border-[var(--ucsh-border)] pt-2.5">
           <ActionButton
             active={liked}
             icon={
@@ -1591,7 +1594,7 @@ function PostCard({
         </div>
 
         {showComments && (
-          <div className="mt-4 space-y-3 rounded-[var(--ucsh-radius-lg)] border border-[var(--ucsh-border)] bg-white/65 p-3 dark:bg-slate-950/70">
+          <div className="mt-3 space-y-2.5 rounded-[var(--ucsh-radius-lg)] border border-[var(--ucsh-border)] bg-white/65 p-2.5 dark:bg-slate-950/70">
             <div className="flex gap-2">
               <input
                 value={commentText}
@@ -1601,13 +1604,14 @@ function PostCard({
                 }}
                 placeholder={t.writeComment}
                 className="ucsh-input min-w-0 flex-1 text-sm font-bold"
+                style={{ paddingInline: "12px", paddingBlock: "8px" }}
               />
 
               <button
                 type="button"
                 onClick={submitComment}
                 disabled={!commentText.trim() || commenting}
-                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Send size={17} />
               </button>
@@ -1629,7 +1633,7 @@ function PostCard({
                       className="h-9 w-9 rounded-xl object-cover shadow-sm"
                     />
 
-                    <div className="min-w-0 flex-1 rounded-2xl bg-white px-4 py-3 shadow-sm dark:bg-slate-900 relative">
+                    <div className="min-w-0 flex-1 rounded-xl bg-white px-3 py-2 shadow-sm dark:bg-slate-900 relative">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-black text-[var(--ucsh-text)]">
@@ -1690,7 +1694,8 @@ function PostCard({
                             value={editCommentText}
                             onChange={(e) => setEditCommentText(e.target.value)}
                             rows={2}
-                            className="ucsh-input w-full resize-none text-sm font-bold leading-6"
+                            className="ucsh-input w-full resize-none text-sm font-bold leading-5"
+                            style={{ paddingInline: "12px", paddingBlock: "8px" }}
                           />
                           <div className="mt-2 flex gap-2">
                             <button
@@ -1710,7 +1715,7 @@ function PostCard({
                           </div>
                         </div>
                       ) : (
-                        <p className="mt-1 whitespace-pre-line break-words text-sm font-bold leading-6 text-slate-600 dark:text-slate-300">
+                        <p className="mt-0.5 whitespace-pre-line break-words text-sm font-bold leading-5 text-slate-600 dark:text-slate-300">
                           {comment.content}
                         </p>
                       )}
@@ -1777,7 +1782,7 @@ function ActionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-black transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md dark:hover:bg-slate-900 ${
+      className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-black transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md dark:hover:bg-slate-900 ${
         active
           ? "bg-cyan-100 text-[var(--ucsh-primary-dark)] dark:bg-cyan-950/40"
           : "bg-white/65 text-slate-600 hover:text-[var(--ucsh-primary-dark)] dark:bg-slate-950/70 dark:text-slate-300"
