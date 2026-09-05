@@ -3,7 +3,6 @@
 import type React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import Script from "next/script";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -12,7 +11,6 @@ import {
   ArrowUpDown,
   MessageCircle,
   Newspaper,
-  Search,
   ChevronDown,
   Download,
   FileSpreadsheet,
@@ -27,6 +25,7 @@ import Post from "@/models/Post";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import ConfirmDelete from "@/components/admin/confirm-delete";
 import PrintUsersButton from "@/components/admin/print-users-button";
+import AutoSubmitPostsFilters from "@/components/admin/auto-submit-posts-filters";
 
 type Lang = "en" | "mm";
 
@@ -104,7 +103,7 @@ const text = {
     web: "Web",
     print: "Print",
     export: "Export",
-    reset: "Reset",
+    reset: "ပြန်စရန်",
     exportTitle: "ပို့စ်စာရင်း Export",
     showing: "ပြနေသည်",
     of: "ထဲမှ",
@@ -1199,7 +1198,7 @@ export default async function AdminPostsPage({
           <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
 
             {/* Header + Filters */}
-            <div className="relative z-20 overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 sm:p-5">
+            <div className="relative overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 sm:p-5">
 
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
 
@@ -1213,9 +1212,9 @@ export default async function AdminPostsPage({
                   </p>
                 </div>
 
-                <div className="relative z-50 flex w-full flex-wrap items-center gap-2 overflow-visible xl:w-auto xl:justify-end">
+                <div className="relative flex w-full flex-wrap items-center justify-end gap-2 overflow-visible xl:w-auto">
 
-                  <details className="group relative z-[200] inline-flex overflow-visible">
+                  <details className="group relative inline-flex overflow-visible xl:z-[200]">
 
                     <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] px-4 py-2 text-xs font-black text-white shadow-md shadow-cyan-500/20 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95 marker:hidden [&::-webkit-details-marker]:hidden">
                       <Download size={15} />
@@ -1223,7 +1222,7 @@ export default async function AdminPostsPage({
                       <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
                     </summary>
 
-                    <div className="absolute right-0 top-full z-[9999] mt-2 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-400/40 dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/50 max-[420px]:left-0 max-[420px]:right-auto">
+                    <div className="absolute right-0 top-full z-[9999] mt-2 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-400/40 dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/50">
 
                       <ExportItem
                         href={excelHref}
@@ -1242,76 +1241,28 @@ export default async function AdminPostsPage({
                 </div>
               </div>
 
-              <form
-                id="posts-auto-filter-form"
-                className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]"
-                action="/admin/posts"
-              >
-
-                <input type="hidden" name="lang" value={lang} />
-
-                {sortKey && (
-                  <input type="hidden" name="sort" value={sortKey} />
-                )}
-
-                {sortDir && (
-                  <input type="hidden" name="dir" value={sortDir} />
-                )}
-
-                <div className="relative md:col-span-2 xl:col-span-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-
-                  <input
-                    name="q"
-                    defaultValue={rawQ}
-                    placeholder={t.searchPlaceholder}
-                    data-auto-filter="true"
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4]"
-                  />
-                </div>
-
-                <SelectBox
-                  name="category"
-                  defaultValue={selectedCategory}
-                >
-                  <option value="">{t.allCategories}</option>
-
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </SelectBox>
-
-                <SelectBox name="author" defaultValue={selectedAuthor}>
-                  <option value="">{t.allAuthors}</option>
-
-                  {authors.map((author) => (
-                    <option key={author.id} value={author.id}>
-                      {author.name}
-                    </option>
-                  ))}
-                </SelectBox>
-
-                <input
-                  type="date"
-                  name="from"
-                  aria-label={t.from}
-                  defaultValue={selectedFrom}
-                  className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+              <div className="mt-4">
+                <AutoSubmitPostsFilters
+                  lang={lang}
+                  q={rawQ}
+                  category={selectedCategory}
+                  author={selectedAuthor}
+                  from={selectedFrom}
+                  to={selectedTo}
+                  categories={categories}
+                  authors={authors}
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  labels={{
+                    searchPlaceholder: t.searchPlaceholder,
+                    allCategories: t.allCategories,
+                    allAuthors: t.allAuthors,
+                    from: t.from,
+                    to: t.to,
+                    reset: t.reset,
+                  }}
                 />
-
-                <input
-                  type="date"
-                  name="to"
-                  aria-label={t.to}
-                  defaultValue={selectedTo}
-                  className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-                />
-
-              </form>
-
-              <AutoFilterScript />
+              </div>
 
             </div>
 
@@ -1528,94 +1479,6 @@ export default async function AdminPostsPage({
   );
 }
 
-function AutoFilterScript() {
-  return (
-    <Script
-      id="posts-auto-filter-script"
-      strategy="afterInteractive"
-    >
-      {`
-        (() => {
-          const form = document.getElementById(
-            "posts-auto-filter-form"
-          );
-
-          if (
-            !form ||
-            form.dataset.autoReady === "1"
-          ) {
-            return;
-          }
-
-          form.dataset.autoReady = "1";
-
-          let timer = null;
-
-          const submitForm = () => {
-            const params =
-              new URLSearchParams(
-                new FormData(form)
-              );
-
-            for (
-              const key of Array.from(
-                params.keys()
-              )
-            ) {
-              if (!params.get(key)) {
-                params.delete(key);
-              }
-            }
-
-            params.delete("page");
-
-            const query =
-              params.toString();
-
-            const action =
-              form.getAttribute(
-                "action"
-              ) || "/admin/posts";
-
-            window.location.href =
-              action +
-              (query
-                ? "?" + query
-                : "");
-          };
-
-          form
-            .querySelectorAll("select, input[type='date']")
-            .forEach((el) => {
-              el.addEventListener(
-                "change",
-                submitForm
-              );
-            });
-
-          form
-            .querySelectorAll(
-              "[data-auto-filter='true']"
-            )
-            .forEach((el) => {
-              el.addEventListener(
-                "input",
-                () => {
-                  clearTimeout(timer);
-
-                  timer = setTimeout(
-                    submitForm,
-                    450
-                  );
-                }
-              );
-            });
-        })();
-      `}
-    </Script>
-  );
-}
-
 function SortableTableHead({
   label,
   sortKey,
@@ -1668,26 +1531,6 @@ function SortableTableHead({
         )}
       </Link>
     </th>
-  );
-}
-
-function SelectBox({
-  name,
-  defaultValue,
-  children,
-}: {
-  name: string;
-  defaultValue: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <select
-      name={name}
-      defaultValue={defaultValue}
-      className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:focus:border-[#00BFC4]"
-    >
-      {children}
-    </select>
   );
 }
 

@@ -6,7 +6,7 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSession, signIn } from "next-auth/react";
+import { useSession, signIn, signOut } from "next-auth/react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -139,6 +139,17 @@ export default function RegisterPage() {
   const router = useRouter();
   const { status } = useSession();
   const { lang } = useI18n();
+
+  // Safety net: if the session check hangs, force-logout so the form shows
+  useEffect(() => {
+    if (status !== "loading") return;
+
+    const timer = window.setTimeout(() => {
+      signOut({ redirect: false }).catch(() => {});
+    }, 1_000);
+
+    return () => window.clearTimeout(timer);
+  }, [status]);
 
   const currentLang: Lang = lang === "mm" ? "mm" : "en";
   const t = text[currentLang];

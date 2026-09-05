@@ -124,12 +124,12 @@ export default function ContactPage() {
   const mapSrc = useMemo(() => satelliteMapUrl(contact.mapUrl), [contact.mapUrl]);
 
   return (
-    <main className="mm relative flex min-h-[calc(100vh-150px)] items-center overflow-hidden px-3 py-4 text-[var(--ucsh-text)] sm:px-4 lg:py-6">
+    <main className="mm relative flex h-[calc(100vh-130px)] min-h-[420px] overflow-y-auto overflow-x-hidden px-3 py-3 text-[var(--ucsh-text)] sm:px-4">
       <BackgroundDecor />
 
-      <section className="relative z-10 mx-auto grid w-full max-w-7xl gap-4 lg:min-h-[70vh] lg:grid-cols-2">
-        <div className="ucsh-card ucsh-animate flex h-full flex-col p-3 sm:p-4">
-          <div className="grid flex-1 gap-4 sm:grid-cols-2">
+      <section className="relative z-10 mx-auto grid min-h-full w-full max-w-7xl content-stretch gap-3 lg:grid-cols-2">
+        <div className="ucsh-card ucsh-animate flex h-full flex-col p-3">
+          <div className="grid flex-1 content-start gap-3 sm:grid-cols-2">
             <InfoCard
               icon={<Mail size={20} />}
               label={t.email}
@@ -158,16 +158,16 @@ export default function ContactPage() {
             />
           </div>
 
-          <div className="mt-4 rounded-[var(--ucsh-radius-lg)] border border-[var(--ucsh-border)] bg-white/70 p-4 text-center shadow-sm backdrop-blur transition hover:bg-white hover:shadow-md dark:bg-slate-950/70 dark:hover:bg-slate-900">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] text-white shadow-md">
-              <Phone size={18} />
+          <div className="mt-3 rounded-[var(--ucsh-radius-lg)] border border-[var(--ucsh-border)] bg-white/70 p-3 text-center shadow-sm backdrop-blur transition hover:bg-white hover:shadow-md dark:bg-slate-950/70 dark:hover:bg-slate-900">
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] text-white shadow-md">
+              <Phone size={16} />
             </div>
 
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--ucsh-muted)]">
               {t.phone}
             </p>
 
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <div className="mt-2.5 flex flex-wrap justify-center gap-2">
               {phones.map((phone) => (
                 <a
                   key={phone}
@@ -181,8 +181,8 @@ export default function ContactPage() {
           </div>
         </div>
 
-        <aside className="ucsh-card ucsh-animate flex h-full flex-col p-3 sm:p-4">
-          <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+        <aside className="ucsh-card ucsh-animate flex h-full flex-col p-3">
+          <div className="mb-2 flex shrink-0 items-center justify-between gap-3">
             <div>
               <LabelText>{t.satelliteView}</LabelText>
               <h2 className="mt-1 text-lg font-black text-[var(--ucsh-text)]">
@@ -195,7 +195,7 @@ export default function ContactPage() {
             </span>
           </div>
 
-          <div className="min-h-[260px] flex-1 overflow-hidden rounded-[var(--ucsh-radius-lg)] border border-[var(--ucsh-border)] bg-slate-100 shadow-sm dark:bg-slate-950">
+          <div className="min-h-[190px] flex-1 overflow-hidden rounded-[var(--ucsh-radius-lg)] border border-[var(--ucsh-border)] bg-slate-100 shadow-sm dark:bg-slate-950">
             <iframe
               src={mapSrc}
               width="100%"
@@ -203,7 +203,7 @@ export default function ContactPage() {
               loading="lazy"
               allowFullScreen
               referrerPolicy="no-referrer-when-downgrade"
-              className="h-full min-h-[260px] w-full border-0"
+              className="h-full min-h-[190px] w-full border-0"
             />
           </div>
 
@@ -211,7 +211,7 @@ export default function ContactPage() {
             href={directGoogleMapUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="ucsh-btn mt-3 shrink-0 w-full px-4 py-2.5 text-xs"
+            className="ucsh-btn mt-2.5 shrink-0 w-full px-4 py-2 text-xs"
           >
             {t.openMap}
             <ExternalLink size={15} />
@@ -242,8 +242,8 @@ function InfoCard({
   href?: string;
 }) {
   const content = (
-    <div className="group flex h-full min-h-[140px] flex-col items-center justify-center rounded-[var(--ucsh-radius-lg)] border border-[var(--ucsh-border)] bg-white/70 p-4 text-center shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg dark:bg-slate-950/70 dark:hover:bg-slate-900">
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] text-white shadow-md">
+    <div className="group flex h-full min-h-[96px] flex-col items-center justify-center rounded-[var(--ucsh-radius-lg)] border border-[var(--ucsh-border)] bg-white/70 p-3 text-center shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-lg dark:bg-slate-950/70 dark:hover:bg-slate-900">
+      <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] text-white shadow-md">
         {icon}
       </div>
 
@@ -251,7 +251,7 @@ function InfoCard({
         {label}
       </p>
 
-      <p className="mt-2 break-words text-center text-sm font-black leading-6 text-[var(--ucsh-text)]">
+      <p className="mt-1.5 break-words text-center text-sm font-black leading-5 text-[var(--ucsh-text)]">
         {value}
       </p>
     </div>

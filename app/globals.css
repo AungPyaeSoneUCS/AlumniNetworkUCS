@@ -141,6 +141,15 @@ svg {
   margin-inline: auto;
 }
 
+/* Forces a page to exactly fill the viewport (header + content + footer),
+   so only inner regions scroll instead of the whole page. */
+@media (min-width: 1024px) {
+  .ucsh-screen-page {
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 .ucsh-section {
   padding-block: 48px;
 }

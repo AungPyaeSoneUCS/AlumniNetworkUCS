@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { useI18n } from "@/components/providers";
+import ModernSelect from "@/components/modern-select";
 
 type Lang = "en" | "mm";
 
@@ -390,13 +391,13 @@ function JobsContent() {
   }
 
   return (
-    <main className="mm page-wrapper relative overflow-hidden text-[var(--ucsh-text)]">
+    <main className="mm page-wrapper ucsh-screen-page relative overflow-hidden text-[var(--ucsh-text)]">
       <BackgroundDecor />
 
-      <section className="ucsh-container relative z-10">
+      <section className="ucsh-container relative z-10 lg:flex lg:h-[calc(100vh-134px)] lg:flex-col lg:overflow-hidden">
         <div
           id="page-search"
-          className="ucsh-card ucsh-animate mb-4 rounded-2xl p-3 sm:mb-5 sm:p-4"
+          className="ucsh-card ucsh-animate relative z-10 mb-4 rounded-2xl p-3 sm:mb-5 sm:p-4 lg:shrink-0"
         >
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.2fr_1.2fr_1.2fr_1fr_1fr_auto]">
             <FilterField label={t.jobTitle}>
@@ -460,6 +461,7 @@ function JobsContent() {
           </div>
         </div>
 
+        <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1.5">
         {loading ? (
           <EmptyState title={t.loading} />
         ) : filteredJobs.length === 0 ? (
@@ -528,6 +530,7 @@ function JobsContent() {
             })}
           </div>
         )}
+      </div>
       </section>
     </main>
   );
@@ -579,19 +582,12 @@ function FilterSelect({
   placeholder: string;
 }) {
   return (
-    <select
+    <ModernSelect
       value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className="ucsh-input w-full rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
-    >
-      <option value="">{placeholder}</option>
-
-      {options.map((item) => (
-        <option key={item} value={item}>
-          {item}
-        </option>
-      ))}
-    </select>
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder}
+    />
   );
 }
 

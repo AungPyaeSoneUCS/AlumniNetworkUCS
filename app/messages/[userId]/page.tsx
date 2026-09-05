@@ -2,11 +2,11 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Send, Trash2, Edit2, Check, X, UserRound, Ban, SmilePlus, Smile } from "lucide-react";
+import { ArrowLeft, Send, Trash2, Edit2, Check, X, UserRound, Ban, SmilePlus } from "lucide-react";
 
 import { getPusherClient } from "@/lib/pusher-client";
 
@@ -118,6 +118,50 @@ export default function ChatPage() {
   // Emoji reaction picker
   const [reactionFor, setReactionFor] = useState<string | null>(null);
   const reactionPickerRef = useRef<HTMLDivElement | null>(null);
+
+  // Long-press (mobile) + double-click (desktop) quick-react support
+  const longPressTimer = useRef<number | null>(null);
+  const longPressStartPos = useRef<{ x: number; y: number } | null>(null);
+  const longPressActive = useRef(false);
+
+  function clearLongPress() {
+    if (longPressTimer.current !== null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    longPressActive.current = false;
+  }
+
+  function handleBubbleTouchStart(event: ReactTouchEvent, messageId: string) {
+    clearLongPress();
+    const touch = event.touches[0];
+    if (!touch) return;
+
+    longPressStartPos.current = { x: touch.clientX, y: touch.clientY };
+
+    longPressTimer.current = window.setTimeout(() => {
+      longPressActive.current = true;
+      navigator.vibrate?.(40);
+      setReactionFor((prev) => (prev === messageId ? null : messageId));
+    }, 500);
+  }
+
+  function handleBubbleTouchMove(event: ReactTouchEvent) {
+    const touch = event.touches[0];
+    const start = longPressStartPos.current;
+    if (
+      touch &&
+      start &&
+      (Math.abs(touch.clientX - start.x) > 12 ||
+        Math.abs(touch.clientY - start.y) > 12)
+    ) {
+      clearLongPress();
+    }
+  }
+
+  function handleBubbleTouchEnd() {
+    clearLongPress();
+  }
 
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -532,6 +576,24 @@ export default function ChatPage() {
                             </div>
                           ) : (
                             <div
+                              onDoubleClick={(event) => {
+                                event.preventDefault();
+                                clearLongPress();
+                                toggleReaction(message._id, "❤️");
+                              }}
+                              onTouchStart={(event) =>
+                                handleBubbleTouchStart(event, message._id)
+                              }
+                              onTouchMove={handleBubbleTouchMove}
+                              onTouchEnd={handleBubbleTouchEnd}
+                              onTouchCancel={handleBubbleTouchEnd}
+                              onContextMenu={(event) => {
+                                if (longPressActive.current) {
+                                  event.preventDefault();
+                                  longPressActive.current = false;
+                                }
+                              }}
+                              style={{ WebkitTouchCallout: "none", touchAction: "manipulation" }}
                               className={`rounded-2xl px-3.5 py-2 text-sm leading-6 shadow-xs ${
                                 message.isDeleted
                                   ? "border border-slate-200 bg-slate-100 italic text-slate-400 select-none"

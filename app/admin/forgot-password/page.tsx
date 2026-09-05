@@ -19,7 +19,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 import { useI18n } from "@/components/providers";
@@ -107,6 +107,18 @@ export default function AdminForgotPasswordPage() {
     }
 
     setCheckingSession(false);
+  }, [status]);
+
+  // Safety net: if the session check hangs, force-logout and show the form
+  useEffect(() => {
+    if (status !== "loading") return;
+
+    const timer = window.setTimeout(() => {
+      setCheckingSession(false);
+      signOut({ redirect: false }).catch(() => {});
+    }, 1_000);
+
+    return () => window.clearTimeout(timer);
   }, [status]);
 
   useEffect(() => {

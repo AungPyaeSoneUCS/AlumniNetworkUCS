@@ -68,6 +68,24 @@ export default function AdminLoginPage() {
     };
   }, [status, router]);
 
+  // Safety net: if the session check hangs, force-logout and show the form
+  useEffect(() => {
+    if (status !== "loading") return;
+
+    const timer = window.setTimeout(() => {
+      setCheckingAdmin(false);
+      signOut({ redirect: false }).catch(() => {});
+    }, 1_000);
+
+    return () => window.clearTimeout(timer);
+  }, [status]);
+
+  // Hard cap: never show the "Checking admin session..." screen past 1s
+  useEffect(() => {
+    const timer = window.setTimeout(() => setCheckingAdmin(false), 1_000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (loading) return;

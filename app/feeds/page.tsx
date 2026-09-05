@@ -664,10 +664,10 @@ export default function FeedsPage() {
   );
 
   return (
-    <main className="mm page-wrapper relative overflow-hidden text-[var(--ucsh-text)]">
+    <main className="mm page-wrapper ucsh-screen-page relative overflow-hidden text-[var(--ucsh-text)]">
       <BackgroundDecor />
 
-      <section className="ucsh-container relative z-10 max-w-7xl lg:h-[calc(100vh-96px)] lg:overflow-hidden">
+      <section className="ucsh-container relative z-10 max-w-7xl lg:h-[calc(100vh-134px)] lg:overflow-hidden">
         <div className="grid gap-5 lg:h-full lg:grid-cols-[260px_minmax(0,1fr)_310px]">
           <aside
             id="page-search"

@@ -269,12 +269,14 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      // Prevent NextAuth from looking for a VoteUser in the Alumni User DB
-      if ((!token.id || !token.role) && token.email && !token.isVoteSystem) {
+      // Prevent NextAuth from looking for a VoteUser in the Alumni User DB.
+      // Only query the DB when the token lacks id/role (cold refresh); once
+      // present, reuse the cached values so each session poll is instant.
+      if (!token.id && !token.isVoteSystem) {
         await connectDB();
 
         const dbUser: any = await User.findOne({
-          email: String(token.email).trim().toLowerCase(),
+          email: String(token.email || "").trim().toLowerCase(),
         }).select("_id role isBlocked");
 
         if (!dbUser || dbUser.isBlocked) {
@@ -283,6 +285,15 @@ export const authOptions: NextAuthOptions = {
 
         token.id = dbUser._id.toString();
         token.role = dbUser.role || "user";
+      } else if (!token.role && token.email && !token.isVoteSystem) {
+        // id cached but role missing — fetch role only (lightweight)
+        await connectDB();
+
+        const dbUser: any = await User.findById(token.id).select("role isBlocked");
+
+        if (dbUser && !dbUser.isBlocked) {
+          token.role = dbUser.role || "user";
+        }
       }
 
       return token;

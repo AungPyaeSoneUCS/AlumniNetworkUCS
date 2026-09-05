@@ -6,13 +6,16 @@ import type React from "react";
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, Home, Loader2, Sparkles } from "lucide-react";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useI18n } from "@/components/providers";
 
 // Define the default redirect path as a variable
 const DEFAULT_REDIRECT_URL = "/feeds";
+
+// Max time to wait for the initial session check before force-logout
+const SESSION_CHECK_TIMEOUT_MS = 1_000;
 
 type FocusState = {
   email: boolean;
@@ -105,6 +108,18 @@ function LoginContent() {
 
     setCheckingSession(false);
   }, [status, router]);
+
+  // Safety net: if the session check hangs, force-logout and show the form
+  useEffect(() => {
+    if (status !== "loading") return;
+
+    const timer = window.setTimeout(() => {
+      setCheckingSession(false);
+      signOut({ redirect: false }).catch(() => {});
+    }, SESSION_CHECK_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [status]);
 
   useEffect(() => {
     if (error) setMessage(t("loginFailed"));

@@ -17,6 +17,7 @@ import {
 import { ArrowDown, ArrowUp } from "lucide-react";
 
 import { useI18n } from "@/components/providers";
+import ModernSelect from "@/components/modern-select";
 
 type User = {
   _id: string;
@@ -152,7 +153,9 @@ function DirectoryContent() {
 
   const saveScrollPosition = useCallback(() => {
     if (typeof window === "undefined") return;
-    sessionStorage.setItem(DIRECTORY_SCROLL_STORAGE_KEY, String(window.scrollY));
+    const scrollArea = document.getElementById("directory-scroll-area");
+    const y = scrollArea ? scrollArea.scrollTop : window.scrollY;
+    sessionStorage.setItem(DIRECTORY_SCROLL_STORAGE_KEY, String(y));
   }, []);
 
   const registeredDegrees = useMemo(() => {
@@ -282,26 +285,51 @@ function DirectoryContent() {
 
     restoredScroll.current = true;
     window.requestAnimationFrame(() => {
-      window.scrollTo({
-        top: Number(savedScrollY) || 0,
-        behavior: "auto",
-      });
+      const scrollArea = document.getElementById("directory-scroll-area");
+      if (scrollArea) {
+        scrollArea.scrollTo({
+          top: Number(savedScrollY) || 0,
+          behavior: "auto",
+        });
+      } else {
+        window.scrollTo({
+          top: Number(savedScrollY) || 0,
+          behavior: "auto",
+        });
+      }
     });
   }, [loading, filteredUsers.length]);
 
   useEffect(() => {
     const handleScrollCheck = () => {
-      setShowScrollUp(window.scrollY > 200);
+      const scrollArea = document.getElementById("directory-scroll-area");
+      const y = scrollArea ? scrollArea.scrollTop : window.scrollY;
+      setShowScrollUp(y > 200);
     };
+    const scrollArea = document.getElementById("directory-scroll-area");
     window.addEventListener("scroll", handleScrollCheck, { passive: true });
-    return () => window.removeEventListener("scroll", handleScrollCheck);
+    scrollArea?.addEventListener("scroll", handleScrollCheck, {
+      passive: true,
+    });
+    return () => {
+      window.removeEventListener("scroll", handleScrollCheck);
+      scrollArea?.removeEventListener("scroll", handleScrollCheck);
+    };
   }, []);
 
   function scrollToTop() {
+    const scrollArea = document.getElementById("directory-scroll-area");
+    if (scrollArea) {
+      scrollArea.scrollTo({ top: 0, behavior: "smooth" });
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function scrollToBottom() {
+    const scrollArea = document.getElementById("directory-scroll-area");
+    if (scrollArea) {
+      scrollArea.scrollTo({ top: scrollArea.scrollHeight, behavior: "smooth" });
+    }
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   }
 
@@ -315,10 +343,10 @@ function DirectoryContent() {
   }
 
   return (
-    <main className="mm page-wrapper relative overflow-hidden text-[var(--ucsh-text)]">
+    <main className="mm page-wrapper ucsh-screen-page relative overflow-hidden text-[var(--ucsh-text)]">
       <BackgroundDecor />
-      <section className="ucsh-container relative z-10">
-        <div className="ucsh-card ucsh-animate mb-4 rounded-2xl p-3 sm:mb-5 sm:p-4">
+      <section className="ucsh-container relative z-10 lg:flex lg:h-[calc(100vh-134px)] lg:flex-col lg:overflow-hidden">
+        <div className="ucsh-card ucsh-animate relative z-10 mb-4 rounded-2xl p-3 sm:mb-5 sm:p-4 lg:shrink-0">
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_auto]">
             <input
               type="text"
@@ -327,30 +355,18 @@ function DirectoryContent() {
               onChange={(event) => setSearch(event.target.value)}
               className="ucsh-input w-full rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
             />
-            <select
+            <ModernSelect
               value={degree}
-              onChange={(event) => setDegree(event.target.value)}
-              className="ucsh-input w-full rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
-            >
-              <option value="">{t.allDegrees}</option>
-              {registeredDegrees.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={setDegree}
+              options={registeredDegrees}
+              placeholder={t.allDegrees}
+            />
+            <ModernSelect
               value={year}
-              onChange={(event) => setYear(event.target.value)}
-              className="ucsh-input w-full rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
-            >
-              <option value="">{t.allYears}</option>
-              {registeredYears.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
+              onChange={setYear}
+              options={registeredYears}
+              placeholder={t.allYears}
+            />
             <button
               type="button"
               onClick={clearFilters}
@@ -360,6 +376,7 @@ function DirectoryContent() {
             </button>
           </div>
         </div>
+        <div id="directory-scroll-area" className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1.5">
         {loading ? (
           <EmptyState title={t.loading} />
         ) : filteredUsers.length === 0 ? (
@@ -393,6 +410,7 @@ function DirectoryContent() {
             ))}
           </div>
         )}
+      </div>
       </section>
 
       <button

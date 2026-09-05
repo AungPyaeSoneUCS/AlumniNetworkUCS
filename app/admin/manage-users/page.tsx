@@ -55,6 +55,7 @@ const text = {
     exportExcel: "Excel (CSV)",
     exportPrint: "Print Report",
     exportTitle: "Managed Alumni Export Report",
+    reset: "Reset",
     name: "Name",
     email: "Email",
     graduatedYear: "Graduated Year",
@@ -90,6 +91,7 @@ const text = {
     exportExcel: "Excel (CSV)",
     exportPrint: "Print ထုတ်ရန်",
     exportTitle: "အသုံးပြုသူ စာရင်း Report",
+    reset: "ပြန်စရန်",
     name: "Name",
     email: "Email",
     graduatedYear: "Graduated Year",
@@ -630,7 +632,7 @@ export default async function AdminManageUsersPage({
           <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
             
             {/* Control Header */}
-            <div className="relative z-20 overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 sm:p-5">
+            <div className="relative overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 sm:p-5">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0">
                   <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white sm:text-2xl">
@@ -642,15 +644,15 @@ export default async function AdminManageUsersPage({
                   </p>
                 </div>
 
-                <div className="relative z-50 flex w-full flex-wrap items-center gap-2 overflow-visible xl:w-auto xl:justify-end">
-                  <details className="group relative z-[200] inline-flex overflow-visible">
+                <div className="relative flex w-full flex-wrap items-center justify-end gap-2 overflow-visible xl:w-auto">
+                  <details className="group relative inline-flex overflow-visible xl:z-[200]">
                     <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] px-4 py-2 text-xs font-black text-white shadow-md shadow-cyan-500/20 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95 marker:hidden [&::-webkit-details-marker]:hidden">
                       <Download size={15} />
                       {t.export}
                       <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
                     </summary>
 
-                    <div className="absolute right-0 top-full z-[9999] mt-2 w-48 rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-xl shadow-slate-900/10 dark:border-slate-700/80 dark:bg-slate-900 dark:shadow-black/40 max-[420px]:left-0 max-[420px]:right-auto">
+                    <div className="absolute right-0 top-full z-[9999] mt-2 w-48 rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-xl shadow-slate-900/10 dark:border-slate-700/80 dark:bg-slate-900 dark:shadow-black/40">
                       <ExportItem
                         href={excelHref}
                         fileName="managed-users.csv"
@@ -678,6 +680,7 @@ export default async function AdminManageUsersPage({
                     searchPlaceholder: t.searchPlaceholder,
                     allDegree: t.allDegree,
                     allYear: t.allYear,
+                    reset: t.reset,
                   }}
                 />
               </div>
