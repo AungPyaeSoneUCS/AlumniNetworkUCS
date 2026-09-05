@@ -27,6 +27,7 @@ import {
 
 import StaffSidebar from "@/components/staff/staff-sidebar";
 import ConfirmDelete from "@/components/admin/confirm-delete";
+import ModernSelect from "@/components/modern-select";
 
 type Student = {
   _id: string;
@@ -90,12 +91,14 @@ const text = {
     showing: "Showing",
     of: "of",
     page: "Page",
+    page: "Page",
     required: "Please fill Alumni Name, Father Name, and Graduated Year.",
     namePlaceholder: "Enter alumni name",
     fatherNamePlaceholder: "Enter father name",
     selectYear: "Select Year",
     allYears: "All Years",
     allStatuses: "All Status",
+    reset: "Reset",
   },
   mm: {
     title: "ကျောင်းသားအချက်အလက် မှတ်ပုံတင်ခြင်း",
@@ -145,12 +148,14 @@ const text = {
     showing: "ပြနေသည်",
     of: "ထဲမှ",
     page: "စာမျက်နှာ",
+    page: "စာမျက်နှာ",
     required: "Alumni Name, Father Name, နှင့် Graduated Year အားလုံး ဖြည့်ပါ။",
     namePlaceholder: "ကျောင်းသားဟောင်းအမည် ရိုက်ထည့်ပါ",
     fatherNamePlaceholder: "အဖအမည် ရိုက်ထည့်ပါ",
     selectYear: "ခုနှစ် ရွေးချယ်ပါ",
     allYears: "ခုနှစ်အားလုံး",
     allStatuses: "အခြေအနေအားလုံး",
+    reset: "ပြန်စရန်",
   },
 };
 
@@ -499,6 +504,8 @@ export default function StaffRegisterUserDataAddPage() {
   const [query, setQuery] = useState("");
   const [filterYear, setFilterYear] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [localFilterYear, setLocalFilterYear] = useState("");
+  const [localFilterStatus, setLocalFilterStatus] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -631,6 +638,28 @@ export default function StaffRegisterUserDataAddPage() {
     loadStudents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setLocalFilterYear(filterYear === "all" ? "" : filterYear);
+  }, [filterYear, lang]);
+
+  useEffect(() => {
+    setLocalFilterStatus(
+      filterStatus === "all"
+        ? ""
+        : filterStatus === "registered"
+          ? t.registered
+          : t.notRegistered
+    );
+  }, [filterStatus, lang]);
+
+  function resetFilters() {
+    setQuery("");
+    setFilterYear("all");
+    setFilterStatus("all");
+    setLocalFilterYear("");
+    setLocalFilterStatus("");
+  }
 
   const filteredAndSortedStudents = useMemo(() => {
     let filtered = students;
@@ -939,7 +968,7 @@ export default function StaffRegisterUserDataAddPage() {
           <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
             
             {/* Top Control Header Box */}
-            <div className="relative z-20 overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 sm:p-5">
+            <div className="relative overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 sm:p-5">
               <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
                 <div>
                   <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white sm:text-2xl">
@@ -950,7 +979,7 @@ export default function StaffRegisterUserDataAddPage() {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex w-full flex-wrap items-center justify-end gap-2 overflow-visible xl:w-auto">
                   <button
                     type="button"
                     onClick={toggleView}
@@ -975,14 +1004,14 @@ export default function StaffRegisterUserDataAddPage() {
                   </button>
 
                   {/* Dropdown for Export Options */}
-                  <details className="group relative z-[200] inline-flex overflow-visible">
+                  <details className="group relative inline-flex overflow-visible xl:z-[200]">
                     <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] px-4 py-2 text-xs font-black text-white shadow-md shadow-cyan-500/20 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95 marker:hidden [&::-webkit-details-marker]:hidden">
                       <Download size={15} />
                       {t.export}
                       <ChevronDown className="h-3.5 w-3.5 transition group-open:rotate-180" />
                     </summary>
 
-                    <div className="absolute right-0 top-full z-[9999] mt-2 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-400/40 dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/50 max-[420px]:left-0 max-[420px]:right-auto">
+                    <div className="absolute right-0 top-full z-[9999] mt-2 w-48 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-400/40 dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/50">
                       <button
                         type="button"
                         onClick={exportTemplate}
@@ -1024,6 +1053,59 @@ export default function StaffRegisterUserDataAddPage() {
                   />
                 </div>
               </div>
+
+              {!showAddForm && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <div className="relative min-w-[200px] flex-1 basis-72">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder={t.searchPlaceholder}
+                      className="h-[46px] w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-800 dark:bg-slate-950 dark:text-white sm:text-sm"
+                    />
+                  </div>
+
+                  <div className="w-40 shrink-0 sm:w-44">
+                    <ModernSelect
+                      value={localFilterYear}
+                      onChange={(value) => {
+                        setLocalFilterYear(value);
+                        setFilterYear(value || "all");
+                      }}
+                      options={filterYearOptions}
+                      placeholder={t.allYears}
+                    />
+                  </div>
+
+                  <div className="w-40 shrink-0 sm:w-44">
+                    <ModernSelect
+                      value={localFilterStatus}
+                      onChange={(value) => {
+                        setLocalFilterStatus(value);
+                        setFilterStatus(
+                          value === ""
+                            ? "all"
+                            : value === t.registered
+                              ? "registered"
+                              : "notRegistered"
+                        );
+                      }}
+                      options={[t.registered, t.notRegistered]}
+                      placeholder={t.allStatuses}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="inline-flex h-[46px] shrink-0 items-center justify-center rounded-xl bg-slate-100 px-4 text-xs font-black text-slate-600 transition hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 sm:text-sm"
+                  >
+                    {t.reset}
+                  </button>
+                </div>
+              )}
             </div>
 
             {message && <Alert type="success" text={message} />}
@@ -1098,56 +1180,9 @@ export default function StaffRegisterUserDataAddPage() {
                   </div>
                 </form>
               ) : (
-                /* Table View */
-                <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
-                  <div className="flex flex-col justify-between gap-3 border-b border-slate-200/80 p-4 dark:border-slate-800/60 lg:flex-row lg:items-center sm:p-5">
-                    <div className="mb-2 lg:mb-0">
-                      <h2 className="text-lg font-black dark:text-white">{t.approvedData}</h2>
-                      <p className="mt-0.5 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                        {t.showing} {showingStart}-{showingEnd} {t.of}{" "}
-                        {filteredAndSortedStudents.length}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col flex-wrap gap-2 sm:flex-row sm:items-center">
-                      <select
-                        value={filterYear}
-                        onChange={(e) => setFilterYear(e.target.value)}
-                        className="h-10 w-full sm:w-36 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4]"
-                      >
-                        <option value="all">{t.allYears}</option>
-                        {filterYearOptions.map((year) => (
-                          <option key={year} value={String(year)}>
-                            {year}
-                          </option>
-                        ))}
-                      </select>
-
-                      <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="h-10 w-full sm:w-40 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4]"
-                      >
-                        <option value="all">{t.allStatuses}</option>
-                        <option value="registered">{t.registered}</option>
-                        <option value="notRegistered">{t.notRegistered}</option>
-                      </select>
-
-                      <div className="relative w-full sm:w-64">
-                        <Search
-                          size={16}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-                        />
-                        <input
-                          value={query}
-                          onChange={(event) => setQuery(event.target.value)}
-                          placeholder={t.searchPlaceholder}
-                          className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-xs font-bold outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:border-[#00BFC4]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
+                <>
+                  {/* Table View */}
+                  <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
                   {fetching ? (
                     <div className="flex items-center justify-center p-10">
                       <Loader2 className="h-8 w-8 animate-spin text-[#008B8B]" />
@@ -1157,9 +1192,8 @@ export default function StaffRegisterUserDataAddPage() {
                       {t.noData}
                     </div>
                   ) : (
-                    <>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-left text-sm">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-left text-sm">
                           <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-400 dark:bg-slate-900/80 dark:text-slate-500">
                             <tr>
                               <TableHead>{t.no}</TableHead>
@@ -1242,21 +1276,22 @@ export default function StaffRegisterUserDataAddPage() {
                           </tbody>
                         </table>
                       </div>
-
-                      {totalPages > 1 && (
-                        <div className="border-t border-slate-200/80 p-4 dark:border-slate-800/80">
-                          <Pagination
-                            currentPage={safeCurrentPage}
-                            totalPages={totalPages}
-                            pageNumbers={pageNumbers}
-                            setCurrentPage={setCurrentPage}
-                            t={t}
-                          />
-                        </div>
-                      )}
-                    </>
                   )}
                 </section>
+
+                {filteredAndSortedStudents.length > 0 && (
+                  <Pagination
+                    currentPage={safeCurrentPage}
+                    totalPages={totalPages}
+                    pageNumbers={pageNumbers}
+                    setCurrentPage={setCurrentPage}
+                    showingStart={showingStart}
+                    showingEnd={showingEnd}
+                    totalItems={filteredAndSortedStudents.length}
+                    t={t}
+                  />
+                )}
+                    </>
               )}
             </div>
           </div>
@@ -1439,48 +1474,63 @@ function Pagination({
   totalPages,
   pageNumbers,
   setCurrentPage,
+  showingStart,
+  showingEnd,
+  totalItems,
   t,
 }: {
   currentPage: number;
   totalPages: number;
   pageNumbers: Array<number | "dots">;
   setCurrentPage: (page: number) => void;
+  showingStart: number;
+  showingEnd: number;
+  totalItems: number;
   t: typeof text.en;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      <PageButton
-        disabled={currentPage === 1}
-        onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
-      >
-        {t.previous}
-      </PageButton>
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+          {t.showing} {showingStart}-{showingEnd} {t.of} {totalItems} • {t.page}{" "}
+          {currentPage}/{totalPages}
+        </p>
 
-      {pageNumbers.map((pageNumber, index) =>
-        pageNumber === "dots" ? (
-          <span
-            key={`dots-${index}`}
-            className="flex h-9 min-w-[36px] items-center justify-center rounded-xl px-2 text-xs font-black text-slate-400 dark:text-slate-600"
-          >
-            ...
-          </span>
-        ) : (
+        <div className="flex flex-wrap items-center gap-1.5">
           <PageButton
-            key={pageNumber}
-            active={pageNumber === currentPage}
-            onClick={() => setCurrentPage(pageNumber)}
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
           >
-            {pageNumber}
+            {t.previous}
           </PageButton>
-        ),
-      )}
 
-      <PageButton
-        disabled={currentPage === totalPages}
-        onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
-      >
-        {t.next}
-      </PageButton>
+          {pageNumbers.map((pageNumber, index) =>
+            pageNumber === "dots" ? (
+              <span
+                key={`dots-${index}`}
+                className="flex h-9 min-w-[36px] items-center justify-center rounded-xl px-2 text-xs font-black text-slate-400 dark:text-slate-600"
+              >
+                ...
+              </span>
+            ) : (
+              <PageButton
+                key={pageNumber}
+                active={pageNumber === currentPage}
+                onClick={() => setCurrentPage(pageNumber)}
+              >
+                {pageNumber}
+              </PageButton>
+            ),
+          )}
+
+          <PageButton
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+          >
+            {t.next}
+          </PageButton>
+        </div>
+      </div>
     </div>
   );
 }

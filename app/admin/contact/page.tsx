@@ -198,12 +198,12 @@ function AdminContactContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 text-slate-950 dark:bg-slate-950 dark:text-white">
-      <div className="flex min-h-screen">
+    <div className="min-h-screen w-full bg-slate-50/50 text-slate-950 dark:bg-slate-950 dark:text-white lg:h-screen lg:overflow-hidden">
+      <div className="flex h-full w-full flex-col lg:flex-row">
         <AdminSidebar active="contact" lang={currentLang} />
 
-        <section className="min-w-0 flex-1 px-4 pb-8 pt-16 sm:px-6 md:px-8 lg:pt-8">
-          <div className="mx-auto max-w-7xl">
+        <section className="flex min-w-0 flex-1 flex-col px-4 pb-8 pt-16 sm:px-6 md:px-8 lg:h-full lg:overflow-hidden lg:pt-8">
+          <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-col lg:h-full lg:overflow-y-auto lg:pr-3">
             {loading ? (
               <div className="flex min-h-[400px] items-center justify-center rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
                 <Loader2 className="h-10 w-10 animate-spin text-[#008B8B]" />

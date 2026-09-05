@@ -135,7 +135,7 @@ export default function AutoSubmitPostsFilters({
   }
 
   const inputClass =
-    "h-[46px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 sm:text-sm";
+    "h-[46px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 [color-scheme:light] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:[color-scheme:dark] sm:text-sm";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
