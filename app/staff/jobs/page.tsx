@@ -974,45 +974,6 @@ export default async function StaffJobsPage({
   );
 }
 
-function AutoFilterScript() {
-  return (
-    <Script id="jobs-auto-filter-script" strategy="afterInteractive">
-      {`
-        (() => {
-          const form = document.getElementById("jobs-auto-filter-form");
-          if (!form || form.dataset.autoReady === "1") return;
-          form.dataset.autoReady = "1";
-
-          let timer = null;
-
-          const submitForm = () => {
-            const params = new URLSearchParams(new FormData(form));
-
-            for (const key of Array.from(params.keys())) {
-              if (!params.get(key)) params.delete(key);
-            }
-
-            const query = params.toString();
-            const action = form.getAttribute("action") || "/staff/jobs";
-            window.location.href = action + (query ? "?" + query : "");
-          };
-
-          form.querySelectorAll("select").forEach((el) => {
-            el.addEventListener("change", submitForm);
-          });
-
-          form.querySelectorAll("[data-auto-filter='true']").forEach((el) => {
-            el.addEventListener("input", () => {
-              clearTimeout(timer);
-              timer = setTimeout(submitForm, 450);
-            });
-          });
-        })();
-      `}
-    </Script>
-  );
-}
-
 function SortableTableHead({
   label,
   sortKey,
