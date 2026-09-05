@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { exec } from "child_process";
 import { Types } from "mongoose";
 
 import { auth } from "@/auth";
@@ -69,7 +70,7 @@ export async function POST(req: Request) {
       "profile"
     );
 
-    // Create the directory if it does not exist WITH 777 PERMISSIONS
+    // Create the directory with 777 permissions (shared by web, Android, and server users).
     await mkdir(uploadDir, { recursive: true, mode: 0o777 });
 
     // Extract the actual extension from the uploaded file (e.g., .jpg, .png)
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
     const fileName = `profile-${Date.now()}${ext}`;
     const filePath = path.join(uploadDir, fileName);
 
-    // Save the file to the disk WITH 777 PERMISSIONS
+    // Save the file with 777 permissions.
     await writeFile(filePath, buffer, { mode: 0o777 });
 
     // Save the public URL to the database
@@ -85,6 +86,22 @@ export async function POST(req: Request) {
 
     user.image = imageUrl;
     await user.save();
+
+    // Trigger PM2 restart with a delay so the client receives the response first,
+    // and the newly-uploaded photo becomes visible (Next.js static cache is flushed).
+    setTimeout(() => {
+      exec("pm2 restart all", (error, stdout, stderr) => {
+        if (error) {
+          console.error(`PM2 Restart Error: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          console.error(`PM2 Restart stderr: ${stderr}`);
+          return;
+        }
+        console.log(`PM2 Restart stdout: ${stdout}`);
+      });
+    }, 2000);
 
     return NextResponse.json(
       {

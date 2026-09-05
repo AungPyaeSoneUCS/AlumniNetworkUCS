@@ -21,6 +21,7 @@ import {
   FaInstagram,
   FaLinkedin,
   FaLocationDot,
+  FaMagnifyingGlass,
   FaMedium,
   FaPaperPlane,
   FaPen,
@@ -39,6 +40,8 @@ import {
   FaThumbsUp,
 } from "react-icons/fa6";
 import { SiBehance, SiLine, SiThreads, SiViber } from "react-icons/si";
+
+import ProfilePhotoViewer from "@/components/profile-photo-viewer";
 
 type Lang = "en" | "mm";
 type TabKey = "posts" | "about" | "experience" | "social";
@@ -250,6 +253,7 @@ export default function ProfilePage() {
   const [postToDelete, setPostToDelete] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -515,14 +519,24 @@ export default function ProfilePage() {
           <div className="relative p-4 sm:px-6 sm:pb-4">
             <div className="-mt-16 flex flex-col gap-4 border-b border-slate-100 pb-4 sm:-mt-20 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:text-left">
-                <Image
-                  src={profileImage}
-                  alt={profileData.name || t.unknownAlumni}
-                  width={128}
-                  height={128}
-                  priority
-                  className="h-28 w-28 rounded-full border-4 border-white bg-white object-cover shadow-sm sm:h-32 sm:w-32"
-                />
+                <button
+                  type="button"
+                  onClick={() => setPhotoViewerOpen(true)}
+                  aria-label="View profile photo"
+                  className="group relative shrink-0 transition-transform hover:scale-[1.03]"
+                >
+                  <Image
+                    src={profileImage}
+                    alt={profileData.name || t.unknownAlumni}
+                    width={128}
+                    height={128}
+                    priority
+                    className="h-28 w-28 rounded-full border-4 border-white bg-white object-cover shadow-sm sm:h-32 sm:w-32"
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <FaMagnifyingGlass size={22} />
+                  </span>
+                </button>
 
                 <div className="space-y-1">
                   <h1 className="break-words text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
@@ -977,6 +991,14 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      <ProfilePhotoViewer
+        src={profileImage}
+        alt={profileData.name || t.unknownAlumni}
+        name={profileData.name || "Profile Photo"}
+        open={photoViewerOpen}
+        onClose={() => setPhotoViewerOpen(false)}
+      />
     </section>
   );
 }

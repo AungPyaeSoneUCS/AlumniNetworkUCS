@@ -383,17 +383,21 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // --- PM2 RESTART LOGIC ---
-    // Delay the restart by 1.5 seconds so the client successfully receives the 200 OK response first.
+    // Trigger PM2 restart with a delay so the client receives the response first,
+    // and the updated profile data (e.g. new photo) becomes visible immediately.
     setTimeout(() => {
-      exec("pm2 restart next-app", (error, stdout, stderr) => {
+      exec("pm2 restart all", (error, stdout, stderr) => {
         if (error) {
           console.error("Failed to restart PM2:", error);
           return;
         }
-        console.log("PM2 Restart Triggered Successfully after profile update:", stdout);
+        if (stderr) {
+          console.error(`PM2 Restart stderr: ${stderr}`);
+          return;
+        }
+        console.log(`PM2 Restart stdout: ${stdout}`);
       });
-    }, 1500);
+    }, 2000);
 
     return NextResponse.json(cleanProfileResponse(updatedUser), { status: 200 });
   } catch (error) {

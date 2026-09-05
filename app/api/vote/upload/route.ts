@@ -79,8 +79,8 @@ export async function POST(req: Request) {
 
     const uploadDir = path.join(process.cwd(), "public", "photo", "vote");
 
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(path.join(uploadDir, fileName), buffer);
+    await mkdir(uploadDir, { recursive: true, mode: 0o777 });
+    await writeFile(path.join(uploadDir, fileName), buffer, { mode: 0o777 });
 
     return NextResponse.json(
       { url: `/photo/vote/${fileName}` },
