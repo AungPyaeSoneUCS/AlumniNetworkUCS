@@ -6,6 +6,7 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Cropper from "react-easy-crop";
+import "react-easy-crop/react-easy-crop.css";
 
 type Project = {
   _id: string;

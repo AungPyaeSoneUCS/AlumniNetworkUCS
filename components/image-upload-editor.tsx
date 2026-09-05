@@ -10,6 +10,7 @@ import {
   Check,
   ImagePlus,
   Loader2,
+  Move,
   RotateCcw,
   RotateCw,
   Upload,
@@ -29,6 +30,8 @@ type Props = {
 };
 
 type Point = { x: number; y: number };
+
+let maskSeq = 0;
 
 export default function ImageUploadEditor({
   image,
@@ -51,6 +54,7 @@ export default function ImageUploadEditor({
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState("");
   const [fileName, setFileName] = useState("profile-photo.jpg");
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const [zoom, setZoom] = useState(1);
   const [rotate, setRotate] = useState(0);
@@ -60,7 +64,7 @@ export default function ImageUploadEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const cropShape = rounded === "full" ? "rounded-full" : "rounded-[2rem]";
+  const maskId = useRef(`cropMask-${++maskSeq}-${Date.now()}`).current;
 
   useEffect(() => {
     return () => {
@@ -82,6 +86,7 @@ export default function ImageUploadEditor({
     setRotate(0);
     setImgPos({ x: 0, y: 0 });
     setImgDisplay(null);
+    setImageLoaded(false);
     setError("");
     setOpen(true);
 
@@ -113,6 +118,7 @@ export default function ImageUploadEditor({
     }
 
     setImgDisplay({ w: displayW, h: displayH });
+    setImageLoaded(true);
   }
 
   function clampPosition(next: Point): Point {
@@ -197,21 +203,32 @@ export default function ImageUploadEditor({
       ctx.beginPath();
       ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
       ctx.clip();
+    } else {
+      const radius = Math.round(outputSize * 0.03);
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.arcTo(outputSize, 0, outputSize, outputSize, radius);
+      ctx.arcTo(outputSize, outputSize, 0, outputSize, radius);
+      ctx.arcTo(0, outputSize, 0, 0, radius);
+      ctx.arcTo(0, 0, outputSize, 0, radius);
+      ctx.clip();
     }
 
-    const imageCenterX = stageRect.width / 2 + imgPos.x;
-    const imageCenterY = stageRect.height / 2 + imgPos.y;
+    const rotated = rotate % 360 !== 0;
 
-    ctx.translate(
-      (imageCenterX - stageRect.width / 2) * scale,
-      (imageCenterY - stageRect.height / 2) * scale,
-    );
+    let drawW = imgDisplay.w * scale * zoom;
+    let drawH = imgDisplay.h * scale * zoom;
 
-    ctx.rotate((rotate * Math.PI) / 180);
-    ctx.scale(zoom, zoom);
+    ctx.translate(outputSize / 2, outputSize / 2);
 
-    const drawW = imgDisplay.w * scale;
-    const drawH = imgDisplay.h * scale;
+    if (rotated) {
+      ctx.rotate((rotate * Math.PI) / 180);
+      if (Math.abs(rotate % 180) === 90) {
+        const sw = drawW;
+        drawW = drawH;
+        drawH = sw;
+      }
+    }
 
     ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
 
@@ -231,6 +248,7 @@ export default function ImageUploadEditor({
   }
 
   async function saveImage() {
+    if (!imageLoaded) return;
     try {
       setSaving(true);
       setError("");
@@ -258,44 +276,53 @@ export default function ImageUploadEditor({
   return (
     <>
       {/* Thumbnail trigger */}
-      <div
-        className={
-          compact
-            ? "group relative h-24 w-24 overflow-hidden rounded-full border-[3px] border-white bg-slate-100 shadow-lg dark:border-slate-950 dark:bg-slate-900"
-            : "rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950"
-        }
-      >
-        {compact ? (
-          <>
-            {image ? (
-              <Image src={image} alt={title} fill className="object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-slate-300 dark:text-slate-600">
-                <ImagePlus size={28} />
-              </div>
-            )}
+      {compact ? (
+        <div className="group relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-[3px] border-white bg-slate-100 shadow-lg ring-1 ring-black/5 transition-transform hover:scale-[1.03] dark:border-slate-900 dark:bg-slate-800">
+          {image ? (
+            <Image src={image} alt={title} fill className="object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200 text-slate-400 dark:from-slate-800 dark:to-slate-900 dark:text-slate-500">
+              <ImagePlus size={28} />
+            </div>
+          )}
+
+          {image && (
             <button
               type="button"
-              onClick={() => inputRef.current?.click()}
-              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-[2px] transition-all duration-200 group-hover:opacity-100"
+              onClick={() => onChange("")}
+              aria-label="Remove photo"
+              title="Remove photo"
+              className="absolute right-0 top-0 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white opacity-0 shadow-md transition-all duration-200 hover:bg-red-600 group-hover:opacity-100"
             >
-              <Camera size={20} strokeWidth={2.5} />
+              <X size={13} />
             </button>
-          </>
-        ) : (
+          )}
+
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            aria-label="Change photo"
+            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/45 text-white opacity-0 backdrop-blur-[2px] transition-all duration-200 group-hover:opacity-100"
+          >
+            <Camera size={20} strokeWidth={2.4} />
+          </button>
+        </div>
+      ) : (
+        <div className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-950">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full bg-slate-100 shadow-xl dark:bg-slate-900">
+            <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full bg-slate-100 shadow-xl ring-4 ring-slate-50 dark:bg-slate-900 dark:ring-slate-900">
               {image ? (
                 <Image src={image} alt={title} fill className="object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-slate-300">
+                <div className="flex h-full w-full items-center justify-center text-slate-300 dark:text-slate-600">
                   <ImagePlus size={38} />
                 </div>
               )}
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-white shadow-lg transition-transform hover:scale-105"
+                aria-label="Change photo"
+                className="absolute bottom-2 right-2 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#00BFC4] to-[#008B8B] text-white shadow-lg transition-transform hover:scale-105"
               >
                 <Camera size={18} />
               </button>
@@ -326,8 +353,8 @@ export default function ImageUploadEditor({
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <input
         ref={inputRef}
@@ -339,38 +366,57 @@ export default function ImageUploadEditor({
 
       {/* Crop Modal */}
       {open && preview && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-xl">
+        <div className="crop-modal-in fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-xl">
           {/* Top bar */}
-          <div className="flex items-center justify-between px-5 py-4">
-            <div>
-              <h2 className="text-base font-bold text-white">Crop Photo</h2>
-              <p className="text-xs text-white/50">Drag to reposition</p>
+          <div className="flex items-center justify-between px-5 py-4 sm:px-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
+                <Camera size={18} className="text-white/80" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">Crop Photo</h2>
+                <p className="flex items-center gap-1 text-[11px] text-white/40">
+                  <Move size={11} />
+                  Drag image to reposition
+                </p>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+              aria-label="Close"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/70 transition-all hover:bg-white/20 hover:text-white hover:rotate-90"
             >
               <X size={18} />
             </button>
           </div>
 
           {error && (
-            <div className="mx-5 rounded-2xl bg-red-500/10 px-4 py-3 text-sm font-bold text-red-400 ring-1 ring-red-500/20">
+            <div className="mx-5 mb-3 flex items-center gap-2 rounded-2xl bg-red-500/10 px-4 py-3 text-sm font-bold text-red-400 ring-1 ring-red-500/20">
+              <X size={15} />
               {error}
             </div>
           )}
 
           {/* Crop area */}
-          <div className="flex flex-1 items-center justify-center px-5 py-4">
+          <div className="relative flex flex-1 items-center justify-center px-5 py-4">
             <div
               ref={stageRef}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerUp}
-              className="relative w-full max-w-[460px] aspect-square cursor-grab overflow-hidden active:cursor-grabbing"
+              className="relative w-full max-w-[460px] aspect-square cursor-grab overflow-hidden active:cursor-grabbing rounded-3xl bg-slate-900/50"
             >
+              {!imageLoaded && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3">
+                  <div className="flex h-12 w-12 animate-spin items-center justify-center rounded-full border-2 border-white/20 border-t-teal-400">
+                    <span className="sr-only">Loading image</span>
+                  </div>
+                  <p className="text-xs font-bold text-white/50">Preparing image...</p>
+                </div>
+              )}
+
               {/* Image */}
               {imgDisplay && (
                 <img
@@ -384,6 +430,8 @@ export default function ImageUploadEditor({
                     height: imgDisplay.h,
                     transform: `translate(-50%, -50%) translate(${imgPos.x}px, ${imgPos.y}px) rotate(${rotate}deg) scale(${zoom})`,
                     transformOrigin: "center",
+                    opacity: imageLoaded ? 1 : 0,
+                    transition: "opacity 0.2s ease",
                   }}
                 />
               )}
@@ -405,37 +453,46 @@ export default function ImageUploadEditor({
                 {rounded === "full" ? (
                   <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                     <defs>
-                      <mask id="cropMask">
+                      <mask id={maskId}>
                         <rect width="100" height="100" fill="white" />
                         <circle cx="50" cy="50" r="39" fill="black" />
                       </mask>
                     </defs>
-                    <rect width="100" height="100" fill="rgba(0,0,0,0.6)" mask="url(#cropMask)" />
-                    <circle cx="50" cy="50" r="39" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="0.5" />
+                    <rect width="100" height="100" fill="rgba(0,0,0,0.6)" mask={`url(#${maskId})`} />
+                    <circle cx="50" cy="50" r="39" fill="none" stroke="#f1cd72" strokeWidth="1" />
                   </svg>
                 ) : (
                   <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                     <defs>
-                      <mask id="cropMaskSq">
+                      <mask id={`${maskId}Sq`}>
                         <rect width="100" height="100" fill="white" />
-                        <rect x="11" y="11" width="78" height="78" rx="10" fill="black" />
+                        <rect x="11" y="11" width="78" height="78" rx="3" fill="black" />
                       </mask>
                     </defs>
-                    <rect width="100" height="100" fill="rgba(0,0,0,0.6)" mask="url(#cropMaskSq)" />
-                    <rect x="11" y="11" width="78" height="78" rx="10" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="0.4" />
+                    <rect width="100" height="100" fill="rgba(0,0,0,0.6)" mask={`url(#${maskId}Sq)`} />
+                    <rect x="11" y="11" width="78" height="78" rx="3" fill="none" stroke="#f1cd72" strokeWidth="0.7" />
                   </svg>
                 )}
+              </div>
+
+              {/* Corner guides */}
+              <div className="pointer-events-none absolute inset-0 z-10">
+                <span className="absolute left-[23%] top-[23%] h-5 w-5 border-l-2 border-t-2 border-[#f1cd72]" />
+                <span className="absolute right-[23%] top-[23%] h-5 w-5 border-r-2 border-t-2 border-[#f1cd72]" />
+                <span className="absolute bottom-[23%] left-[23%] h-5 w-5 border-b-2 border-l-2 border-[#f1cd72]" />
+                <span className="absolute bottom-[23%] right-[23%] h-5 w-5 border-b-2 border-r-2 border-[#f1cd72]" />
               </div>
             </div>
           </div>
 
           {/* Bottom controls */}
-          <div className="mx-5 mb-6 rounded-3xl bg-white/10 p-4 backdrop-blur-md ring-1 ring-white/10">
+          <div className="crop-controls-in mx-3 mb-4 rounded-3xl bg-white/10 p-4 backdrop-blur-md ring-1 ring-white/10 sm:mx-5 sm:mb-6">
             {/* Zoom slider */}
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setZoomClamped(zoom - 0.15)}
+                aria-label="Zoom out"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
               >
                 <ZoomOut size={16} />
@@ -450,11 +507,13 @@ export default function ImageUploadEditor({
                   setZoom(Number(e.target.value));
                   setImgPos((p) => clampPosition(p));
                 }}
-                className="w-full accent-teal-400"
+                aria-label="Zoom"
+                className="w-full accent-[#00BFC4]"
               />
               <button
                 type="button"
                 onClick={() => setZoomClamped(zoom + 0.15)}
+                aria-label="Zoom in"
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
               >
                 <ZoomIn size={16} />
@@ -462,11 +521,11 @@ export default function ImageUploadEditor({
             </div>
 
             {/* Rotate + Actions */}
-            <div className="mt-3 flex items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setRotate((v) => v - 90)}
-                className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
               >
                 <RotateCcw size={14} />
                 Left
@@ -474,7 +533,7 @@ export default function ImageUploadEditor({
               <button
                 type="button"
                 onClick={() => setRotate((v) => v + 90)}
-                className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
               >
                 <RotateCw size={14} />
                 Right
@@ -486,8 +545,9 @@ export default function ImageUploadEditor({
                   setRotate(0);
                   setImgPos({ x: 0, y: 0 });
                 }}
-                className="rounded-xl bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
               >
+                <RotateCcw size={14} className="rotate-180" />
                 Reset
               </button>
 
@@ -496,23 +556,41 @@ export default function ImageUploadEditor({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-xl bg-white/10 px-5 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                disabled={saving}
+                className="rounded-xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white/70 transition-colors hover:bg-white/20 hover:text-white disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={saveImage}
-                disabled={saving}
-                className="flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-teal-500/25 transition-all hover:bg-teal-400 disabled:opacity-50"
+                disabled={saving || !imageLoaded}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#00BFC4] to-[#008B8B] px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-teal-500/25 transition-all hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100"
               >
                 {saving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-                Save
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .crop-modal-in {
+          animation: cropFade 0.25s ease-out both;
+        }
+        .crop-controls-in {
+          animation: cropUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+        @keyframes cropFade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes cropUp {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </>
   );
 }

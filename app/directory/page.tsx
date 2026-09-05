@@ -14,6 +14,7 @@ import {
   FaPhone,
   FaTiktok,
 } from "react-icons/fa6";
+import { ArrowDown, ArrowUp } from "lucide-react";
 
 import { useI18n } from "@/components/providers";
 
@@ -143,6 +144,7 @@ function DirectoryContent() {
 
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showScrollUp, setShowScrollUp] = useState(false);
 
   const [search, setSearch] = useState(initialFilters.search);
   const [degree, setDegree] = useState(initialFilters.degree);
@@ -287,6 +289,22 @@ function DirectoryContent() {
     });
   }, [loading, filteredUsers.length]);
 
+  useEffect(() => {
+    const handleScrollCheck = () => {
+      setShowScrollUp(window.scrollY > 200);
+    };
+    window.addEventListener("scroll", handleScrollCheck, { passive: true });
+    return () => window.removeEventListener("scroll", handleScrollCheck);
+  }, []);
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function scrollToBottom() {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+
   function clearFilters() {
     setSearch("");
     setDegree("");
@@ -376,6 +394,15 @@ function DirectoryContent() {
           </div>
         )}
       </section>
+
+      <button
+        type="button"
+        onClick={showScrollUp ? scrollToTop : scrollToBottom}
+        aria-label={showScrollUp ? "Back to top" : "Scroll to bottom"}
+        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] text-white shadow-xl transition hover:-translate-y-1 hover:shadow-2xl"
+      >
+        {showScrollUp ? <ArrowUp size={20} /> : <ArrowDown size={20} />}
+      </button>
     </main>
   );
 }

@@ -2,7 +2,6 @@
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { exec } from "child_process";
 import { Types } from "mongoose";
 
 import { auth } from "@/auth";
@@ -48,11 +47,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const maxSize = 15 * 1024 * 1024; // 5MB
+    const maxSize = 15 * 1024 * 1024; // 15MB
 
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: "Image must be smaller than 5MB" },
+        { error: "Image must be smaller than 15MB" },
         { status: 400 }
       );
     }
@@ -87,42 +86,9 @@ export async function POST(req: Request) {
     user.image = imageUrl;
     await user.save();
 
-    // --- PM2 RESTART LOGIC ---
-    // We use setTimeout to ensure the success response reaches the user's device FIRST.
-    // If we restart immediately, the connection drops and the app throws a network error.
-    // Trigger PM2 restart with a 1-second delay
-
-    // This allows Next.js enough time to send the JSON response back to the client
-
-    setTimeout(() => {
-
-      exec("pm2 restart next-app", (error, stdout, stderr) => {
-
-        if (error) {
-
-          console.error(`PM2 Restart Error: ${error.message}`);
-
-          return;
-
-        }
-
-        if (stderr) {
-
-          console.error(`PM2 Restart stderr: ${stderr}`);
-
-          return;
-
-        }
-
-        console.log(`PM2 Restart stdout: ${stdout}`);
-
-      });
-
-    }, 1000);
-
     return NextResponse.json(
       {
-        message: "Profile photo uploaded successfully. Server is restarting.",
+        message: "Profile photo uploaded successfully.",
         image: imageUrl,
       },
       { status: 200 }

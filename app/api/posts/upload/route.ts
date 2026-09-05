@@ -118,7 +118,7 @@ export async function POST(req: Request) {
 
     setTimeout(() => {
 
-      exec("pm2 restart next-app", (error, stdout, stderr) => {
+      exec("pm2 restart all", (error, stdout, stderr) => {
 
         if (error) {
 
