@@ -190,7 +190,7 @@ function generateFullReportHtml(
     }
     .header-text h2 {
       margin: 4px 0;
-      font-size: 14px;
+      font-size: 24px;
       color: var(--primary);
       font-weight: 600;
     }
@@ -332,7 +332,7 @@ function generateFullReportHtml(
     <img src="/logo.png" alt="UCSH Logo" class="logo-placeholder" onerror="this.style.display='none'">
     <div class="header-text">
       <h1>University of Computer Studies (Hinthada)</h1>
-      <h2>Alumni Network System</h2>
+      <h2>Alumni Network</h2>
       <h3>JOBS REPORT</h3>
       <div class="header-meta">
         Report Generated Date: ${dateStr} | Time: ${timeStr}
@@ -395,7 +395,7 @@ function generateFullReportHtml(
   </table>
 
   <div class="footer">
-    <span>Alumni Network System</span>
+    <span>Alumni Network</span>
     <span>Official Report • For Administrative Use Only</span>
   </div>
 

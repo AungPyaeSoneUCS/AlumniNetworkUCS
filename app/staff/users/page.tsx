@@ -1,14 +1,17 @@
 // file: app/admin/users/page.tsx
 import type React from "react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
-import AdminSidebar from "@/components/admin/admin-sidebar";
+import StaffSidebar from "@/components/staff/staff-sidebar";
 import ExportGraphButtons from "@/components/admin/export-graph-buttons";
-import AutoSubmitSelect from "@/components/admin/auto-submit-select";
+import {
+  DegreeGraphFilters,
+  SalaryGraphFilters,
+  EmploymentGraphFilters,
+} from "@/components/admin/dashboard-filters";
 
 type GraphItem = {
   label: string;
@@ -642,7 +645,7 @@ export default async function AdminUsersPage({
   return (
     <main className="min-h-screen bg-[#eef2f7] text-slate-950 dark:bg-slate-950 dark:text-white">
       <div className="flex min-h-screen">
-        <AdminSidebar active="users" lang={lang} />
+        <StaffSidebar active="users" lang={lang} />
 
         <section className="min-w-0 flex-1 p-4 pt-20 sm:p-6 sm:pt-20 lg:p-8">
           <div className="mx-auto max-w-[1600px] space-y-5">
@@ -660,30 +663,16 @@ export default async function AdminUsersPage({
                 exportHtml={exportGraphHtml(graduatedYearGraph, yearTitle, t.subtitleYear, "year", t)}
                 fileTitle={yearTitle}
                 t={t}
-                selectBox={
-                  <form className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                    <input type="hidden" name="lang" value={lang} />
-
-                    <AutoSubmitSelect
-                      name="degree"
-                      defaultValue={selectedDegree}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black outline-none transition focus:border-[#0b67a3] dark:border-slate-800 dark:bg-slate-950"
-                    >
-                      <option value="">{t.anyDegree}</option>
-                      {degreeOptions.map((degree) => (
-                        <option key={degree} value={degree}>
-                          {degree}
-                        </option>
-                      ))}
-                    </AutoSubmitSelect>
-
-                    <Link
-                      href={`/admin/users?lang=${lang}`}
-                      className="rounded-2xl bg-slate-100 px-4 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                    >
-                      {t.reset}
-                    </Link>
-                  </form>
+selectBox={
+                  <DegreeGraphFilters
+                    lang={lang}
+                    degree={selectedDegree}
+                    experience={selectedExperience}
+                    startYear={selectedJobStartYear}
+                    endYear={selectedJobEndYear}
+                    degreeOptions={degreeOptions}
+                    labels={{ allDegree: t.anyDegree, reset: t.reset }}
+                  />
                 }
               />
               </div>
@@ -698,30 +687,16 @@ export default async function AdminUsersPage({
                 exportHtml={exportGraphHtml(salaryItems, salaryTitle, t.subtitleSalary, "salary", t)}
                 fileTitle={salaryTitle}
                 t={t}
-                selectBox={
-                  <form className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                    <input type="hidden" name="lang" value={lang} />
-
-                    <AutoSubmitSelect
-                      name="experience"
-                      defaultValue={selectedExperience}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black outline-none transition focus:border-[#35ea25] dark:border-slate-800 dark:bg-slate-950"
-                    >
-                      <option value="">{t.anyExperience}</option>
-                      {experienceOptions.map((position) => (
-                        <option key={position} value={position}>
-                          {position}
-                        </option>
-                      ))}
-                    </AutoSubmitSelect>
-
-                    <Link
-                      href={`/admin/users?lang=${lang}`}
-                      className="rounded-2xl bg-slate-100 px-4 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                    >
-                      {t.reset}
-                    </Link>
-                  </form>
+selectBox={
+                  <SalaryGraphFilters
+                    lang={lang}
+                    degree={selectedDegree}
+                    experience={selectedExperience}
+                    startYear={selectedJobStartYear}
+                    endYear={selectedJobEndYear}
+                    experienceOptions={experienceOptions}
+                    labels={{ anyExperience: t.anyExperience, reset: t.reset }}
+                  />
                 }
               />
               </div>
@@ -736,43 +711,20 @@ export default async function AdminUsersPage({
                   exportHtml={exportGraphHtml(employmentItems, jobTitle, t.subtitleJob, "employment", t)}
                   fileTitle={jobTitle}
                   t={t}
-                  selectBox={
-                    <form className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-                      <input type="hidden" name="lang" value={lang} />
-
-                      <AutoSubmitSelect
-                        name="jobStartYear"
-                        defaultValue={selectedJobStartYear}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black outline-none transition focus:border-[#35a4df] dark:border-slate-800 dark:bg-slate-950"
-                      >
-                        <option value="">{t.startYear}</option>
-                        {yearOptions.map((year) => (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        ))}
-                      </AutoSubmitSelect>
-
-                      <AutoSubmitSelect
-                        name="jobEndYear"
-                        defaultValue={selectedJobEndYear}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black outline-none transition focus:border-[#35a4df] dark:border-slate-800 dark:bg-slate-950"
-                      >
-                        <option value="">{t.endYear}</option>
-                        {yearOptions.map((year) => (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        ))}
-                      </AutoSubmitSelect>
-
-                      <Link
-                        href={`/admin/users?lang=${lang}`}
-                        className="rounded-2xl bg-slate-100 px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                      >
-                        {t.reset}
-                      </Link>
-                    </form>
+selectBox={
+                    <EmploymentGraphFilters
+                      lang={lang}
+                      degree={selectedDegree}
+                      experience={selectedExperience}
+                      startYear={selectedJobStartYear}
+                      endYear={selectedJobEndYear}
+                      yearOptions={yearOptions}
+                      labels={{
+                        startYear: t.startYear,
+                        endYear: t.endYear,
+                        reset: t.reset,
+                      }}
+                    />
                   }
                 />
               </div>
@@ -1180,10 +1132,6 @@ function PercentBar({
         className={`w-9 shadow-xl transition-all duration-300 hover:scale-105 ${className}`}
         style={{ height: `${height}px` }}
       />
-
-      <p className="mt-2 rounded-full bg-white px-2 py-0.5 text-[9px] font-black text-slate-500 shadow-sm dark:bg-slate-900 dark:text-slate-300">
-        {count}
-      </p>
     </div>
   );
 }

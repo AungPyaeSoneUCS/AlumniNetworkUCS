@@ -1,7 +1,6 @@
 // file: app/staff/users/graduated-years/page.tsx
 
 import type React from "react";
-import Link from "next/link";
 import Script from "next/script";
 import { redirect } from "next/navigation";
 import { BarChart3, ChevronDown, Download, FileSpreadsheet, FileText, Printer } from "lucide-react";
@@ -10,6 +9,8 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import StaffSidebar from "@/components/staff/staff-sidebar";
+import GraduatedYearsChart from "@/components/admin/graduated-years-chart";
+import { GraduatedYearsFilters } from "@/components/admin/report-auto-filters";
 
 type Lang = "en" | "mm";
 
@@ -19,16 +20,33 @@ type GraphItem = {
 };
 
 /*
+  Distinct color per year - each academic year gets its own shade so bars
+  are easy to tell apart. Mirrored here for the print template + table rows.
+*/
+const BAR_PALETTE = [
+  "#06b6d4",
+  "#0ea5e9",
+  "#6366f1",
+  "#8b5cf6",
+  "#a855f7",
+  "#ec4899",
+  "#f43f5e",
+  "#f59e0b",
+  "#f97316",
+  "#10b981",
+  "#14b8a6",
+  "#3b82f6",
+];
+
+function yearColor(index: number) {
+  return BAR_PALETTE[index % BAR_PALETTE.length];
+}
+
+/*
   GRAPH DESIGN SETTINGS
 */
-const BAR_COLOR = "#b800f5";
-const BAR_WIDTH = 42;
-const BAR_MAX_HEIGHT = 170;
-const BAR_MIN_HEIGHT = 28;
-const CHART_HEIGHT_CLASS = "h-[260px] sm:h-[300px]";
-const BAR_GAP_CLASS = "gap-6 sm:gap-8";
-const BAR_FONT_CLASS = "text-[13px] sm:text-sm";
-const LABEL_FONT_CLASS = "text-[12px] sm:text-sm";
+const BAR_MAX_HEIGHT = 190;
+const BAR_MIN_HEIGHT = 30;
 
 const text = {
   en: {
@@ -75,6 +93,24 @@ function getDegree(user: any) {
 
 function getGraduatedYear(user: any) {
   return user?.graduatedYear ? String(user.graduatedYear) : "Unknown";
+}
+
+// Extract the leading academic year (e.g. "2028" from "2028 (Senior)") for sorting
+function cohortYear(label: string) {
+  const match = String(label).match(/(\d{4})/);
+  return match ? Number(match[1]) : Number.NaN;
+}
+
+// Sort years ascending (min -> max). Senior/Junior variants group by their year,
+// then by label so Senior comes before Junior. "Unknown" always goes last.
+function sortByCohortYear(a: GraphItem, b: GraphItem) {
+  const ya = cohortYear(a.label);
+  const yb = cohortYear(b.label);
+  if (Number.isNaN(ya) && Number.isNaN(yb)) return a.label.localeCompare(b.label);
+  if (Number.isNaN(ya)) return 1;
+  if (Number.isNaN(yb)) return -1;
+  if (ya !== yb) return ya - yb;
+  return a.label.localeCompare(b.label);
 }
 
 function escapeHtml(value: unknown) {
@@ -149,7 +185,7 @@ function buildHtml(items: GraphItem[], title: string, t: typeof text.en) {
   }
   .header-text h2 {
     margin: 4px 0;
-    font-size: 14px;
+    font-size: 22px;
     color: var(--primary);
     font-weight: 600;
   }
@@ -204,17 +240,11 @@ function buildHtml(items: GraphItem[], title: string, t: typeof text.en) {
     align-items: center;
     justify-content: flex-end;
   }
-  .value {
-    font-size: 11px;
-    font-weight: 900;
-    margin-bottom: 6px;
-    color: var(--text-main);
-  }
   .bar {
-    width: ${BAR_WIDTH}px;
-    background: ${BAR_COLOR};
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+    width: 42px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    transition: none;
   }
   .label {
     font-size: 11px;
@@ -258,18 +288,29 @@ function buildHtml(items: GraphItem[], title: string, t: typeof text.en) {
   @media print {
     @page { 
       size: landscape; 
-      margin: 0; 
+      margin: 10mm; 
     }
     body { 
-      padding: 15mm 15mm;
+      padding: 0;
       -webkit-print-color-adjust: exact; 
       print-color-adjust: exact; 
     }
     .chart-scroll { 
-      overflow: visible; 
+      overflow: visible !important; 
+    }
+    .chart { 
+      min-width: 100% !important; 
+      gap: 12px;
     }
     .grid { 
       grid-template-columns: 1.35fr 0.65fr; 
+      break-inside: avoid;
+    }
+    .bar-group { 
+      break-inside: avoid; 
+    }
+    .report-header, .grid, .footer {
+      page-break-inside: avoid;
     }
   }
 </style>
@@ -280,7 +321,7 @@ function buildHtml(items: GraphItem[], title: string, t: typeof text.en) {
     <img src="/logo.png" alt="UCSH Logo" class="logo-placeholder" onerror="this.style.display='none'">
     <div class="header-text">
       <h1>University of Computer Studies (Hinthada)</h1>
-      <h2>Alumni Network System</h2>
+      <h2>Alumni Network</h2>
       <h3> REPORT OF ${escapeHtml(title).toUpperCase()} </h3>
       <div class="header-meta">
         Generated Date: ${dateStr} | Time: ${timeStr} | Total Graduates Counted: ${totalGraduates}
@@ -292,11 +333,11 @@ function buildHtml(items: GraphItem[], title: string, t: typeof text.en) {
     <div class="box chart-scroll">
       <div class="chart">
         ${items
-          .map((item) => {
+          .map((item, index) => {
             const height = Math.max((item.value / max) * BAR_MAX_HEIGHT, BAR_MIN_HEIGHT);
+            const color = yearColor(index);
             return `<div class="bar-group">
-              <div class="value">${escapeHtml(item.value.toLocaleString())}</div>
-              <div class="bar" style="height:${height}px"></div>
+              <div class="bar" style="height:${height}px;background:linear-gradient(180deg, ${color} 0%, ${color}88 100%)"></div>
               <div class="label">${escapeHtml(item.label)}</div>
             </div>`;
           })
@@ -328,7 +369,7 @@ function buildHtml(items: GraphItem[], title: string, t: typeof text.en) {
   </div>
 
   <div class="footer">
-    <span>Alumni Network System</span>
+    <span>Alumni Network</span>
     <span>Official Administrative Report</span>
   </div>
 
@@ -390,16 +431,11 @@ export default async function StaffGraduatedYearsPage({
 
   const graphItems: GraphItem[] = Array.from(yearMap.entries())
     .map(([label, value]) => ({ label, value }))
-    .sort((a, b) => {
-      if (a.label === "Unknown") return 1;
-      if (b.label === "Unknown") return -1;
-      return Number(a.label) - Number(b.label);
-    });
+    .sort(sortByCohortYear);
 
   const title = selectedDegree ? `${selectedDegree} ${t.title}` : t.title;
   const csv = buildCsv(graphItems, t);
   const html = buildHtml(graphItems, title, t);
-  const maxValue = Math.max(...graphItems.map((item) => item.value), 1);
 
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-950 dark:bg-slate-950 dark:text-white">
@@ -449,33 +485,14 @@ export default async function StaffGraduatedYearsPage({
                 </div>
               </div>
 
-              <form
-                id="graduated-auto-filter-form"
-                action="/staff/users/graduated-years"
-                className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"
-              >
-                <input type="hidden" name="lang" value={lang} />
-
-                <select
-                  name="degree"
-                  defaultValue={selectedDegree}
-                  className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:focus:border-[#00BFC4]"
-                >
-                  <option value="">{t.anyDegree}</option>
-                  {degreeOptions.map((degree) => (
-                    <option key={degree} value={degree}>
-                      {degree}
-                    </option>
-                  ))}
-                </select>
-
-                <Link
-                  href={`/staff/users/graduated-years?lang=${lang}`}
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-xs font-black text-slate-700 transition-colors hover:border-[#00BFC4] hover:bg-cyan-50 active:scale-95 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                >
-                  {t.reset}
-                </Link>
-              </form>
+              <div className="mt-4">
+                <GraduatedYearsFilters
+                  lang={lang}
+                  degree={selectedDegree}
+                  degreeOptions={degreeOptions}
+                  labels={{ allDegree: t.anyDegree, reset: t.reset }}
+                />
+              </div>
 
               <AutoScripts
                 csv={csv}
@@ -488,65 +505,17 @@ export default async function StaffGraduatedYearsPage({
 
             <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr] md:gap-6">
               
-              <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
+              <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-lg shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
                 {graphItems.length === 0 ? (
                   <EmptyGraph t={t} />
                 ) : (
-                  <div className="overflow-x-auto overflow-y-hidden p-3 sm:p-5 md:p-6">
-                    <div className="relative min-w-[520px] rounded-2xl bg-slate-50/80 p-3 dark:bg-slate-950/50 sm:min-w-[600px] sm:p-5">
-                      <p className="absolute left-[-25px] top-28 -rotate-90 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                        {t.count}
-                      </p>
-
-                      <div
-                        className={`ml-7 flex ${CHART_HEIGHT_CLASS} items-end border-b-2 border-l-2 border-slate-200 pb-8 pl-4 pt-14 dark:border-slate-700 ${BAR_GAP_CLASS}`}
-                      >
-                        {graphItems.map((item) => {
-                          const height = Math.max(
-                            (item.value / maxValue) * BAR_MAX_HEIGHT,
-                            BAR_MIN_HEIGHT,
-                          );
-
-                          return (
-                            <div
-                              key={item.label}
-                              className="group flex min-w-[60px] flex-1 flex-col items-center text-center"
-                            >
-                              <p
-                                className={`mb-2 rounded-full bg-white px-2.5 py-1 font-black text-slate-900 shadow-sm transition-transform group-hover:-translate-y-1 dark:bg-slate-800 dark:text-white ${BAR_FONT_CLASS}`}
-                              >
-                                {item.value.toLocaleString()}
-                              </p>
-
-                              <div
-                                className="shrink-0 rounded-t-lg shadow-lg shadow-[#b800f5]/20 transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
-                                style={{
-                                  width: `${BAR_WIDTH}px`,
-                                  height: `${height}px`,
-                                  backgroundColor: BAR_COLOR,
-                                }}
-                              />
-
-                              <p
-                                title={item.label}
-                                className={`mt-3 line-clamp-2 max-w-[80px] font-black leading-4 text-slate-500 transition-colors group-hover:text-slate-900 dark:group-hover:text-white ${LABEL_FONT_CLASS}`}
-                              >
-                                {item.label}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <p className="mt-4 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                        {t.graduatedYear}
-                      </p>
-                    </div>
+                  <div className="p-3 sm:p-5 md:p-6">
+                    <GraduatedYearsChart items={graphItems} />
                   </div>
                 )}
               </section>
 
-              <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
+              <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-lg shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
                 <div className="w-full overflow-x-auto">
                   <table className="w-full min-w-[360px] text-left">
                     <thead className="bg-slate-50 dark:bg-slate-900/80">
@@ -557,10 +526,16 @@ export default async function StaffGraduatedYearsPage({
                     </thead>
 
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                      {graphItems.map((item) => (
-                        <tr key={item.label} className="transition-colors hover:bg-[#b800f5]/5 dark:hover:bg-[#b800f5]/10">
-                          <td className="px-4 py-3.5 text-sm font-black text-slate-800 dark:text-slate-200">
-                            {item.label}
+                      {graphItems.map((item, index) => (
+                        <tr key={item.label} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <td className="px-4 py-3.5">
+                            <span className="inline-flex items-center gap-2.5 text-sm font-black text-slate-800 dark:text-slate-200">
+                              <span
+                                className="h-3 w-3 shrink-0 rounded-full"
+                                style={{ backgroundColor: yearColor(index) }}
+                              />
+                              {item.label}
+                            </span>
                           </td>
                           <td className="px-4 py-3.5 text-sm font-black text-slate-800 dark:text-slate-200">
                             {item.value.toLocaleString()}
@@ -617,7 +592,6 @@ function AutoScripts({
     <Script id="graduated-export-script" strategy="afterInteractive">
       {`
         (() => {
-          const form = document.getElementById("graduated-auto-filter-form");
           const toggle = document.getElementById("graduated-export-toggle");
           const menu = document.getElementById("graduated-export-menu");
 
@@ -747,23 +721,6 @@ function AutoScripts({
             win.focus();
             setTimeout(() => win.print(), 500);
           };
-
-          if (form && form.dataset.ready !== "1") {
-            form.dataset.ready = "1";
-
-            form.querySelectorAll("select").forEach((el) => {
-              el.addEventListener("change", () => {
-                const params = new URLSearchParams(new FormData(form));
-                for (const key of Array.from(params.keys())) {
-                  if (!params.get(key)) params.delete(key);
-                }
-
-                const query = params.toString();
-                window.location.href =
-                  "/staff/users/graduated-years" + (query ? "?" + query : "");
-              });
-            });
-          }
 
           if (toggle && menu && toggle.dataset.ready !== "1") {
             toggle.dataset.ready = "1";

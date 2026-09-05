@@ -1,7 +1,6 @@
 // file: app/staff/users/job-status/page.tsx
 
 import type React from "react";
-import Link from "next/link";
 import Script from "next/script";
 import { redirect } from "next/navigation";
 import { BarChart3, ChevronDown, Download, FileSpreadsheet, FileText, Printer } from "lucide-react";
@@ -10,6 +9,8 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import StaffSidebar from "@/components/staff/staff-sidebar";
+import JobStatusChart from "@/components/admin/job-status-chart";
+import { JobStatusFilters } from "@/components/admin/report-auto-filters";
 
 type Lang = "en" | "mm";
 
@@ -24,18 +25,13 @@ type EmploymentItem = {
 };
 
 /*
-  StaffGraph DESIGN SETTINGS
+  PrintGraph DESIGN SETTINGS (used by the print/PDF template)
 */
 const TOTAL_BAR_COLOR = "#0b67a3";
-const EMPLOYED_BAR_COLOR = "#35a4df";
-const UNEMPLOYED_BAR_COLOR = "#86e4f5";
+const EMPLOYED_BAR_COLOR = "#008B8B";
+const UNEMPLOYED_BAR_COLOR = "#00BFC4";
 const BAR_WIDTH = 26;
-const BAR_MAX_HEIGHT = 145;
-const BAR_MIN_HEIGHT = 22;
-const CHART_HEIGHT_CLASS = "h-[265px] sm:h-[290px]";
-const BAR_GAP_CLASS = "gap-8 sm:gap-10";
-const BAR_FONT_CLASS = "text-[10px] sm:text-[11px]";
-const LABEL_FONT_CLASS = "text-[12px] sm:text-sm";
+const BAR_MAX_HEIGHT = 190;
 
 const text = {
   en: {
@@ -216,7 +212,7 @@ function buildHtml(items: EmploymentItem[], title: string, t: typeof text.en) {
   }
   .header-text h2 {
     margin: 4px 0;
-    font-size: 14px;
+    font-size: 22px;
     color: var(--primary);
     font-weight: 600;
   }
@@ -260,8 +256,8 @@ function buildHtml(items: EmploymentItem[], title: string, t: typeof text.en) {
     font-weight: bold;
     font-size: 18px;
   }
-  .card-icon.blue { background: #35a4df; }
-  .card-icon.cyan { background: #86e4f5; color: #0f172a; }
+  .card-icon.blue { background: #0d9488; }
+  .card-icon.cyan { background: #008B8B; color: white; }
   
   .card-info p {
     margin: 0;
@@ -303,28 +299,39 @@ function buildHtml(items: EmploymentItem[], title: string, t: typeof text.en) {
     margin-bottom: 40px;
   }
   .chart {
-    height: 290px;
-    min-width: 620px; 
+    position: relative;
+    height: 360px;
+    min-width: 620px;
+    padding: 0 20px 0 44px;
+  }
+  .baseline {
+    position: absolute;
+    left: 44px;
+    right: 20px;
+    bottom: 58px;
+    border-top: 2px solid #cbd5e1;
+  }
+  .bars-row {
+    position: relative;
+    height: 360px;
     display: flex;
-    align-items: flex-end;
-    gap: 28px;
-    border-left: 2px solid #cbd5e1;
-    border-bottom: 2px solid #cbd5e1;
-    padding: 40px 20px 30px 10px;
+    gap: 24px;
+    padding: 0 20px 0 44px;
   }
   .year-group {
     flex: 1;
-    min-width: 108px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
+    min-width: 96px;
+    position: relative;
   }
   .bars {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: 60px;
     display: flex;
     align-items: flex-end;
-    gap: 7px;
+    justify-content: center;
+    gap: 8px;
   }
   .bar-box {
     display: flex;
@@ -335,24 +342,22 @@ function buildHtml(items: EmploymentItem[], title: string, t: typeof text.en) {
   .value {
     font-size: 10px;
     font-weight: bold;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
     color: var(--text-main);
-  }
-  .count {
-    font-size: 10px;
-    font-weight: bold;
-    margin-top: 5px;
-    color: var(--text-muted);
   }
   .bar {
     width: ${BAR_WIDTH}px;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
   }
-  .label {
+  .x-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 6px;
+    text-align: center;
     font-size: 12px;
     font-weight: bold;
-    margin-top: 10px;
     color: var(--text-muted);
   }
 
@@ -415,7 +420,7 @@ function buildHtml(items: EmploymentItem[], title: string, t: typeof text.en) {
     <img src="/logo.png" alt="UCSH Logo" class="logo-placeholder" onerror="this.style.display='none'">
     <div class="header-text">
       <h1>University of Computer Studies (Hinthada)</h1>
-      <h2>Alumni Network System</h2>
+      <h2>Alumni Network</h2>
       <h3> REPORT OF ALUMNI JOB STATUS </h3>
       <div class="header-meta">
         Generated Date: ${dateStr} | Time: ${timeStr}
@@ -448,38 +453,35 @@ function buildHtml(items: EmploymentItem[], title: string, t: typeof text.en) {
   </div>
 
   <div class="legend">
-    <span><i class="dot" style="background:${TOTAL_BAR_COLOR}"></i>${escapeHtml(t.totalGraduate)}</span>
     <span><i class="dot" style="background:${EMPLOYED_BAR_COLOR}"></i>${escapeHtml(t.employed)}</span>
     <span><i class="dot" style="background:${UNEMPLOYED_BAR_COLOR}"></i>${escapeHtml(t.unemployed)}</span>
   </div>
 
   <div class="chart-scroll">
     <div class="chart">
+    <div class="baseline"></div>
+    <div class="bars-row">
     ${items
       .map((item) => {
-        const bars = [
-          { value: item.totalPercent, count: item.totalCount, color: TOTAL_BAR_COLOR },
-          { value: item.employedPercent, count: item.employedCount, color: EMPLOYED_BAR_COLOR },
-          { value: item.unemployedPercent, count: item.unemployedCount, color: UNEMPLOYED_BAR_COLOR },
-        ];
+        const employedHeight = Math.max((item.employedPercent / 100) * BAR_MAX_HEIGHT, item.employedPercent ? 8 : 4);
+        const unemployedHeight = Math.max((item.unemployedPercent / 100) * BAR_MAX_HEIGHT, item.unemployedPercent ? 8 : 4);
 
         return `<div class="year-group">
           <div class="bars">
-          ${bars
-            .map((bar) => {
-              const height = Math.max((bar.value / 100) * BAR_MAX_HEIGHT, bar.value ? BAR_MIN_HEIGHT : 6);
-              return `<div class="bar-box">
-                <div class="value">${bar.value}%</div>
-                <div class="bar" style="height:${height}px;background:${bar.color}"></div>
-                <div class="count">${bar.count}</div>
-              </div>`;
-            })
-            .join("")}
+            <div class="bar-box">
+              <div class="value">${item.employedCount}</div>
+              <div class="bar" style="height:${employedHeight}px;background:${EMPLOYED_BAR_COLOR}"></div>
+            </div>
+            <div class="bar-box">
+              <div class="value">${item.unemployedCount}</div>
+              <div class="bar" style="height:${unemployedHeight}px;background:${UNEMPLOYED_BAR_COLOR}"></div>
+            </div>
           </div>
-          <div class="label">${escapeHtml(item.year)}</div>
+          <div class="x-label">${escapeHtml(item.year)}</div>
         </div>`;
       })
       .join("")}
+    </div>
     </div>
   </div>
 
@@ -507,7 +509,7 @@ function buildHtml(items: EmploymentItem[], title: string, t: typeof text.en) {
   </table>
 
   <div class="footer">
-    <span>Alumni Network System</span>
+    <span>Alumni Network</span>
     <span>Official Administrative Report</span>
   </div>
 
@@ -651,46 +653,19 @@ export default async function StaffJobStatusPage({
                 </div>
               </div>
 
-              <form
-                id="job-status-auto-filter-form"
-                action="/staff/users/job-status"
-                className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
-              >
-                <input type="hidden" name="lang" value={lang} />
-
-                <select
-                  name="jobStartYear"
-                  defaultValue={selectedJobStartYear}
-                  className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:focus:border-[#00BFC4]"
-                >
-                  <option value="">{t.startYear}</option>
-                  {yearOptions.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  name="jobEndYear"
-                  defaultValue={selectedJobEndYear}
-                  className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:focus:border-[#00BFC4]"
-                >
-                  <option value="">{t.endYear}</option>
-                  {yearOptions.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-
-                <Link
-                  href={`/staff/users/job-status?lang=${lang}`}
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-xs font-black text-slate-700 transition hover:border-[#00BFC4] hover:bg-cyan-50 active:scale-95 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                >
-                  {t.reset}
-                </Link>
-              </form>
+              <div className="mt-4">
+                <JobStatusFilters
+                  lang={lang}
+                  startYear={selectedJobStartYear}
+                  endYear={selectedJobEndYear}
+                  yearOptions={yearOptions}
+                  labels={{
+                    startYear: t.startYear,
+                    endYear: t.endYear,
+                    reset: t.reset,
+                  }}
+                />
+              </div>
 
               <AutoScripts
                 csv={csv}
@@ -702,7 +677,7 @@ export default async function StaffJobStatusPage({
             </div>
 
             {/* Chart Container */}
-            <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
+            <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-lg shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
               <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800/60 sm:px-5">
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                   {employmentItems.length} {t.graduatedYear}
@@ -712,66 +687,18 @@ export default async function StaffJobStatusPage({
               {employmentItems.length === 0 ? (
                 <EmptyGraph text={t.noData} />
               ) : (
-                <div className="overflow-x-auto overflow-y-hidden p-3 sm:p-5 md:p-6">
-                  <div className="relative min-w-[620px] rounded-2xl bg-slate-50/80 p-3 dark:bg-slate-950/50 sm:min-w-[720px] sm:p-5">
-                    <p className="absolute left-[-45px] top-32 -rotate-90 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                      {t.percentage}
-                    </p>
-
-                    <div className="mb-4 flex flex-wrap gap-4 pl-8 text-[11px] font-black text-slate-600 dark:text-slate-300">
-                      <Legend color={TOTAL_BAR_COLOR} label={t.totalGraduate} />
-                      <Legend color={EMPLOYED_BAR_COLOR} label={t.employed} />
-                      <Legend color={UNEMPLOYED_BAR_COLOR} label={t.unemployed} />
-                    </div>
-
-                    <div
-                      className={`ml-7 flex ${CHART_HEIGHT_CLASS} items-end border-b-2 border-l-2 border-slate-200 pb-8 pl-4 pt-14 dark:border-slate-700 ${BAR_GAP_CLASS}`}
-                    >
-                      {employmentItems.map((item) => (
-                        <div
-                          key={item.year}
-                          className="flex min-w-[112px] flex-1 flex-col items-center text-center"
-                        >
-                          <div className="flex items-end gap-2">
-                            <PercentBar
-                              value={item.totalPercent}
-                              count={item.totalCount}
-                              color={TOTAL_BAR_COLOR}
-                              label={t.totalGraduate}
-                            />
-                            <PercentBar
-                              value={item.employedPercent}
-                              count={item.employedCount}
-                              color={EMPLOYED_BAR_COLOR}
-                              label={t.employed}
-                            />
-                            <PercentBar
-                              value={item.unemployedPercent}
-                              count={item.unemployedCount}
-                              color={UNEMPLOYED_BAR_COLOR}
-                              label={t.unemployed}
-                            />
-                          </div>
-
-                          <p
-                            className={`mt-3 line-clamp-2 max-w-[90px] font-black leading-4 text-slate-500 transition-colors dark:text-slate-400 ${LABEL_FONT_CLASS}`}
-                          >
-                            {item.year}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <p className="mt-4 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                      {t.graduatedYear}
-                    </p>
-                  </div>
+                <div className="p-3 sm:p-5 md:p-6">
+                  <JobStatusChart
+                    items={employmentItems}
+                    legendEmployed={t.employed}
+                    legendUnemployed={t.unemployed}
+                  />
                 </div>
               )}
             </section>
 
             {/* Data Table */}
-            <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
+            <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-lg shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
               <div className="w-full overflow-x-auto">
                 <table className="w-full min-w-[460px] text-left">
                   <thead className="bg-slate-50 dark:bg-slate-900/80">
@@ -813,56 +740,6 @@ export default async function StaffJobStatusPage({
   );
 }
 
-function PercentBar({
-  value,
-  count,
-  color,
-  label,
-}: {
-  value: number;
-  count: number;
-  color: string;
-  label: string;
-}) {
-  const height = Math.max(
-    (value / 100) * BAR_MAX_HEIGHT,
-    value ? BAR_MIN_HEIGHT : 6,
-  );
-
-  return (
-    <div className="group flex flex-col items-center">
-      <p
-        className={`mb-2 rounded-full bg-white px-1.5 py-0.5 font-black text-slate-900 shadow-sm transition-transform group-hover:-translate-y-1 dark:bg-slate-800 dark:text-white ${BAR_FONT_CLASS}`}
-      >
-        {value}%
-      </p>
-
-      <div
-        title={`${label}: ${value}% (${count})`}
-        className="shrink-0 rounded-t-lg shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:brightness-110"
-        style={{
-          width: `${BAR_WIDTH}px`,
-          height: `${height}px`,
-          backgroundColor: color,
-        }}
-      />
-
-      <p className="mt-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-slate-500 shadow-sm dark:bg-slate-800 dark:text-slate-400">
-        {count}
-      </p>
-    </div>
-  );
-}
-
-function Legend({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span className="h-3 w-3 rounded-full shadow-sm" style={{ backgroundColor: color }} />
-      {label}
-    </span>
-  );
-}
-
 function ExportBtn({
   action,
   children,
@@ -898,7 +775,6 @@ function AutoScripts({
     <Script id="job-status-export-script" strategy="afterInteractive">
       {`
         (() => {
-          const form = document.getElementById("job-status-auto-filter-form");
           const toggle = document.getElementById("job-status-export-toggle");
           const menu = document.getElementById("job-status-export-menu");
 
@@ -1027,23 +903,6 @@ function AutoScripts({
             win.focus();
             setTimeout(() => win.print(), 500);
           };
-
-          if (form && form.dataset.ready !== "1") {
-            form.dataset.ready = "1";
-
-            form.querySelectorAll("select").forEach((el) => {
-              el.addEventListener("change", () => {
-                const params = new URLSearchParams(new FormData(form));
-                for (const key of Array.from(params.keys())) {
-                  if (!params.get(key)) params.delete(key);
-                }
-
-                const query = params.toString();
-                window.location.href =
-                  "/staff/users/job-status" + (query ? "?" + query : "");
-              });
-            });
-          }
 
           if (toggle && menu && toggle.dataset.ready !== "1") {
             toggle.dataset.ready = "1";

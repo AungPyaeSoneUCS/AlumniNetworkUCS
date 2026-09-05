@@ -331,7 +331,7 @@ function exportHtml(posts: any[], title: string, t: typeof text.en) {
 
     .header-text h2 {
       margin: 4px 0;
-      font-size: 14px;
+      font-size: 24px;
       color: var(--primary);
       font-weight: 600;
     }
@@ -471,7 +471,7 @@ function exportHtml(posts: any[], title: string, t: typeof text.en) {
 
     <div class="header-text">
       <h1>University of Computer Studies (Hinthada)</h1>
-      <h2>Alumni Network System</h2>
+      <h2>Alumni Network</h2>
       <h3>Report of Posts</h3>
 
       <div class="header-meta">
@@ -591,7 +591,7 @@ function exportHtml(posts: any[], title: string, t: typeof text.en) {
   </table>
 
   <div class="footer">
-    <span>Alumni Network System</span>
+    <span>Alumni Network</span>
     <span>Official Report • For Administrative Use Only</span>
   </div>
 

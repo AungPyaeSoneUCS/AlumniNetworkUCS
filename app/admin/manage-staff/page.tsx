@@ -232,7 +232,7 @@ function exportHtml(users: any[], title: string, t: typeof text.en) {
       object-fit: contain;
     }
     .header-text h1 { margin: 0; font-size: 22px; color: var(--text-main); }
-    .header-text h2 { margin: 4px 0; font-size: 14px; color: var(--primary); font-weight: 600; }
+    .header-text h2 { margin: 4px 0; font-size: 22px; color: var(--primary); font-weight: 600; }
     .header-text h3 { margin: 0; font-size: 18px; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; }
     .header-meta { margin-top: 6px; font-size: 11px; color: var(--text-muted); }
     .summary-container { display: flex; gap: 15px; margin-bottom: 20px; }
@@ -260,7 +260,7 @@ function exportHtml(users: any[], title: string, t: typeof text.en) {
     <img src="/logo.png" alt="UCSH Logo" class="logo-placeholder" onerror="this.style.display='none'">
     <div class="header-text">
       <h1>University of Computer Studies (Hinthada)</h1>
-      <h2>Alumni Network System</h2>
+      <h2>Alumni Network</h2>
       <h3>${escapeHtml(title)}</h3>
       <div class="header-meta">Generated Date: ${dateStr} | Time: ${timeStr}</div>
     </div>
@@ -279,7 +279,7 @@ function exportHtml(users: any[], title: string, t: typeof text.en) {
     <thead><tr><th class="center">#</th><th>NAME</th><th>POSITION</th><th>EMAIL</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
-  <div class="footer"><span>Alumni Network System</span><span>Official Administrative Report</span></div>
+  <div class="footer"><span>Alumni Network</span><span>Official Administrative Report</span></div>
 </body>
 </html>`;
 }

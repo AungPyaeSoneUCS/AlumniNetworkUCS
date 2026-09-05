@@ -254,7 +254,7 @@ function exportHtml(users: any[], title: string, t: typeof text.en) {
     }
     .header-text h2 {
       margin: 4px 0;
-      font-size: 14px;
+      font-size: 22px;
       color: var(--primary);
       font-weight: 600;
     }
@@ -374,7 +374,7 @@ function exportHtml(users: any[], title: string, t: typeof text.en) {
     <img src="/logo.png" alt="UCSH Logo" class="logo-placeholder" onerror="this.style.display='none'">
     <div class="header-text">
       <h1>University of Computer Studies (Hinthada)</h1>
-      <h2>Alumni Network System</h2>
+      <h2>Alumni Network</h2>
       <h3>Report of Users</h3>
       <div class="header-meta">
         Generated Date: ${dateStr} | Time: ${timeStr}
@@ -414,7 +414,7 @@ function exportHtml(users: any[], title: string, t: typeof text.en) {
   </table>
 
   <div class="footer">
-    <span>Alumni Network System</span>
+    <span>Alumni Network</span>
     <span>Official Administrative Report</span>
   </div>
 

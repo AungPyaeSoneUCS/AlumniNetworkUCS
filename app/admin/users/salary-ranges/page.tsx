@@ -1,7 +1,6 @@
 // file: app/admin/users/salary-ranges/page.tsx
 
 import type React from "react";
-import Link from "next/link";
 import Script from "next/script";
 import { redirect } from "next/navigation";
 import { BarChart3, ChevronDown, Download, FileSpreadsheet, FileText, Printer } from "lucide-react";
@@ -10,6 +9,7 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/User";
 import AdminSidebar from "@/components/admin/admin-sidebar";
+import { SalaryRangesFilters } from "@/components/admin/report-auto-filters";
 
 type Lang = "en" | "mm";
 
@@ -194,7 +194,7 @@ function buildHtml(
               <img src="/logo.png" alt="UCSH Logo" class="logo-placeholder" onerror="this.style.display='none'">
               <div class="header-text">
                 <h1>University of Computer Studies (Hinthada)</h1>
-                <h2>Alumni Network System</h2>
+                <h2>Alumni Network</h2>
                 <h3> REPORT OF ${escapeHtml(title).toUpperCase()} </h3>
                 <div class="header-meta">
                   Generated Date: ${dateStr} | Time: ${timeStr}
@@ -232,7 +232,7 @@ function buildHtml(
             </div>
 
             ${chunkHtml}
-            ${isPdf ? '<div class="footer"><span>Alumni Network System</span><span>Official Administrative Report</span></div>' : ''}
+            ${isPdf ? '<div class="footer"><span>Alumni Network</span><span>Official Administrative Report</span></div>' : ''}
           </div>
         `;
       }
@@ -241,7 +241,7 @@ function buildHtml(
       return `
         <div class="page" style="${!isPdf ? 'page-break-before: always; margin-top: 20px;' : ''}">
           ${chunkHtml}
-          ${isPdf ? '<div class="footer" style="margin-top:20px;"><span>Alumni Network System</span><span>Official Administrative Report</span></div>' : ''}
+          ${isPdf ? '<div class="footer" style="margin-top:20px;"><span>Alumni Network</span><span>Official Administrative Report</span></div>' : ''}
         </div>
       `;
     })
@@ -280,7 +280,7 @@ function buildHtml(
             </thead>
             <tbody>${rows}</tbody>
           </table>
-          <div class="footer" style="margin-top:25px;"><span>Alumni Network System</span><span>Official Administrative Report</span></div>
+          <div class="footer" style="margin-top:25px;"><span>Alumni Network</span><span>Official Administrative Report</span></div>
         </div>
       `;
     }).join("");
@@ -367,7 +367,7 @@ function buildHtml(
   }
   .header-text h2 {
     margin: 4px 0;
-    font-size: 14px;
+    font-size: 22px;
     color: var(--primary);
     font-weight: 600;
   }
@@ -554,7 +554,7 @@ function buildHtml(
   
   ${tablePagesHtml}
 
-  ${!isPdf ? '<div class="footer"><span>Alumni Network System</span><span>Official Administrative Report</span></div>' : ''}
+  ${!isPdf ? '<div class="footer"><span>Alumni Network</span><span>Official Administrative Report</span></div>' : ''}
 
 </body>
 </html>`;
@@ -696,33 +696,14 @@ export default async function AdminSalaryRangesPage({
                 </div>
               </div>
 
-              <form
-                id="salary-auto-filter-form"
-                action="/admin/users/salary-ranges"
-                className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]"
-              >
-                <input type="hidden" name="lang" value={lang} />
-
-                <select
-                  name="experience"
-                  defaultValue={selectedExperience}
-                  className="h-10 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-slate-700 outline-none transition focus:border-[#00BFC4] focus:ring-2 focus:ring-[#00BFC4]/15 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:focus:border-[#00BFC4]"
-                >
-                  <option value="">{t.anyExperience}</option>
-                  {experienceOptions.map((position) => (
-                    <option key={position} value={position}>
-                      {position}
-                    </option>
-                  ))}
-                </select>
-
-                <Link
-                  href={`/admin/users/salary-ranges?lang=${lang}`}
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-xs font-black text-slate-700 transition-colors hover:border-[#00BFC4] hover:bg-cyan-50 active:scale-95 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                >
-                  {t.reset}
-                </Link>
-              </form>
+              <div className="mt-4">
+                <SalaryRangesFilters
+                  lang={lang}
+                  experience={selectedExperience}
+                  experienceOptions={experienceOptions}
+                  labels={{ anyExperience: t.anyExperience, reset: t.reset }}
+                />
+              </div>
 
               <AutoScripts
                 csv={csv}
@@ -735,7 +716,7 @@ export default async function AdminSalaryRangesPage({
             </div>
 
             {/* Vertical Bar Chart Container */}
-            <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
+            <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-lg shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
               <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800/60 sm:px-5">
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                    {t.position2} - {salaryItems.length}
@@ -751,30 +732,31 @@ export default async function AdminSalaryRangesPage({
                     <Legend color={MAX_BAR_COLOR} label={t.maxSalary} />
                   </div>
 
-                  <div className="flex flex-col gap-6 rounded-2xl bg-slate-50/80 p-4 dark:bg-slate-950/50 sm:p-6">
+                  <div className="flex flex-col gap-5 rounded-[28px] bg-slate-50 p-5 dark:bg-slate-950 sm:p-6">
                     {salaryItems.map((item) => {
                       const minWidth = Math.max(
                         (item.minSalary / maxSalaryValue) * BAR_MAX_WIDTH,
-                        item.minSalary ? 6 : 2,
+                        item.minSalary ? 8 : 2,
                       );
                       const maxWidth = Math.max(
                         (item.maxSalary / maxSalaryValue) * BAR_MAX_WIDTH,
-                        item.maxSalary ? 6 : 2,
+                        item.maxSalary ? 8 : 2,
                       );
 
                       return (
-                        <div key={item.position} className="flex flex-col gap-2 border-b border-slate-200/60 pb-4 last:border-0 dark:border-slate-800/60">
+                        <div key={item.position} className="flex flex-col gap-2.5 border-b border-slate-200/60 pb-5 last:border-0 dark:border-slate-800/60">
                           <p className="text-sm font-black text-slate-900 dark:text-white">
                             {item.position}
                           </p>
 
-                          <div className="flex flex-col gap-1.5 pl-2 sm:pl-4">
+                          <div className="flex flex-col gap-2 pl-2 sm:pl-4">
                             <div className="flex items-center gap-3">
                               <div
-                                className="h-5 rounded-r-lg shadow-sm transition-all duration-300 hover:brightness-110"
+                                className="h-6 rounded-r-lg shadow-md transition-all duration-300 hover:scale-[1.02] hover:brightness-110"
                                 style={{
                                   width: `${minWidth}px`,
                                   backgroundColor: MIN_BAR_COLOR,
+                                  boxShadow: `0 4px 12px -2px ${MIN_BAR_COLOR}44`,
                                 }}
                               />
                               <span className="text-xs font-black text-slate-600 dark:text-slate-300">
@@ -784,10 +766,11 @@ export default async function AdminSalaryRangesPage({
 
                             <div className="flex items-center gap-3">
                               <div
-                                className="h-5 rounded-r-lg shadow-sm transition-all duration-300 hover:brightness-110"
+                                className="h-6 rounded-r-lg shadow-md transition-all duration-300 hover:scale-[1.02] hover:brightness-110"
                                 style={{
                                   width: `${maxWidth}px`,
                                   backgroundColor: MAX_BAR_COLOR,
+                                  boxShadow: `0 4px 12px -2px ${MAX_BAR_COLOR}44`,
                                 }}
                               />
                               <span className="text-xs font-black text-slate-600 dark:text-slate-300">
@@ -804,7 +787,7 @@ export default async function AdminSalaryRangesPage({
             </section>
 
             {/* Data Table */}
-            <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50">
+            <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-lg shadow-slate-200/60 dark:border-slate-800 dark:bg-slate-900 dark:shadow-black/20">
               <div className="w-full overflow-x-auto">
                 <table className="w-full min-w-[460px] text-left">
                   <thead className="bg-slate-50 dark:bg-slate-900/80">
@@ -888,7 +871,6 @@ function AutoScripts({
     <Script id="salary-export-script" strategy="afterInteractive">
       {`
         (() => {
-          const form = document.getElementById("salary-auto-filter-form");
           const toggle = document.getElementById("salary-export-toggle");
           const menu = document.getElementById("salary-export-menu");
 
@@ -1014,23 +996,6 @@ function AutoScripts({
             win.focus();
             setTimeout(() => win.print(), 500);
           };
-
-          if (form && form.dataset.ready !== "1") {
-            form.dataset.ready = "1";
-
-            form.querySelectorAll("select").forEach((el) => {
-              el.addEventListener("change", () => {
-                const params = new URLSearchParams(new FormData(form));
-                for (const key of Array.from(params.keys())) {
-                  if (!params.get(key)) params.delete(key);
-                }
-
-                const query = params.toString();
-                window.location.href =
-                  "/admin/users/salary-ranges" + (query ? "?" + query : "");
-              });
-            });
-          }
 
           if (toggle && menu && toggle.dataset.ready !== "1") {
             toggle.dataset.ready = "1";
