@@ -285,8 +285,11 @@ git pull origin main
 *(Troubleshooting: If local files are overwritten, force the update with `git fetch --all` and `git reset --hard origin/main`).*
 3. **Clean the cache and rebuild:**
 ```bash
+cd ~/AlumniNetworkUCS
+git pull origin main
 rm -rf .next
 npm run build
+pm2 restart all
 
 ```
 
