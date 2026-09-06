@@ -1,0 +1,38 @@
+[
+  {
+    "_id": "6a91a7d420571f3b7b4bb254",
+    "name": "Admin",
+    "email": "aungpyaesone.dev@gmail.com",
+    "password": "$2b$10$zlE2yCjY2rJ3WkX3WhBLxua16EH8z7pwqHpv1kbgwYCvinaWcgJHq",
+    "role": "ADMIN",
+    "hasVoted": false,
+    "votedProjectId": null,
+    "createdAt": "2026-08-28T15:23:00.793Z",
+    "updatedAt": "2026-08-28T15:23:00.793Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a91ada720571f3b7b4bb255",
+    "name": "Dr Hnin Cherry",
+    "email": "hnincherry@ucsh.edu.mm",
+    "password": "$2b$10$rrQyQbvXm14Z83k9iLMe8.XJZ0SO8phXnH39jkjijWGdNmGxNDCeq",
+    "role": "ADMIN",
+    "hasVoted": false,
+    "votedProjectId": null,
+    "createdAt": "2026-08-28T15:47:51.214Z",
+    "updatedAt": "2026-08-28T15:49:27.496Z",
+    "__v": 0
+  },
+  {
+    "_id": "6a99935ca1dd76de9b7d25e0",
+    "name": "Admin-123",
+    "email": "aungpyaesone.administration@gmail.com",
+    "password": "$2b$10$SplOMJEVmyeboKEYg9kkNeJY4Uo3dK6bt3nSL0sfoT.5JAOdUWsnq",
+    "role": "ADMIN",
+    "hasVoted": false,
+    "votedProjectId": null,
+    "createdAt": "2026-09-03T15:33:48.621Z",
+    "updatedAt": "2026-09-03T15:33:48.621Z",
+    "__v": 0
+  }
+]
