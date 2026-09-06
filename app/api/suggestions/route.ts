@@ -10,7 +10,7 @@ import "@/models/Job";
 import User from "@/models/User";
 import Job from "@/models/Job";
 
-const FIELDS = ["position", "company", "location", "salary"] as const;
+const FIELDS = ["position", "company", "location", "salary", "graduatedYear"] as const;
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -68,37 +68,69 @@ export async function GET(req: Request) {
       ? { $regexMatch: { input: cleanExpr, regex: escapeRegex(q), options: "i" } }
       : { $ne: [cleanExpr, ""] };
 
-    const [experienceGroups, jobGroups] = await Promise.all([
-      User.aggregate([
-        { $unwind: { path: "$experiences", preserveNullAndEmptyArrays: false } },
-        { $match: { isBlocked: { $ne: true }, $expr: matchExpr } },
-        {
-          $group: {
-            _id: { $toLower: cleanExpr },
-            sample: { $first: cleanExpr },
-            count: { $sum: 1 },
-          },
-        },
-        { $sort: { count: -1 } },
-        { $limit: 50 },
-      ]),
-      Job.aggregate([
-        {
-          $match: q
-            ? { isActive: true, [field]: { $regex: escapeRegex(q), $options: "i" } }
-            : { isActive: true, [field]: { $ne: "" } },
-        },
-        {
-          $group: {
-            _id: { $toLower: { $trim: { input: { $toString: `$${field}` } } } },
-            sample: { $first: { $trim: { input: { $toString: `$${field}` } } } },
-            count: { $sum: 1 },
-          },
-        },
-        { $sort: { count: -1 } },
-        { $limit: 50 },
-      ]),
-    ]);
+    const [experienceGroups, jobGroups] =
+      field === "graduatedYear"
+        ? await (async () => {
+            const yearMatchExpr = q
+              ? {
+                  $regexMatch: {
+                    input: { $toString: "$graduatedYear" },
+                    regex: escapeRegex(q),
+                    options: "i",
+                  },
+                }
+              : { $ne: [ { $trim: { input: { $toString: "$graduatedYear" } } }, "" ] };
+
+            const groups = await User.aggregate([
+              { $match: { isBlocked: { $ne: true }, $expr: yearMatchExpr } },
+              {
+                $group: {
+                  _id: { $toLower: { $trim: { input: { $toString: "$graduatedYear" } } } },
+                  sample: { $first: { $trim: { input: { $toString: "$graduatedYear" } } } },
+                  count: { $sum: 1 },
+                },
+              },
+              { $sort: { count: -1 } },
+              { $limit: 50 },
+            ]);
+
+            return [groups, [] as any[]];
+          })()
+        : await (async () => {
+            const [expGroups, jobResult] = await Promise.all([
+              User.aggregate([
+                { $unwind: { path: "$experiences", preserveNullAndEmptyArrays: false } },
+                { $match: { isBlocked: { $ne: true }, $expr: matchExpr } },
+                {
+                  $group: {
+                    _id: { $toLower: cleanExpr },
+                    sample: { $first: cleanExpr },
+                    count: { $sum: 1 },
+                  },
+                },
+                { $sort: { count: -1 } },
+                { $limit: 50 },
+              ]),
+              Job.aggregate([
+                {
+                  $match: q
+                    ? { isActive: true, [field]: { $regex: escapeRegex(q), $options: "i" } }
+                    : { isActive: true, [field]: { $ne: "" } },
+                },
+                {
+                  $group: {
+                    _id: { $toLower: { $trim: { input: { $toString: `$${field}` } } } },
+                    sample: { $first: { $trim: { input: { $toString: `$${field}` } } } },
+                    count: { $sum: 1 },
+                  },
+                },
+                { $sort: { count: -1 } },
+                { $limit: 50 },
+              ]),
+            ]);
+
+            return [expGroups, jobResult];
+          })();
 
     const counts = new Map<string, { value: string; total: number }>();
 

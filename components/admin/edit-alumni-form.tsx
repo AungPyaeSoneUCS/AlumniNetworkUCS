@@ -548,7 +548,7 @@ export default function EditAlumniForm({ users, lang, initialSearch, onUpdate }:
                     options={degrees}
                   />
                 </div>
-                <Input label={t.graduatedYear} value={form.graduatedYear || ""} onChange={(v) => updateField("graduatedYear", v)} />
+                <AutoCompleteInput field="graduatedYear" label={t.graduatedYear} value={form.graduatedYear || ""} onChange={(v) => updateField("graduatedYear", v)} hint={t.suggestionHint} />
               </div>
 
               <div>
@@ -832,7 +832,7 @@ function AutoCompleteInput({
   hint,
 }: {
   label: string;
-  field: "position" | "company" | "location" | "salary";
+  field: "position" | "company" | "location" | "salary" | "graduatedYear";
   value: string;
   onChange: (value: string) => void;
   type?: string;

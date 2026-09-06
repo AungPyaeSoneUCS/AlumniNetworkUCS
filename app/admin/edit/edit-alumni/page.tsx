@@ -37,7 +37,10 @@ function cleanUser(user: any): CleanedUser {
         : user.profileImage || user.googleImage || user.googleProfileImage || "",
     bio: typeof user.bio === "string" ? user.bio : "",
     degree: typeof user.degree === "string" ? user.degree : "",
-    graduatedYear: user.graduatedYear ? String(user.graduatedYear) : "",
+    graduatedYear:
+      user.graduatedYear && !/^nan$/i.test(String(user.graduatedYear))
+        ? String(user.graduatedYear)
+        : "",
     contactInfo: {
       phone: user.contactInfo?.phone || "",
       email: user.contactInfo?.email || "",
@@ -75,6 +78,24 @@ function cleanUser(user: any): CleanedUser {
       website: user.socialLinks?.website || "",
     },
   };
+}
+
+function graduatedYearFrom(data: any, existing: any) {
+  let value =
+    typeof data.graduatedYear === "string"
+      ? data.graduatedYear.trim()
+      : data.graduatedYear
+        ? String(data.graduatedYear)
+        : "";
+
+  if (!value || /^nan$/i.test(value)) {
+    value =
+      existing && !/^nan$/i.test(String(existing))
+        ? String(existing)
+        : "";
+  }
+
+  return value;
 }
 
 export default async function EditAlumniPage({
@@ -119,7 +140,7 @@ export default async function EditAlumniPage({
 
       // Name/Email already exist on the alumni record — keep the current
       // values when the update payload does not include them.
-      const existingUser: any = await User.findById(userId).select("name email").lean();
+      const existingUser: any = await User.findById(userId).select("name email graduatedYear").lean();
       if (!existingUser) return { error: "User not found." };
 
       const finalName = name || existingUser.name || "";
@@ -138,7 +159,7 @@ export default async function EditAlumniPage({
         image: typeof data.image === "string" ? data.image : "",
         bio: typeof data.bio === "string" ? data.bio : "",
         degree: typeof data.degree === "string" ? data.degree : "",
-        graduatedYear: data.graduatedYear ? Number(data.graduatedYear) : "",
+        graduatedYear: graduatedYearFrom(data, existingUser.graduatedYear),
         contactInfo: {
           phone: data.contactInfo?.phone || "",
           email: data.contactInfo?.email || "",
