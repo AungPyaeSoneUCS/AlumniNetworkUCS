@@ -11,7 +11,7 @@ type ChartItem = {
 };
 
 const EMPLOYED_COLOR = "#008B8B";
-const UNEMPLOYED_COLOR = "#00BFC4";
+const UNEMPLOYED_COLOR = "#38bdf8";
 
 const MAX_BAR_HEIGHT = 190;
 
@@ -78,10 +78,10 @@ export default function JobStatusChart({
             </span>
           </div>
 
-          <div className="flex items-end gap-2 sm:gap-4">
+          <div className="flex items-end gap-6 sm:gap-8">
             {items.map((item) => (
               <div key={item.year} className="flex flex-1 flex-col">
-                <div className="flex flex-1 items-end justify-center gap-2 sm:gap-3">
+                <div className="flex flex-1 items-end justify-center gap-0">
                   <Bar
                     count={item.employedCount}
                     percent={item.employedPercent}

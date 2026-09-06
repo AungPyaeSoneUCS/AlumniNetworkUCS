@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import User from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import Link from "next/link";
-import { PenSquare, UserCog, UserPlus, LayoutDashboard, Users, ArrowRight, DatabaseBackup } from "lucide-react";
+import { PenSquare, UserCog, UserPlus, LayoutDashboard, Users, ArrowRight, DatabaseBackup, CloudUpload, Trash2 } from "lucide-react";
 
 import EditNav from "@/components/admin/edit-nav";
 
@@ -17,6 +17,10 @@ const text = {
     toolsTitle: "Edit Tools",
     backupLabel: "Database Backup",
     backupHint: "Download all database collections as JSON files.",
+    importLabel: "Import Data",
+    importHint: "Restore backup JSON files back into the database.",
+    deleteLabel: "Delete Data",
+    deleteHint: "Permanently clear documents from any collection.",
     dashboardLabel: "Go to Dashboard",
     dashboardHint: "Return to the main admin dashboard.",
     cards: {
@@ -43,6 +47,10 @@ const text = {
     toolsTitle: "ပြင်ဆင်ရန် အသုံးပြုခန်းများ",
     backupLabel: "Database Backup",
     backupHint: "Database collection များအားလုံးကို JSON ဖိုင်များအဖြစ် ဒေါင်းလုဒ်လုပ်ပါ။",
+    importLabel: "Import ပြန်တင်ရန်",
+    importHint: "Backup JSON ဖိုင်များကို Database ထဲသို့ ပြန်တင်ပါ။",
+    deleteLabel: "ဒေတာ ဖျက်ရန်",
+    deleteHint: "Collection များမှ document များကို အပြီးအပိုင် ဖျက်ပါ။",
     dashboardLabel: "Dashboard သို့ သွားမည်",
     dashboardHint: "ပင်မ အက်ဒမင် Dashboard သို့ ပြန်သွားမည်။",
     cards: {
@@ -111,6 +119,20 @@ export default async function AdminEditHomePage({
       title: t.backupLabel,
       desc: t.backupHint,
       accent: "from-teal-500 to-emerald-700",
+    },
+    {
+      href: "/admin/edit/import-data",
+      icon: CloudUpload,
+      title: t.importLabel,
+      desc: t.importHint,
+      accent: "from-cyan-400 to-blue-600",
+    },
+    {
+      href: "/admin/edit/delete-data",
+      icon: Trash2,
+      title: t.deleteLabel,
+      desc: t.deleteHint,
+      accent: "from-rose-500 to-red-700",
     },
   ];
 

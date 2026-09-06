@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Home, LayoutDashboard, LogOut, PenSquare, UserCog, UserPlus, DatabaseBackup } from "lucide-react";
+import { CloudUpload, Home, LayoutDashboard, LogOut, PenSquare, Trash2, UserCog, UserPlus, DatabaseBackup } from "lucide-react";
 
 type Lang = "en" | "mm";
 
@@ -16,6 +16,8 @@ const navText = {
     updateStudent: "Update Account",
     editAlumni: "Edit Alumni",
     backup: "Backup",
+    importData: "Import Data",
+    deleteData: "Delete Data",
     dashboard: "Dashboard",
     logout: "Logout",
     english: "English",
@@ -28,6 +30,8 @@ const navText = {
     updateStudent: "အကောင့်ပြင်ရန်",
     editAlumni: "ကျောင်းသားဟောင်း ပြင်ရန်",
     backup: "Backup",
+    importData: "Import ပြန်တင်ရန်",
+    deleteData: "ဒေတာဖျက်ရန်",
     dashboard: "Dashboard",
     logout: "ထွက်ရန်",
     english: "English",
@@ -60,6 +64,8 @@ export default function EditNav({
     { href: "/admin/edit/update-student", label: t.updateStudent, icon: UserCog },
     { href: "/admin/edit/edit-alumni", label: t.editAlumni, icon: PenSquare },
     { href: "/admin/edit/backup", label: t.backup, icon: DatabaseBackup },
+    { href: "/admin/edit/import-data", label: t.importData, icon: CloudUpload },
+    { href: "/admin/edit/delete-data", label: t.deleteData, icon: Trash2 },
   ];
 
   async function handleLogout() {
