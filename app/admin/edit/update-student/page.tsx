@@ -1,11 +1,11 @@
-// file: app/admin/update-student/page.tsx
+// file: app/admin/edit/update-student/page.tsx
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import User from "@/models/User";
 import { connectDB } from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
-import AdminSidebar from "@/components/admin/admin-sidebar";
+import EditNav from "@/components/admin/edit-nav";
 import DynamicStudentRegistrationForm from "@/components/admin/update-student-form";
 
 export default async function UpdateStudentPage({
@@ -17,7 +17,7 @@ export default async function UpdateStudentPage({
   if (!session?.user?.email) redirect("/admin/login");
 
   await connectDB();
-  const admin: any = await User.findOne({ email: session.user.email }).select("_id role").lean();
+  const admin: any = await User.findOne({ email: session.user.email }).select("name role").lean();
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
   const resolvedSearchParams = await Promise.resolve(searchParams || {});
@@ -81,9 +81,9 @@ export default async function UpdateStudentPage({
 
       await User.findByIdAndUpdate(userId, { $set: updateData });
       
-      revalidatePath("/admin/update-student");
+      revalidatePath("/admin/edit/update-student");
       revalidatePath("/admin/manage-users");
-      revalidatePath("/admin/create-users");
+      revalidatePath("/admin/edit/create-users");
       
       return { success: true };
     } catch (err: any) {
@@ -93,9 +93,11 @@ export default async function UpdateStudentPage({
 
   return (
     <main className="min-h-screen bg-slate-50/50 text-slate-950 dark:bg-slate-950 dark:text-white">
+      <EditNav lang={lang} userName={admin.name || "Admin"} />
+
       <div className="flex min-h-screen">
       
-        <section className="min-w-0 flex-1 px-4 pb-8 pt-16 sm:px-6 md:px-8 lg:pt-8">
+        <section className="min-w-0 flex-1 px-4 pb-8 pt-6 sm:px-6 md:px-8">
           <div className="mx-auto max-w-4xl space-y-6">
             <div className="relative z-20 overflow-visible rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/50 sm:p-5">
               <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white sm:text-2xl">

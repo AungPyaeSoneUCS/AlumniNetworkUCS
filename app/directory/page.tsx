@@ -65,7 +65,7 @@ type SocialType = keyof typeof socialPrefixes;
 
 const text = {
   en: {
-    search: "Search name or email...",
+    search: "Search Name",
     allDegrees: " Degree Names ",
     allYears: " Year of Successful Completion",
     loading: "Loading alumni directory...",
@@ -78,7 +78,7 @@ const text = {
     email: "Email",
   },
   mm: {
-    search: "အမည် သို့မဟုတ် Email ဖြင့် ရှာမည်...",
+    search: "အမည်ဖြင့် ရှာမည်...",
     allDegrees: " ဘွဲ့အမည်များ ",
     allYears: "အောင်မြင်သည့် ခုနှစ် ",
     loading: "ကျောင်းသားဟောင်းစာရင်း ဖွင့်နေသည်...",
@@ -348,12 +348,11 @@ function DirectoryContent() {
       <section className="ucsh-container relative z-10 lg:flex lg:h-[calc(100vh-134px)] lg:flex-col lg:overflow-hidden">
         <div className="ucsh-card ucsh-animate relative z-10 mb-4 rounded-2xl p-3 sm:mb-5 sm:p-4 lg:shrink-0">
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_auto]">
-            <input
-              type="text"
-              placeholder={t.search}
+            <NameSearchInput
+              users={allUsers}
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="ucsh-input w-full rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
+              onChange={setSearch}
+              placeholder={t.search}
             />
             <ModernSelect
               value={degree}
@@ -631,6 +630,100 @@ function SocialIcons({ links }: { links?: User["socialLinks"] }) {
           </a>
         );
       })}
+    </div>
+  );
+}
+
+function NameSearchInput({
+  users,
+  value,
+  onChange,
+  placeholder,
+}: {
+  users: User[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function handleClickAway(event: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickAway);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickAway);
+    };
+  }, []);
+
+  const suggestions = useMemo(() => {
+    const q = value.trim().toLowerCase();
+    if (!q) return [];
+
+    const seen = new Set<string>();
+
+    return users
+      .filter(
+        (user) =>
+          user.name?.toLowerCase().includes(q) ||
+          user.email?.toLowerCase().includes(q),
+      )
+      .filter((user) => {
+        const key = user.name?.toLowerCase() || "";
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 8);
+  }, [users, value]);
+
+  function pick(user: User) {
+    onChange(user.name || "");
+    setOpen(false);
+  }
+
+  return (
+    <div ref={boxRef} className="relative">
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={value}
+        onFocus={() => setOpen(true)}
+        onChange={(event) => {
+          onChange(event.target.value);
+          setOpen(true);
+        }}
+        className="ucsh-input w-full rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
+      />
+
+      {open && suggestions.length > 0 && (
+        <ul className="absolute left-0 right-0 top-full z-[9999] mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-[var(--ucsh-border)] bg-white p-1 shadow-xl dark:bg-slate-900">
+          {suggestions.map((user) => (
+            <li key={user._id}>
+              <button
+                type="button"
+                onClick={() => pick(user)}
+                className="block w-full rounded-lg px-3 py-2 text-left transition hover:bg-[#94EFEE]/40"
+              >
+                <span className="block truncate text-xs font-black text-slate-800 dark:text-slate-100">
+                  {user.name}
+                </span>
+                {user.email && (
+                  <span className="block truncate text-[10px] font-bold text-slate-400">
+                    {user.email}
+                  </span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

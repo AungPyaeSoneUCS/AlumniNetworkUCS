@@ -68,21 +68,23 @@ export default function ModernSelect({
 
       {open && (
         <div className="absolute left-0 right-0 top-full z-[9999] mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-[var(--ucsh-border)] bg-white p-1 shadow-xl backdrop-blur animate-in fade-in zoom-in-95 duration-100 dark:bg-slate-900">
-          <button
-            type="button"
-            onClick={() => {
-              onChange("");
-              setOpen(false);
-            }}
-            className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold transition sm:text-sm ${
-              !value
-                ? "bg-[#94EFEE]/60 text-[#008B8B]"
-                : "text-slate-600 hover:bg-[#94EFEE]/40 dark:text-slate-300 dark:hover:bg-slate-800"
-            }`}
-          >
-            <span className="truncate">{placeholder}</span>
-            {!value && <Check size={15} className="shrink-0 text-[#008B8B]" />}
-          </button>
+          {placeholder !== "" && (
+            <button
+              type="button"
+              onClick={() => {
+                onChange("");
+                setOpen(false);
+              }}
+              className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold transition sm:text-sm ${
+                !value
+                  ? "bg-[#94EFEE]/60 text-[#008B8B]"
+                  : "text-slate-600 hover:bg-[#94EFEE]/40 dark:text-slate-300 dark:hover:bg-slate-800"
+              }`}
+            >
+              <span className="truncate">{placeholder}</span>
+              {!value && <Check size={15} className="shrink-0 text-[#008B8B]" />}
+            </button>
+          )}
 
           {options.map((option) => {
             const isSelected = value === option;

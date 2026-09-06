@@ -1,4 +1,4 @@
-// file: app/admin/create-users/page.tsx
+// file: app/admin/edit/create-users/page.tsx
 "use client";
 
 import type React from "react";
@@ -23,7 +23,7 @@ import {
   Edit,
 } from "lucide-react";
 
-import AdminSidebar from "@/components/admin/admin-sidebar";
+import EditNav from "@/components/admin/edit-nav";
 
 type Lang = "en" | "mm";
 
@@ -461,9 +461,11 @@ export default function AdminCreateUserPage() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-950 dark:bg-slate-950 dark:text-white">
+      <EditNav lang={lang} />
+
       <div className="flex min-h-screen">
 
-        <section className="min-w-0 flex-1 px-4 pb-8 pt-16 sm:px-6 md:px-8 lg:pt-8">
+        <section className="min-w-0 flex-1 px-4 pb-8 pt-6 sm:px-6 md:px-8">
           <div className="mx-auto max-w-7xl space-y-4 md:space-y-6">
             
             {/* Top Header & Actions */}
@@ -724,7 +726,7 @@ export default function AdminCreateUserPage() {
                               </button>
                             ) : (
                               <Link
-                                href={`/admin/update-student?search=${encodeURIComponent(student.name)}&lang=${lang}`}
+                                href={`/admin/edit/update-student?search=${encodeURIComponent(student.name)}&lang=${lang}`}
                                 className="inline-flex items-center gap-1.5 rounded-lg bg-blue-100 px-3 py-1.5 text-[11px] font-black text-blue-700 transition hover:bg-blue-600 hover:text-white dark:bg-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500 dark:hover:text-white"
                               >
                                 <Edit size={14} />

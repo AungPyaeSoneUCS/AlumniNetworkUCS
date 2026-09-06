@@ -428,25 +428,11 @@ function JobsContent() {
             </FilterField>
 
             <FilterField label={t.minSalary}>
-              <input
-                type="number"
-                min="0"
-                value={minSalary}
-                onChange={(event) => setMinSalary(event.target.value)}
-                placeholder=""
-                className="ucsh-input w-full rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
-              />
+              <SalaryAutocompleteInput value={minSalary} onChange={setMinSalary} />
             </FilterField>
 
             <FilterField label={t.maxSalary}>
-              <input
-                type="number"
-                min="0"
-                value={maxSalary}
-                onChange={(event) => setMaxSalary(event.target.value)}
-                placeholder=""
-                className="ucsh-input w-full rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
-              />
+              <SalaryAutocompleteInput value={maxSalary} onChange={setMaxSalary} />
             </FilterField>
 
             <div className="flex items-end">
@@ -567,6 +553,89 @@ function FilterField({
       </span>
       {children}
     </label>
+  );
+}
+
+function SalaryAutocompleteInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const timerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    function handleClickAway(event: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickAway);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickAway);
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  function loadSuggestions(query: string) {
+    fetch(`/api/suggestions?field=salary&q=${encodeURIComponent(query.trim())}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) =>
+        setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []),
+      )
+      .catch(() => setSuggestions([]));
+  }
+
+  function handleChange(next: string) {
+    onChange(next);
+    setOpen(true);
+
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => loadSuggestions(next), 200);
+  }
+
+  function pick(suggestion: string) {
+    onChange(suggestion);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={boxRef} className="relative">
+      <input
+        type="number"
+        min="0"
+        value={value}
+        placeholder=""
+        onFocus={() => {
+          setOpen(true);
+          loadSuggestions(value);
+        }}
+        onChange={(event) => handleChange(event.target.value)}
+        className="ucsh-input w-full rounded-xl px-3 py-2 text-xs font-bold sm:text-sm"
+      />
+
+      {open && suggestions.length > 0 && (
+        <ul className="absolute left-0 right-0 top-full z-[9999] mt-1.5 max-h-56 overflow-y-auto rounded-xl border border-[var(--ucsh-border)] bg-white p-1 shadow-xl dark:bg-slate-900">
+          {suggestions.map((suggestion) => (
+            <li key={suggestion}>
+              <button
+                type="button"
+                onClick={() => pick(suggestion)}
+                className="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold text-slate-700 transition hover:bg-[#94EFEE]/40 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <span className="truncate">{suggestion}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
