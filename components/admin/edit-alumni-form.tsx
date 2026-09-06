@@ -420,6 +420,8 @@ export default function EditAlumniForm({ users, lang, initialSearch, onUpdate }:
     setLoading(true);
     try {
       const payload = {
+        name: form.name || "",
+        email: form.email || "",
         image: form.image || "",
         bio: form.bio || "",
         degree: form.degree || "",

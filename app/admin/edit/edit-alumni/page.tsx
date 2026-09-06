@@ -117,14 +117,24 @@ export default async function EditAlumniPage({
       const email = typeof data.email === "string" ? data.email.trim() : "";
       const name = typeof data.name === "string" ? data.name.trim() : "";
 
-      if (!name || !email) return { error: "Name and Email are required." };
+      // Name/Email already exist on the alumni record — keep the current
+      // values when the update payload does not include them.
+      const existingUser: any = await User.findById(userId).select("name email").lean();
+      if (!existingUser) return { error: "User not found." };
 
-      const emailTaken = await User.findOne({ email, _id: { $ne: userId } });
-      if (emailTaken) return { error: "Email is already taken by another user." };
+      const finalName = name || existingUser.name || "";
+      const finalEmail = email || existingUser.email || "";
+
+      if (!finalName || !finalEmail) return { error: "Name and Email are required." };
+
+      if (finalEmail !== existingUser.email) {
+        const emailTaken = await User.findOne({ email: finalEmail, _id: { $ne: userId } });
+        if (emailTaken) return { error: "Email is already taken by another user." };
+      }
 
       const updateData: any = {
-        name,
-        email,
+        name: finalName,
+        email: finalEmail,
         image: typeof data.image === "string" ? data.image : "",
         bio: typeof data.bio === "string" ? data.bio : "",
         degree: typeof data.degree === "string" ? data.degree : "",
