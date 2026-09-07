@@ -401,14 +401,17 @@ export default function RegisterPage() {
   }
 
   function changeOtp(value: string, index: number) {
-    const digit = value.replace(/\D/g, "").slice(-1);
+    const digits = value.replace(/\D/g, "").slice(0, OTP_LENGTH - index);
+    if (!digits) return;
     const next = [...otp];
-
-    next[index] = digit;
+    digits.split("").forEach((digit, offset) => {
+      next[index + offset] = digit;
+    });
     setOtp(next);
 
-    if (digit && index < OTP_LENGTH - 1) {
-      otpRefs.current[index + 1]?.focus();
+    const nextIndex = index + digits.length;
+    if (nextIndex < OTP_LENGTH) {
+      otpRefs.current[nextIndex]?.focus();
     }
   }
 
@@ -419,6 +422,26 @@ export default function RegisterPage() {
     if (event.key === "Backspace" && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
+  }
+
+  function handleOtpPaste(
+    event: React.ClipboardEvent<HTMLInputElement>,
+    index: number,
+  ) {
+    event.preventDefault();
+    const digits = event.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH - index);
+    if (!digits) return;
+    const next = [...otp];
+    digits.split("").forEach((digit, offset) => {
+      next[index + offset] = digit;
+    });
+    setOtp(next);
+
+    const nextIndex = index + digits.length;
+    otpRefs.current[Math.min(nextIndex, OTP_LENGTH - 1)]?.focus();
   }
 
   async function verifyOtp(event: React.FormEvent) {
@@ -730,6 +753,7 @@ export default function RegisterPage() {
                       maxLength={1}
                       onChange={(event) => changeOtp(event.target.value, index)}
                       onKeyDown={(event) => handleOtpKeyDown(event, index)}
+                      onPaste={(event) => handleOtpPaste(event, index)}
                       className="h-12 rounded-xl border border-slate-200 bg-white text-center text-lg font-black outline-none transition focus:border-[#00BFC4] focus:ring-4 focus:ring-[#00BFC4]/15"
                     />
                   ))}

@@ -8,6 +8,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   CheckCircle2,
+  Circle,
   Eye,
   EyeOff,
   Home,
@@ -49,6 +50,7 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showMatchSuccess, setShowMatchSuccess] = useState(false);
+  const [requirementsTimedOut, setRequirementsTimedOut] = useState(false);
 
   const currentLang = lang === "mm" ? "mm" : "en";
   const otpCode = otp.join("");
@@ -64,10 +66,18 @@ export default function ForgotPasswordPage() {
 
   const isPasswordValid = newPassword.length >= 8 && strength.passedCount >= 3;
 
+  const allRequirementsMet =
+    newPassword.length >= 8 &&
+    /[A-Z]/.test(newPassword) &&
+    /[a-z]/.test(newPassword) &&
+    /\d/.test(newPassword) &&
+    /[^A-Za-z0-9]/.test(newPassword);
+
+  const showRequirements =
+    newPassword.length > 0 && !requirementsTimedOut;
+
   const showEmailError = focused.email && emailError;
   const showPasswordError = focused.password && passwordError;
-  const showPasswordHelp =
-    focused.password && newPassword.length > 0 && !isPasswordValid;
   const showConfirmError = focused.confirmPassword && confirmPasswordError;
 
   const canSendOtp = !emailError && email.trim().length > 0 && !loading;
@@ -123,15 +133,35 @@ export default function ForgotPasswordPage() {
     setShowMatchSuccess(false);
   }, [focused.confirmPassword, confirmPassword, confirmPasswordError]);
 
-  function changeOtp(value: string, index: number) {
-    const digit = value.replace(/\D/g, "").slice(-1);
-    const next = [...otp];
+  useEffect(() => {
+    if (newPassword.length === 0) {
+      setRequirementsTimedOut(false);
+      return;
+    }
 
-    next[index] = digit;
+    if (allRequirementsMet) {
+      const timer = window.setTimeout(
+        () => setRequirementsTimedOut(true),
+        5000,
+      );
+      return () => window.clearTimeout(timer);
+    }
+
+    setRequirementsTimedOut(false);
+  }, [newPassword, allRequirementsMet]);
+
+  function changeOtp(value: string, index: number) {
+    const digits = value.replace(/\D/g, "").slice(0, OTP_LENGTH - index);
+    if (!digits) return;
+    const next = [...otp];
+    digits.split("").forEach((digit, offset) => {
+      next[index + offset] = digit;
+    });
     setOtp(next);
 
-    if (digit && index < OTP_LENGTH - 1) {
-      refs.current[index + 1]?.focus();
+    const nextIndex = index + digits.length;
+    if (nextIndex < OTP_LENGTH) {
+      refs.current[nextIndex]?.focus();
     }
   }
 
@@ -142,6 +172,26 @@ export default function ForgotPasswordPage() {
     if (event.key === "Backspace" && !otp[index] && index > 0) {
       refs.current[index - 1]?.focus();
     }
+  }
+
+  function handleOtpPaste(
+    event: React.ClipboardEvent<HTMLInputElement>,
+    index: number,
+  ) {
+    event.preventDefault();
+    const digits = event.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH - index);
+    if (!digits) return;
+    const next = [...otp];
+    digits.split("").forEach((digit, offset) => {
+      next[index + offset] = digit;
+    });
+    setOtp(next);
+
+    const nextIndex = index + digits.length;
+    refs.current[Math.min(nextIndex, OTP_LENGTH - 1)]?.focus();
   }
 
   async function sendOtp(event: React.FormEvent<HTMLFormElement>) {
@@ -454,6 +504,7 @@ export default function ForgotPasswordPage() {
                       maxLength={1}
                       onChange={(event) => changeOtp(event.target.value, index)}
                       onKeyDown={(event) => handleOtpKeyDown(event, index)}
+                      onPaste={(event) => handleOtpPaste(event, index)}
                       className="h-12 rounded-xl border border-slate-200 bg-white text-center text-lg font-black outline-none transition focus:border-[#00BFC4] focus:ring-4 focus:ring-[#00BFC4]/15"
                     />
                   ))}
@@ -510,8 +561,11 @@ export default function ForgotPasswordPage() {
                   error={showPasswordError ? passwordError : ""}
                 />
 
-                {showPasswordHelp && (
-                  <PasswordStrength strength={strength} lang={currentLang} />
+                {showRequirements && (
+                  <PasswordRequirements
+                    password={newPassword}
+                    lang={currentLang}
+                  />
                 )}
 
                 <PasswordInput
@@ -894,44 +948,58 @@ function getPasswordStrength(password: string) {
   };
 }
 
-function PasswordStrength({
-  strength,
+function PasswordRequirements({
+  password,
   lang,
 }: {
-  strength: ReturnType<typeof getPasswordStrength>;
+  password: string;
   lang: string;
 }) {
   const items = [
     {
-      pass: strength.hasUpper,
-      label: lang === "mm" ? "အကြီးစာလုံး" : "Uppercase",
+      pass: password.length >= 8,
+      label: lang === "mm" ? "အနည်းဆုံး စာလုံး ၈ လုံး" : "At least 8 characters",
     },
     {
-      pass: strength.hasLower,
-      label: lang === "mm" ? "အသေးစာလုံး" : "Lowercase",
+      pass: /[A-Z]/.test(password),
+      label:
+        lang === "mm" ? "စာလုံးကြီး (A-Z)" : "Upper case (A-Z)",
     },
     {
-      pass: strength.hasNumber,
-      label: lang === "mm" ? "ဂဏန်း" : "Number",
+      pass: /[a-z]/.test(password),
+      label:
+        lang === "mm" ? "စာလုံးငယ် (a-z)" : "Lower case (a-z)",
     },
     {
-      pass: strength.hasSpecial,
-      label: "Symbol",
+      pass: /\d/.test(password),
+      label: lang === "mm" ? "ဂဏန်း (0-9)" : "Number (0-9)",
+    },
+    {
+      pass: /[^A-Za-z0-9]/.test(password),
+      label: lang === "mm" ? "သင်္ကေတ (@#$)" : "Special (@#$)",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="space-y-1.5 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+        {lang === "mm" ? "စကားဝှက် သတ်မှတ်ချက်များ" : "Password requirements"}
+      </p>
       {items.map((item) => (
         <div
           key={item.label}
-          className={`rounded-lg px-3 py-2 text-xs font-black ${
+          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-black ${
             item.pass
               ? "bg-emerald-50 text-emerald-700"
-              : "bg-slate-100 text-slate-500"
+              : "bg-white text-slate-400"
           }`}
         >
-          {item.label}
+          {item.pass ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+          ) : (
+            <Circle className="h-4 w-4 shrink-0 text-slate-300" />
+          )}
+          <span>{item.label}</span>
         </div>
       ))}
     </div>

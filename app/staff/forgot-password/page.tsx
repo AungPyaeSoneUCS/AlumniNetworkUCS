@@ -10,13 +10,13 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  Circle,
   Eye,
   EyeOff,
   KeyRound,
   Loader2,
   LockKeyhole,
   Mail,
-  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { signIn, useSession } from "next-auth/react";
@@ -27,6 +27,81 @@ import { useI18n } from "@/components/providers";
 const OTP_LENGTH = 6;
 
 type Step = "email" | "otp" | "password" | "success";
+
+const text = {
+  en: {
+    badge: "Account Recovery",
+    subtitle: "Staff Reset",
+    hero: "Enter your staff email and we will send you a code to reset your password safely.",
+    backToLogin: "Back to Login",
+    title: "Forgot Password",
+    access: "Enter your staff email to receive a reset code.",
+    steps: ["Email", "OTP", "New Password", "Done"],
+    emailLabel: "Staff Email",
+    emailPlaceholder: "staff@ucsh.edu.mm",
+    sending: "Sending...",
+    sendOtp: "Send OTP",
+    otpSentTo: "OTP sent to:",
+    back: "Back",
+    verifyOtp: "Verify OTP",
+    otpPrompt: "Enter the 6-digit code sent to your email.",
+    passwordLabel: "New Password",
+    passwordPlaceholder: "Enter new password",
+    confirmLabel: "Confirm Password",
+    confirmPlaceholder: "Confirm password",
+    passwordsMatch: "Passwords match.",
+    resetting: "Resetting...",
+    resetPassword: "Reset Password",
+    successTitle: "Password Reset",
+    successText: "Your password has been reset. Signing you in to the Staff Dashboard...",
+    connecting: "Connecting to /staff/dashboard",
+    enterPassword: "Enter your new password.",
+    passwordRequirement:
+      "Use at least 8 characters and 3 of these: uppercase, lowercase, number, or symbol.",
+    footer: "Alumni Network • Staff",
+    errorFillFullOtp: "Please enter the full 6-digit code.",
+    errorSendFailed: "Failed to send the code.",
+    errorSystem: "Something went wrong. Please try again.",
+    errorResetRejected: "Could not reset the password. Please try again.",
+    errorResetFailed: "Something went wrong. Please try again.",
+  },
+  mm: {
+    badge: "အကောင့် ပြန်လည်ရယူခြင်း",
+    subtitle: "Staff စကားဝှက် ပြန်လည်သတ်မှတ်ခြင်း",
+    hero: "သင့် Staff Email ထည့်ပါ။ စကားဝှက် ပြန်လည်သတ်မှတ်ရန် ကုဒ်တစ်ခု ပေးပို့ပါမည်။",
+    backToLogin: "Login သို့ ပြန်သွားရန်",
+    title: "စကားဝှက် မေ့ခဲ့ပါသလား",
+    access: "သင့် Staff Email ထည့်၍ ပြန်လည်သတ်မှတ်ရန် ကုဒ် ရယူပါ။",
+    steps: ["Email", "OTP", "စကားဝှက်အသစ်", "ပြီးပါပြီ"],
+    emailLabel: "Staff Email",
+    emailPlaceholder: "staff@ucsh.edu.mm",
+    sending: "ပို့နေသည်...",
+    sendOtp: "OTP ပို့ရန်",
+    otpSentTo: "OTP ပေးပို့ထားသည် -",
+    back: "နောက်သို့",
+    verifyOtp: "OTP စစ်ဆေးရန်",
+    otpPrompt: "သင့် Email သို့ ပေးပို့ထားသည့် ဂဏန်း ၆ လုံး ကုဒ် ထည့်ပါ။",
+    passwordLabel: "စကားဝှက်အသစ်",
+    passwordPlaceholder: "စကားဝှက်အသစ် ထည့်ပါ",
+    confirmLabel: "စကားဝှက် အတည်ပြု",
+    confirmPlaceholder: "စကားဝှက် ထပ်မံထည့်ပါ",
+    passwordsMatch: "စကားဝှက် တူညီပါသည်။",
+    resetting: "ပြန်လည်သတ်မှတ်နေသည်...",
+    resetPassword: "စကားဝှက် ပြန်လည်သတ်မှတ်ရန်",
+    successTitle: "စကားဝှက် ပြန်လည်သတ်မှတ်ပြီးပါပြီ",
+    successText: "သင့်စကားဝှက်ကို ပြန်လည်သတ်မှတ်ပြီးပါပြီ။ Staff Dashboard သို့ ဝင်ရောက်နေပါသည်...",
+    connecting: "/staff/dashboard သို့ ချိတ်ဆက်နေသည်",
+    enterPassword: "သင့်စကားဝှက်အသစ် ထည့်ပါ။",
+    passwordRequirement:
+      "အနည်းဆုံး စာလုံး ၈ လုံး ရှိရမည်။ စာလုံးကြီး၊ စာလုံးငယ်၊ ဂဏန်း၊ သင်္ကေတ တို့မှ အနည်းဆုံး ၃ မျိုး ပါဝင်ရမည်။",
+    footer: "Alumni Network • Staff",
+    errorFillFullOtp: "ဂဏန်း ၆ လုံး ကုဒ် အပြည့်အစုံ ထည့်ပါ။",
+    errorSendFailed: "ကုဒ် ပေးပို့ရန် မအောင်မြင်ပါ။",
+    errorSystem: "တစ်ခုခု မှားယွင်းသွားပါသည်။ ထပ်ကြိုးစားကြည့်ပါ။",
+    errorResetRejected: "စကားဝှက် ပြန်လည်သတ်မှတ်၍ မရပါ။ ထပ်ကြိုးစားကြည့်ပါ။",
+    errorResetFailed: "တစ်ခုခု မှားယွင်းသွားပါသည်။ ထပ်ကြိုးစားကြည့်ပါ။",
+  },
+};
 
 export default function StaffForgotPasswordPage() {
   const router = useRouter();
@@ -54,8 +129,10 @@ export default function StaffForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showMatchSuccess, setShowMatchSuccess] = useState(false);
+  const [requirementsTimedOut, setRequirementsTimedOut] = useState(false);
 
   const currentLang = lang === "mm" ? "mm" : "en";
+  const t = text[currentLang];
   const otpCode = otp.join("");
 
   const emailError = getEmailError(email, currentLang);
@@ -69,10 +146,18 @@ export default function StaffForgotPasswordPage() {
 
   const isPasswordValid = newPassword.length >= 8 && strength.passedCount >= 3;
 
+  const allRequirementsMet =
+    newPassword.length >= 8 &&
+    /[A-Z]/.test(newPassword) &&
+    /[a-z]/.test(newPassword) &&
+    /\d/.test(newPassword) &&
+    /[^A-Za-z0-9]/.test(newPassword);
+
+  const showRequirements =
+    newPassword.length > 0 && !requirementsTimedOut;
+
   const showEmailError = focused.email && emailError;
   const showPasswordError = focused.password && passwordError;
-  const showPasswordHelp =
-    focused.password && newPassword.length > 0 && !isPasswordValid;
   const showConfirmError = focused.confirmPassword && confirmPasswordError;
 
   const canSendOtp = !emailError && email.trim().length > 0 && !loading;
@@ -84,7 +169,7 @@ export default function StaffForgotPasswordPage() {
     confirmPassword.length > 0 &&
     !loading;
 
-  const steps = ["Staff Email", "Secure OTP", "New Key", "Dashboard"];
+  const steps = t.steps;
   const activeStepIndex =
     step === "email" ? 0 : step === "otp" ? 1 : step === "password" ? 2 : 3;
 
@@ -129,14 +214,35 @@ export default function StaffForgotPasswordPage() {
     setShowMatchSuccess(false);
   }, [focused.confirmPassword, confirmPassword, confirmPasswordError]);
 
+  useEffect(() => {
+    if (newPassword.length === 0) {
+      setRequirementsTimedOut(false);
+      return;
+    }
+
+    if (allRequirementsMet) {
+      const timer = window.setTimeout(
+        () => setRequirementsTimedOut(true),
+        5000,
+      );
+      return () => window.clearTimeout(timer);
+    }
+
+    setRequirementsTimedOut(false);
+  }, [newPassword, allRequirementsMet]);
+
   function changeOtp(value: string, index: number) {
-    const digit = value.replace(/\D/g, "").slice(-1);
+    const digits = value.replace(/\D/g, "").slice(0, OTP_LENGTH - index);
+    if (!digits) return;
     const next = [...otp];
-    next[index] = digit;
+    digits.split("").forEach((digit, offset) => {
+      next[index + offset] = digit;
+    });
     setOtp(next);
 
-    if (digit && index < OTP_LENGTH - 1) {
-      refs.current[index + 1]?.focus();
+    const nextIndex = index + digits.length;
+    if (nextIndex < OTP_LENGTH) {
+      refs.current[nextIndex]?.focus();
     }
   }
 
@@ -147,6 +253,26 @@ export default function StaffForgotPasswordPage() {
     if (event.key === "Backspace" && !otp[index] && index > 0) {
       refs.current[index - 1]?.focus();
     }
+  }
+
+  function handleOtpPaste(
+    event: React.ClipboardEvent<HTMLInputElement>,
+    index: number,
+  ) {
+    event.preventDefault();
+    const digits = event.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH - index);
+    if (!digits) return;
+    const next = [...otp];
+    digits.split("").forEach((digit, offset) => {
+      next[index + offset] = digit;
+    });
+    setOtp(next);
+
+    const nextIndex = index + digits.length;
+    refs.current[Math.min(nextIndex, OTP_LENGTH - 1)]?.focus();
   }
 
   async function sendOtp(event: React.FormEvent<HTMLFormElement>) {
@@ -172,7 +298,7 @@ export default function StaffForgotPasswordPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.error || "Failed to initiate staff reset.");
+        setMessage(data.error || t.errorSendFailed);
         return;
       }
 
@@ -182,7 +308,7 @@ export default function StaffForgotPasswordPage() {
       window.setTimeout(() => refs.current[0]?.focus(), 100);
     } catch (error) {
       console.error("Staff Send OTP failed:", error);
-      setMessage("System verification failed.");
+      setMessage(t.errorSystem);
     } finally {
       setLoading(false);
     }
@@ -191,7 +317,7 @@ export default function StaffForgotPasswordPage() {
   function verifyOtp(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (otpCode.length !== OTP_LENGTH) {
-      setMessage("Please enter the full 6-digit security token.");
+      setMessage(t.errorFillFullOtp);
       return;
     }
     setMessage("");
@@ -231,7 +357,7 @@ export default function StaffForgotPasswordPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.error || "Staff credential update rejected.");
+        setMessage(data.error || t.errorResetRejected);
         return;
       }
 
@@ -254,7 +380,7 @@ export default function StaffForgotPasswordPage() {
       }, 1500);
     } catch (error) {
       console.error("Staff Reset password failed:", error);
-      setMessage("Staff credential update failed.");
+      setMessage(t.errorResetFailed);
     } finally {
       setLoading(false);
     }
@@ -265,7 +391,7 @@ export default function StaffForgotPasswordPage() {
       <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
         <div className="animate-card-in flex items-center gap-3 rounded-3xl border border-white/20 bg-white/10 px-6 py-5 text-sm font-black shadow-xl backdrop-blur-xl">
           <Loader2 className="h-5 w-5 animate-spin text-[#77edec]" />
-          Verifying staff clearance...
+          {currentLang === "mm" ? "စစ်ဆေးနေသည်..." : "Verifying..."}
         </div>
       </main>
     );
@@ -294,7 +420,7 @@ export default function StaffForgotPasswordPage() {
         <div className="admin-hero-in max-w-4xl">
           <div className="admin-fade-up inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-4 py-2 text-sm font-black text-white shadow-xl backdrop-blur-xl">
             <Sparkles className="sparkle h-4 w-4 text-[#f1cd72]" />
-             Account Recovery
+             {t.badge}
           </div>
 
           <h1 className="admin-title mt-6 text-5xl font-black leading-tight tracking-tight drop-shadow-2xl sm:text-6xl lg:text-7xl">
@@ -302,12 +428,12 @@ export default function StaffForgotPasswordPage() {
               Alumni Network
             </span>
             <span className="block text-white hero-stroke-gold">
-              Staff Reset
+              {t.subtitle}
             </span>
           </h1>
 
           <p className="admin-fade-up-delay mt-5 max-w-2xl text-base font-semibold leading-8 text-white/80 sm:text-lg">
-            Execute an encrypted passkey override. All staff verification tokens and recovery handshakes are logged strictly to the central security audit ledger.
+            {t.hero}
           </p>
         </div>
 
@@ -320,7 +446,7 @@ export default function StaffForgotPasswordPage() {
               className="mb-6 inline-flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-600 transition hover:bg-slate-200"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Login
+              {t.backToLogin}
             </Link>
 
             <div className="text-center">
@@ -328,9 +454,9 @@ export default function StaffForgotPasswordPage() {
                 <KeyRound className="h-8 w-8" />
               </div>
 
-              <h2 className="mt-4 text-3xl font-black">Recovery Portal</h2>
+              <h2 className="mt-4 text-3xl font-black">{t.title}</h2>
               <p className="mt-2 text-sm font-bold text-slate-500">
-                Authorized Staff Access
+                {t.access}
               </p>
             </div>
 
@@ -360,11 +486,11 @@ export default function StaffForgotPasswordPage() {
             {step === "email" && (
               <form onSubmit={sendOtp} className="space-y-5">
                 <InputField
-                  label="Staff Email"
+                  label={t.emailLabel}
                   type="email"
                   value={email}
                   onChange={(val) => { setEmail(val); setMessage(""); }}
-                  placeholder="staff@ucsh.edu.mm"
+                  placeholder={t.emailPlaceholder}
                   icon={<Mail className="h-5 w-5" />}
                   error={showEmailError ? emailError : ""}
                 />
@@ -373,11 +499,11 @@ export default function StaffForgotPasswordPage() {
                   {loading ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      Requesting Clearance...
+                      {t.sending}
                     </>
                   ) : (
                     <>
-                      Transmit Security Token
+                      {t.sendOtp}
                       <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                     </>
                   )}
@@ -389,7 +515,10 @@ export default function StaffForgotPasswordPage() {
             {step === "otp" && (
               <form onSubmit={verifyOtp} className="space-y-5">
                 <p className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-center text-sm font-black text-[#008B8B]">
-                  Token sent to: {email}
+                  {t.otpPrompt}
+                </p>
+                <p className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-center text-sm font-black text-[#008B8B]">
+                  {t.otpSentTo} {email}
                 </p>
 
                 <div className="grid grid-cols-6 gap-2">
@@ -402,7 +531,8 @@ export default function StaffForgotPasswordPage() {
                       maxLength={1}
                       onChange={(event) => changeOtp(event.target.value, index)}
                       onKeyDown={(event) => handleOtpKeyDown(event, index)}
-                      className="h-13 rounded-2xl border border-slate-200 bg-slate-50 text-center text-lg font-black text-slate-900 outline-none transition focus:border-[#00BFC4] focus:bg-white focus:ring-4 focus:ring-cyan-100"
+                      onPaste={(event) => handleOtpPaste(event, index)}
+                      className="h-12 rounded-xl border border-slate-200 bg-white text-center text-lg font-black text-slate-900 outline-none transition focus:border-[#00BFC4] focus:ring-4 focus:ring-[#00BFC4]/15"
                     />
                   ))}
                 </div>
@@ -413,11 +543,11 @@ export default function StaffForgotPasswordPage() {
                     onClick={() => { setMessage(""); setStep("email"); }}
                     className="h-14 rounded-2xl border border-slate-200 bg-slate-100 text-sm font-black text-slate-600 transition hover:bg-slate-200"
                   >
-                    Abort
+                    {t.back}
                   </button>
 
                   <PrimaryButton disabled={otpCode.length !== OTP_LENGTH}>
-                    Authorize Token
+                    {t.verifyOtp}
                   </PrimaryButton>
                 </div>
               </form>
@@ -426,33 +556,40 @@ export default function StaffForgotPasswordPage() {
             {/* STEP 3: NEW PASSWORD */}
             {step === "password" && (
               <form onSubmit={resetPassword} className="space-y-4">
+                <p className="text-center text-xs font-bold text-slate-400">
+                  {t.enterPassword}
+                </p>
+
                 <PasswordField
-                  label="New Staff Key"
+                  label={t.passwordLabel}
                   value={newPassword}
                   onChange={(val) => { setNewPassword(val); setMessage(""); }}
                   show={showPassword}
                   setShow={setShowPassword}
-                  placeholder="Enter encrypted passkey"
+                  placeholder={t.passwordPlaceholder}
                   error={showPasswordError ? passwordError : ""}
                 />
 
-                {showPasswordHelp && (
-                  <PasswordStrength strength={strength} />
+                {showRequirements && (
+                  <PasswordRequirements
+                    password={newPassword}
+                    lang={currentLang}
+                  />
                 )}
 
                 <PasswordField
-                  label="Confirm Staff Key"
+                  label={t.confirmLabel}
                   value={confirmPassword}
                   onChange={(val) => { setConfirmPassword(val); setMessage(""); }}
                   show={showConfirmPassword}
                   setShow={setShowConfirmPassword}
-                  placeholder="Re-verify passkey"
+                  placeholder={t.confirmPlaceholder}
                   error={showConfirmError ? confirmPasswordError : ""}
                 />
 
                 {showMatchSuccess && (
                   <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-center text-xs font-black text-emerald-700">
-                    Passkey parity verified.
+                    {t.passwordsMatch}
                   </p>
                 )}
 
@@ -462,17 +599,17 @@ export default function StaffForgotPasswordPage() {
                     onClick={() => { setMessage(""); setStep("otp"); }}
                     className="h-14 rounded-2xl border border-slate-200 bg-slate-100 text-sm font-black text-slate-600 transition hover:bg-slate-200"
                   >
-                    Back
+                    {t.back}
                   </button>
 
                   <PrimaryButton disabled={!canReset || loading}>
                     {loading ? (
                       <>
                         <Loader2 className="h-5 w-5 animate-spin" />
-                        Hydrating...
+                        {t.resetting}
                       </>
                     ) : (
-                      "Commit & Login"
+                      t.resetPassword
                     )}
                   </PrimaryButton>
                 </div>
@@ -487,22 +624,22 @@ export default function StaffForgotPasswordPage() {
                 </div>
 
                 <h3 className="mt-5 text-2xl font-black text-slate-900">
-                  Clearance Granted
+                  {t.successTitle}
                 </h3>
 
                 <p className="mt-2 text-xs font-bold leading-relaxed text-slate-500 max-w-xs mx-auto">
-                  Cryptographic override successful. Rerouting authenticated session directly to the Staff Dashboard...
+                  {t.successText}
                 </p>
 
                 <div className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-cyan-50 px-4 py-2.5 text-xs font-black text-[#008B8B]">
                   <Loader2 size={16} className="animate-spin" />
-                  Connecting to /staff/dashboard
+                  {t.connecting}
                 </div>
               </div>
             )}
 
             <p className="mt-8 text-center text-xs font-bold text-slate-400">
-              © {new Date().getFullYear()} Alumni Network • Staff Control
+              © {new Date().getFullYear()} {t.footer}
             </p>
           </div>
         </div>
@@ -738,21 +875,38 @@ function PrimaryButton({
 function getEmailError(email: string, lang: string) {
   const value = email.trim();
   if (!value) return "";
-  if (!value.includes("@")) return "Staff email must contain @ symbol.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Invalid email address format.";
+  if (!value.includes("@"))
+    return lang === "mm" ? "Email တွင် @ ပါဝင်ရပါမည်။" : "Email must include @.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+    return lang === "mm" ? "Email ပုံစံ မမှန်ပါ။" : "Invalid email format.";
   return "";
 }
 
-function getPasswordError(password: string, strength: ReturnType<typeof getPasswordStrength>, lang: string) {
+function getPasswordError(
+  password: string,
+  strength: ReturnType<typeof getPasswordStrength>,
+  lang: string,
+) {
   if (!password) return "";
-  if (password.length < 8) return "Password must be at least 8 characters.";
-  if (strength.passedCount < 3) return "Password requires at least 3 types (Upper, Lower, Number, Symbol).";
+  if (password.length < 8)
+    return lang === "mm"
+      ? "စကားဝှက်သည် အနည်းဆုံး စာလုံး ၈ လုံး ရှိရမည်။"
+      : "Password must be at least 8 characters.";
+  if (strength.passedCount < 3)
+    return lang === "mm"
+      ? "စကားဝှက်တွင် (စာလုံးကြီး၊ စာလုံးငယ်၊ ဂဏန်း၊ သင်္ကေတ) အနည်းဆုံး ၃ မျိုး ပါဝင်ရမည်။"
+      : "Password needs at least 3 types (Upper, Lower, Number, Symbol).";
   return "";
 }
 
-function getConfirmPasswordError(password: string, confirmPassword: string, lang: string) {
+function getConfirmPasswordError(
+  password: string,
+  confirmPassword: string,
+  lang: string,
+) {
   if (!confirmPassword) return "";
-  if (password !== confirmPassword) return "Passwords do not match.";
+  if (password !== confirmPassword)
+    return lang === "mm" ? "စကားဝှက် နှစ်ခု မတူပါ။" : "Passwords do not match.";
   return "";
 }
 
@@ -761,24 +915,57 @@ function getPasswordStrength(password: string) {
   return { passedCount: checks.filter(Boolean).length, hasUpper: checks[0], hasLower: checks[1], hasNumber: checks[2], hasSpecial: checks[3] };
 }
 
-function PasswordStrength({ strength }: { strength: ReturnType<typeof getPasswordStrength> }) {
+function PasswordRequirements({
+  password,
+  lang,
+}: {
+  password: string;
+  lang: string;
+}) {
   const items = [
-    { pass: strength.hasUpper, label: "ABC Upper" },
-    { pass: strength.hasLower, label: "abc Lower" },
-    { pass: strength.hasNumber, label: "123 Number" },
-    { pass: strength.hasSpecial, label: "@#$ Symbol" },
+    {
+      pass: password.length >= 8,
+      label:
+        lang === "mm" ? "အနည်းဆုံး စာလုံး ၈ လုံး" : "At least 8 characters",
+    },
+    {
+      pass: /[A-Z]/.test(password),
+      label: lang === "mm" ? "စာလုံးကြီး (A-Z)" : "Upper case (A-Z)",
+    },
+    {
+      pass: /[a-z]/.test(password),
+      label: lang === "mm" ? "စာလုံးငယ် (a-z)" : "Lower case (a-z)",
+    },
+    {
+      pass: /\d/.test(password),
+      label: lang === "mm" ? "ဂဏန်း (0-9)" : "Number (0-9)",
+    },
+    {
+      pass: /[^A-Za-z0-9]/.test(password),
+      label: lang === "mm" ? "သင်္ကေတ (@#$)" : "Special (@#$)",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-1.5 pt-1">
+    <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-slate-50/60 p-3">
+      <p className="text-[11px] font-black uppercase tracking-wide text-slate-400">
+        {lang === "mm" ? "စကားဝှက် သတ်မှတ်ချက်များ" : "Password requirements"}
+      </p>
       {items.map((item) => (
         <div
           key={item.label}
-          className={`rounded-xl px-3 py-2 text-center text-xs font-black ${
-            item.pass ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-400"
+          className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-black ${
+            item.pass
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+              : "bg-white text-slate-400 border border-slate-200"
           }`}
         >
-          {item.label}
+          {item.pass ? (
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+          ) : (
+            <Circle className="h-4 w-4 shrink-0 text-slate-300" />
+          )}
+          <span>{item.label}</span>
         </div>
       ))}
     </div>
