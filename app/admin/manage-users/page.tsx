@@ -121,6 +121,31 @@ function getGraduatedYear(user: any, t?: typeof text.en) {
     : t?.unknown || "Unknown";
 }
 
+// Extract the leading cohort year (e.g. "2028" from "2028 (Senior)") so
+// suffixed labels like Senior/Junior sort under the same period as plain years.
+function cohortYear(value: string) {
+  const match = String(value).match(/(\d{4})/);
+  const parsed = match ? Number(match[1]) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+// Same-year ordering: Senior before Junior before plain year labels.
+function periodRank(label: string) {
+  const lower = String(label).toLowerCase();
+  if (lower.includes("senior")) return 0;
+  if (lower.includes("junior")) return 1;
+  return 2;
+}
+
+// Sort years descending: 2029, 2028 (Senior), 2028 (Junior), 2027 (Senior),
+// 2027 (Junior), 2026, 2025, 2024.
+function sortPeriodDesc(a: string, b: string) {
+  const ya = cohortYear(a) ?? -Infinity;
+  const yb = cohortYear(b) ?? -Infinity;
+  if (ya !== yb) return yb - ya;
+  return periodRank(a) - periodRank(b);
+}
+
 function getPhone(user: any, t?: typeof text.en) {
   return (
     cleanText(user?.contactInfo?.phone) ||
@@ -537,7 +562,7 @@ export default async function AdminManageUsersPage({
         .map((user) => getGraduatedYear(user))
         .filter((year) => year && year !== "Unknown"),
     ),
-  ).sort((a, b) => Number(b) - Number(a));
+  ).sort(sortPeriodDesc);
 
   let filteredUsers = users.filter((user) => {
     const name = cleanText(user.name).toLowerCase();

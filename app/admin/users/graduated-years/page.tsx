@@ -564,11 +564,13 @@ export default async function AdminGraduatedYearsPage({
   });
 
   // Degrees present in the filtered data (from the DB), one table column each.
+  // "Unknown" (no degree on file) is kept so per-year totals match the
+  // dashboard / manage-users "Graduates by Year" counts.
   const degreeColumns = Array.from(
     new Set(
       filteredUsers
         .map((user) => getDegree(user))
-        .filter((degree) => degree && degree !== "Unknown"),
+        .filter((degree) => !!degree),
     ),
   ).sort((a, b) => a.localeCompare(b));
 
@@ -578,9 +580,11 @@ export default async function AdminGraduatedYearsPage({
   filteredUsers.forEach((user) => {
     const year = getGraduatedYear(user);
     const degree = getDegree(user);
-    // Exclude unknown graduated years AND unknown degrees so the graph,
-    // summary count, pivot table and exports all stay consistent.
-    if (year === "Unknown" || degree === "Unknown") return;
+    // Exclude only Unknown graduated years so the graph, summary count,
+    // pivot table and exports all stay consistent with the dashboard /
+    // manage-users alumni-by-year counts. Unknown degrees are kept in an
+    // "Unknown" pivot column.
+    if (year === "Unknown") return;
 
     yearMap.set(year, (yearMap.get(year) || 0) + 1);
     if (!cellMap.has(year)) cellMap.set(year, new Map());
