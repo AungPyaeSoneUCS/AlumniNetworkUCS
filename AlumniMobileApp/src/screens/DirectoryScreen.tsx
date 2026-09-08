@@ -4,7 +4,6 @@ import {
   View,
   Text,
   FlatList,
-  TextInput,
   ActivityIndicator,
   RefreshControl,
   StyleSheet,
@@ -12,7 +11,6 @@ import {
   ScrollView,
   Linking,
   Alert,
-  Animated,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,8 +18,8 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import api from '../services/api';
+import { GradientBackground, SearchBar, FilterChip, EmptyState, ScreenHeader, ActionIconButton, Avatar, useTheme } from '../components';
 
 // 1. IMPORT GLOBAL CONTEXT
 import { useAppContext } from "../context/AppContext";
@@ -216,18 +214,6 @@ export default function DirectoryScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const isFetchingRef = useRef(false);
 
-  // Theme Animation
-  const themeAnim = useRef(new Animated.Value(isDarkMode ? 1 : 0)).current;
-
-  // Sync animation when the global theme changes
-  useEffect(() => {
-    Animated.timing(themeAnim, {
-      toValue: isDarkMode ? 1 : 0,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-  }, [isDarkMode, themeAnim]);
-
   // 1. STRICT AUTH CHECK: Run immediately when screen mounts
   useEffect(() => {
     async function enforceAuth() {
@@ -375,82 +361,35 @@ export default function DirectoryScreen({ navigation }: any) {
     <View style={styles.root}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
-      {/* --- ANIMATED BACKGROUND GRADIENTS --- */}
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
-        <LinearGradient colors={["#eaffff", "#f8fafc"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim }]}>
-        <LinearGradient colors={["#0f172a", "#1e293b"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
+      <GradientBackground isDarkMode={isDarkMode} />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: textColor }]}>{t.title}</Text>
-          
-          <View style={styles.topBarRight}>
-            <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={toggleTheme}>
-              <Ionicons name={isDarkMode ? "moon" : "sunny"} size={16} color={isDarkMode ? "#f1cd72" : "#f59e0b"} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.langToggle, { backgroundColor: actionBg }]} onPress={() => setLang(lang === 'en' ? 'mm' : 'en')}>
-              <Text style={{ color: isDarkMode ? "#ffffff" : "#008B8B", fontSize: 12, fontWeight: "800" }}>{lang === 'en' ? 'MM' : 'EN'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={handleProfilePress}>
-              <Ionicons name="person-outline" size={16} color={isDarkMode ? "#ffffff" : "#008B8B"} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScreenHeader title={t.title}>
+          <ActionIconButton icon="person-outline" onPress={handleProfilePress} />
+        </ScreenHeader>
 
         <View style={styles.contentHeader}>
-          <View style={[styles.searchContainer, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-            <Feather name="search" size={16} color={subTextColor} style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchBar, { color: textColor }]}
-              placeholder={t.searchPlaceholder}
-              placeholderTextColor={isDarkMode ? '#64748b' : '#94a3b8'}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-            />
-          </View>
+          <SearchBar
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            containerStyle={{ marginBottom: 12 }}
+          />
 
           {/* Degree Filters */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
-            <TouchableOpacity 
-              style={[styles.filterChip, { backgroundColor: cardBg, borderColor: cardBorder }, selectedDegree === '' && styles.filterChipActive]}
-              onPress={() => setSelectedDegree('')}
-            >
-              <Text style={[styles.filterChipText, { color: subTextColor }, selectedDegree === '' && styles.filterChipTextActive]}>{t.allDegrees}</Text>
-            </TouchableOpacity>
+            <FilterChip label={t.allDegrees} active={selectedDegree === ''} onPress={() => setSelectedDegree('')} />
             {DEGREES.map((deg) => (
-              <TouchableOpacity 
-                key={deg}
-                style={[styles.filterChip, { backgroundColor: cardBg, borderColor: cardBorder }, selectedDegree === deg && styles.filterChipActive]}
-                onPress={() => setSelectedDegree(deg)}
-              >
-                <Text style={[styles.filterChipText, { color: subTextColor }, selectedDegree === deg && styles.filterChipTextActive]}>{deg}</Text>
-              </TouchableOpacity>
+              <FilterChip key={deg} label={deg} active={selectedDegree === deg} onPress={() => setSelectedDegree(deg)} />
             ))}
           </ScrollView>
 
           {/* Year Filters */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
-            <TouchableOpacity 
-              style={[styles.filterChip, { backgroundColor: cardBg, borderColor: cardBorder }, selectedYear === '' && styles.filterChipActive]}
-              onPress={() => setSelectedYear('')}
-            >
-              <Text style={[styles.filterChipText, { color: subTextColor }, selectedYear === '' && styles.filterChipTextActive]}>{t.allYears}</Text>
-            </TouchableOpacity>
+            <FilterChip label={t.allYears} active={selectedYear === ''} onPress={() => setSelectedYear('')} />
             {availableYears.map((yr) => (
-              <TouchableOpacity 
-                key={yr}
-                style={[styles.filterChip, { backgroundColor: cardBg, borderColor: cardBorder }, selectedYear === yr && styles.filterChipActive]}
-                onPress={() => setSelectedYear(yr)}
-              >
-                <Text style={[styles.filterChipText, { color: subTextColor }, selectedYear === yr && styles.filterChipTextActive]}>{yr}</Text>
-              </TouchableOpacity>
+              <FilterChip key={yr} label={yr} active={selectedYear === yr} onPress={() => setSelectedYear(yr)} />
             ))}
           </ScrollView>
         </View>
@@ -474,10 +413,7 @@ export default function DirectoryScreen({ navigation }: any) {
           }
           ListEmptyComponent={
             !loading && !refreshing ? (
-              <View style={styles.emptyContainer}>
-                <Feather name="users" size={36} color={subTextColor} style={{ marginBottom: 10 }} />
-                <Text style={[styles.emptyText, { color: subTextColor }]}>{t.noAlumni}</Text>
-              </View>
+              <EmptyState icon="users" message={t.noAlumni} />
             ) : (
               <ActivityIndicator size="large" color="#008B8B" style={{ marginTop: 40 }} />
             )

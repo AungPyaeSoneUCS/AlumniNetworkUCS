@@ -20,6 +20,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import AlumniDetailScreen from './src/screens/AlumniDetailScreen';
 import MessagesScreen from './src/screens/MessagesScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import JobApplyScreen from './src/screens/JobApplyScreen';
 
 // --- 1. Navigation Parameter Types ---
 export type RootStackParamList = {
@@ -31,6 +32,7 @@ export type RootStackParamList = {
   AlumniDetail: { userId?: string; alumniId?: string };
   Messages: { recipientId?: string } | undefined;
   Settings: undefined;
+  JobApply: { job?: any } | undefined;
 };
 
 export type TabParamList = {
@@ -159,6 +161,7 @@ export default function App() {
             <Stack.Screen name="AlumniDetail" component={AlumniDetailScreen} options={{ animation: 'slide_from_right' }} />
             <Stack.Screen name="Messages" component={MessagesScreen} options={{ animation: 'slide_from_bottom' }} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ animation: 'slide_from_right' }} />
+            <Stack.Screen name="JobApply" component={JobApplyScreen} options={{ animation: 'slide_from_bottom' }} />
           </Stack.Navigator>
         </NavigationContainer>
       </AppProvider>

@@ -11,7 +11,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Animated,
   StatusBar,
   Keyboard,
   RefreshControl,
@@ -20,9 +19,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import api from "../services/api";
 import { useAppContext } from "../context/AppContext";
+import { subscribeChat, RealtimeMessage } from "../services/realtime";
+import { ScreenHeader, SearchBar, EmptyState, Avatar, GradientBackground } from "../components";
 
 type Lang = "en" | "mm";
 
@@ -156,16 +156,6 @@ export default function MessagesScreen({ navigation, route }: any) {
   const [editText, setEditText] = useState("");
 
   const flatListRef = useRef<FlatList>(null);
-  const themeAnim = useRef(new Animated.Value(isDarkMode ? 1 : 0)).current;
-
-  // Theme animation sync
-  useEffect(() => {
-    Animated.timing(themeAnim, {
-      toValue: isDarkMode ? 1 : 0,
-      duration: 350,
-      useNativeDriver: true,
-    }).start();
-  }, [isDarkMode, themeAnim]);
 
   // Auth check & init
   useEffect(() => {
@@ -245,17 +235,42 @@ export default function MessagesScreen({ navigation, route }: any) {
     [navigation, t]
   );
 
-  // Polling for real-time messages when in chat room
+  // Real-time message sync via Pusher (replaces polling)
   useEffect(() => {
     if (!selectedUser?._id) return;
     loadMessages(selectedUser._id);
 
-    const intervalId = setInterval(() => {
-      loadMessages(selectedUser._id, true);
-    }, 4000);
+    // Subscribe to the chat channel for this conversation
+    const unsubscribe = subscribeChat(selectedUser._id, (incoming: RealtimeMessage) => {
+      setMessages((prev) => {
+        // Ignore messages not part of this conversation
+        const otherUserId =
+          typeof incoming.sender === "object" ? incoming.sender?._id : null;
+        if (
+          otherUserId &&
+          String(otherUserId) !== String(selectedUser._id) &&
+          String(otherUserId) !== String(me?._id)
+        ) {
+          return prev;
+        }
 
-    return () => clearInterval(intervalId);
-  }, [selectedUser?._id, loadMessages]);
+        // Merge/replace the message by id (handles new, edit, delete, reaction)
+        const exists = prev.some((m: any) => String(m._id) === String(incoming._id));
+        if (exists) {
+          return prev.map((m: any) =>
+            String(m._id) === String(incoming._id) ? { ...m, ...incoming } : m
+          );
+        }
+
+        const newMessage: Message = incoming as unknown as Message;
+        return [...prev, newMessage];
+      });
+
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+
+    return () => unsubscribe();
+  }, [selectedUser?._id, loadMessages, me?._id]);
 
   const handleSelectUser = (user: UserInfo) => {
     setSelectedUser(user);
@@ -401,43 +416,18 @@ export default function MessagesScreen({ navigation, route }: any) {
   // --- RENDER USER DIRECTORY LIST ---
   const renderUserList = () => (
     <View style={styles.flex1}>
-      <View style={styles.topBar}>
-        <View style={styles.topBarLeft}>
-          <View style={styles.topIconBox}>
-            <Ionicons name="chatbubbles" size={20} color="#ffffff" />
-          </View>
-          <View>
-            <Text style={[styles.screenTitle, { color: textColor }]}>{t.title}</Text>
-            <Text style={[styles.screenSubtitle, { color: subTextColor }]}>{t.subtitle}</Text>
-          </View>
-        </View>
-
-        <View style={styles.topBarRight}>
-          <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={toggleTheme}>
-            <Ionicons name={isDarkMode ? "moon" : "sunny"} size={16} color={isDarkMode ? "#f1cd72" : "#f59e0b"} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.langToggle, { backgroundColor: actionBg }]}
-            onPress={() => setLang(lang === "en" ? "mm" : "en")}
-          >
-            <Text style={{ color: isDarkMode ? "#ffffff" : "#008B8B", fontSize: 12, fontWeight: "800" }}>
-              {lang === "en" ? "MM" : "EN"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        title={t.title}
+        subtitle={t.subtitle}
+        icon="chatbubbles"
+      />
 
       <View style={styles.searchWrapper}>
-        <View style={[styles.searchBox, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-          <Feather name="search" size={16} color={subTextColor} />
-          <TextInput
-            style={[styles.searchInput, { color: textColor }]}
-            placeholder={t.searchPlaceholder}
-            placeholderTextColor={isDarkMode ? "#64748b" : "#94a3b8"}
-            value={search}
-            onChangeText={setSearch}
-          />
-        </View>
+        <SearchBar
+          placeholder={t.searchPlaceholder}
+          value={search}
+          onChangeText={setSearch}
+        />
       </View>
 
       {loadingUsers ? (
@@ -451,24 +441,15 @@ export default function MessagesScreen({ navigation, route }: any) {
             <RefreshControl refreshing={refreshingUsers} onRefresh={() => loadUsers(true)} tintColor="#008B8B" />
           }
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: subTextColor }]}>{t.noAlumni}</Text>
-            </View>
+            <EmptyState icon="users" message={t.noAlumni} />
           }
           renderItem={({ item }) => {
-            const avatarUrl = getImageUrl(item);
             return (
               <TouchableOpacity
                 style={[styles.userCard, { backgroundColor: cardBg, borderColor: cardBorder }]}
                 onPress={() => handleSelectUser(item)}
               >
-                {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.userAvatar} contentFit="cover" cachePolicy="memory-disk" />
-                ) : (
-                  <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                    <Text style={styles.avatarLetter}>{item.name ? item.name.charAt(0).toUpperCase() : "U"}</Text>
-                  </View>
-                )}
+                <Avatar user={item} size={46} />
                 <View style={styles.userInfo}>
                   <Text style={[styles.userName, { color: textColor }]}>{item.name || t.unknown}</Text>
                   <Text style={[styles.userMeta, { color: subTextColor }]}>
@@ -677,13 +658,7 @@ export default function MessagesScreen({ navigation, route }: any) {
     <View style={styles.root}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
-      {/* Animated Background Gradients */}
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
-        <LinearGradient colors={["#eaffff", "#f8fafc"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim }]}>
-        <LinearGradient colors={["#0f172a", "#1e293b"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
+      <GradientBackground isDarkMode={isDarkMode} />
 
       <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
         {selectedUser ? renderChatRoom() : renderUserList()}

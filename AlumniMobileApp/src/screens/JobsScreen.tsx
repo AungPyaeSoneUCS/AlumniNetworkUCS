@@ -23,6 +23,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { jobsApi, Job as JobItem } from '../services/api';
 import { useAppContext } from '../context/AppContext';
+import { GradientBackground, SearchBar, FilterChip, EmptyState, ScreenHeader, Card, ActionIconButton, useTheme } from '../components';
 
 const DOMAIN = 'https://alumni.ucsh.edu.mm';
 
@@ -40,6 +41,7 @@ const translations = {
     searchPlaceholder: "Search job title, company, or keyword...",
     noJobs: "No job opportunities matched with your experiences.",
     connect: "Connect",
+    apply: "Apply",
     cancel: "Cancel",
     delete: "Delete",
     posted: "Posted",
@@ -58,6 +60,7 @@ const translations = {
     searchPlaceholder: "ရာထူး၊ ကုမ္ပဏီ သို့မဟုတ် သော့ချက်စာလုံး ရှာရန်...",
     noJobs: "သင့်အတွေ့အကြုံများနှင့် ကိုက်ညီသော အလုပ် မတွေ့ပါသေးပါ။",
     connect: "ချိတ်ဆက်မည်",
+    apply: "အလုပ်လျှောက်မည်",
     cancel: "မလုပ်တော့ပါ",
     delete: "ဖျက်မည်",
     posted: "တင်ခဲ့သည်",
@@ -131,6 +134,7 @@ const JobCard = memo(({
   currentUserId,
   onPress,
   onConnect,
+  onApply,
   onDelete,
   t,
   lang,
@@ -145,6 +149,7 @@ const JobCard = memo(({
   currentUserId: string;
   onPress: (item: JobItem) => void;
   onConnect: (item: JobItem) => void;
+  onApply: (item: JobItem) => void;
   onDelete: (jobId: string) => void;
   t: any;
   lang: Lang;
@@ -238,13 +243,23 @@ const JobCard = memo(({
           {item.createdAt ? `${t.posted} ${timeAgo(item.createdAt)}` : ''}
         </Text>
 
-        <TouchableOpacity
-          style={[styles.applyBtn, { backgroundColor: actionBtnBg }]}
-          onPress={() => onConnect(item)}
-        >
-          <Text style={styles.applyBtnText}>{t.connect}</Text>
-          <Ionicons name="person-add-outline" size={14} color="#008B8B" />
-        </TouchableOpacity>
+        <View style={styles.footerActions}>
+          {!isOwner && (
+            <TouchableOpacity
+              style={[styles.applyBtnPrimary]}
+              onPress={() => onApply(item)}
+            >
+              <Text style={styles.applyBtnPrimaryText}>{t.apply}</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.applyBtn, { backgroundColor: actionBtnBg }]}
+            onPress={() => onConnect(item)}
+          >
+            <Text style={styles.applyBtnText}>{t.connect}</Text>
+            <Ionicons name="person-add-outline" size={14} color="#008B8B" />
+          </TouchableOpacity>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -264,16 +279,6 @@ export default function JobsScreen({ navigation }: any) {
   const isFetchingRef = useRef(false);
 
   const [selectedJob, setSelectedJob] = useState<JobItem | null>(null);
-
-  const themeAnim = useRef(new Animated.Value(isDarkMode ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.timing(themeAnim, {
-      toValue: isDarkMode ? 1 : 0,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-  }, [isDarkMode, themeAnim]);
 
   useEffect(() => {
     async function enforceAuth() {
@@ -365,6 +370,10 @@ export default function JobsScreen({ navigation }: any) {
     }
   }, [currentUserId, navigation, t]);
 
+  const handleApply = useCallback((job: JobItem) => {
+    navigation.navigate('JobApply', { job });
+  }, [navigation]);
+
   const filteredJobs = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return jobs.filter((job) => {
@@ -401,6 +410,7 @@ export default function JobsScreen({ navigation }: any) {
       currentUserId={currentUserId}
       onPress={(job) => setSelectedJob(job)}
       onConnect={handleConnect}
+      onApply={handleApply}
       onDelete={handleDeleteJob}
       t={t}
       lang={lang}
@@ -411,7 +421,7 @@ export default function JobsScreen({ navigation }: any) {
       cardBorder={cardBorder}
       actionBtnBg={actionBtnBg}
     />
-  ), [currentUserId, handleConnect, handleDeleteJob, t, lang, isDarkMode, textColor, subTextColor, cardBg, cardBorder, actionBtnBg]);
+  ), [currentUserId, handleConnect, handleApply, handleDeleteJob, t, lang, isDarkMode, textColor, subTextColor, cardBg, cardBorder, actionBtnBg]);
 
   const filterOptions = ['All', ...JOB_TYPES];
 
@@ -419,62 +429,35 @@ export default function JobsScreen({ navigation }: any) {
     <View style={styles.root}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
-        <LinearGradient colors={["#eaffff", "#f8fafc"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim }]}>
-        <LinearGradient colors={["#0f172a", "#1e293b"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
+      <GradientBackground isDarkMode={isDarkMode} />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: textColor }]}>{t.title}</Text>
-
-          <View style={styles.topBarRight}>
-            <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={toggleTheme}>
-              <Ionicons name={isDarkMode ? "moon" : "sunny"} size={16} color={isDarkMode ? "#f1cd72" : "#f59e0b"} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.langToggle, { backgroundColor: actionBg }]} onPress={() => setLang(lang === 'en' ? 'mm' : 'en')}>
-              <Text style={{ color: isDarkMode ? "#ffffff" : "#008B8B", fontSize: 12, fontWeight: "800" }}>{lang === 'en' ? 'MM' : 'EN'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={handleProfilePress}>
-              <Ionicons name="person-outline" size={16} color={isDarkMode ? "#ffffff" : "#008B8B"} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScreenHeader
+          title={t.title}
+          icon={undefined}
+        >
+          <ActionIconButton icon="person-outline" onPress={handleProfilePress} />
+        </ScreenHeader>
 
         {/* Search & Filter */}
         <View style={styles.contentHeader}>
-          <View style={[styles.searchContainer, { backgroundColor: cardBg, borderColor: cardBorder }]}>
-            <Feather name="search" size={16} color={subTextColor} style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchBar, { color: textColor }]}
-              placeholder={t.searchPlaceholder}
-              placeholderTextColor={isDarkMode ? '#64748b' : '#94a3b8'}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              autoCapitalize="none"
-            />
-          </View>
+          <SearchBar
+            placeholder={t.searchPlaceholder}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            containerStyle={{ marginBottom: 12 }}
+          />
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
-            {filterOptions.map((type) => {
-              const isActive = selectedType === type;
-              return (
-                <TouchableOpacity
-                  key={type}
-                  style={[styles.filterChip, { backgroundColor: cardBg, borderColor: cardBorder }, isActive && styles.filterChipActive]}
-                  onPress={() => setSelectedType(type)}
-                >
-                  <Text style={[styles.filterChipText, { color: subTextColor }, isActive && styles.filterChipTextActive]}>
-                    {jobTypeLabels[lang][type] || type}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            {filterOptions.map((type) => (
+              <FilterChip
+                key={type}
+                label={jobTypeLabels[lang][type] || type}
+                active={selectedType === type}
+                onPress={() => setSelectedType(type)}
+              />
+            ))}
           </ScrollView>
         </View>
 
@@ -498,10 +481,7 @@ export default function JobsScreen({ navigation }: any) {
           }
           ListEmptyComponent={
             !loading && !refreshing ? (
-              <View style={styles.emptyContainer}>
-                <Feather name="briefcase" size={36} color={subTextColor} style={{ marginBottom: 10 }} />
-                <Text style={[styles.emptyText, { color: subTextColor }]}>{t.noJobs}</Text>
-              </View>
+              <EmptyState icon="briefcase" message={t.noJobs} />
             ) : (
               <ActivityIndicator size="large" color="#008B8B" style={{ marginTop: 40 }} />
             )
@@ -577,6 +557,18 @@ export default function JobsScreen({ navigation }: any) {
                 >
                   <Text style={styles.submitBtnText}>{t.connect}</Text>
                 </TouchableOpacity>
+
+                {selectedJob.author?._id !== currentUserId && (
+                  <TouchableOpacity
+                    style={[styles.submitBtn, styles.applyPrimaryBtn]}
+                    onPress={() => {
+                      handleApply(selectedJob);
+                      setSelectedJob(null);
+                    }}
+                  >
+                    <Text style={styles.submitBtnText}>{t.apply}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </Modal>
@@ -647,9 +639,12 @@ const styles = StyleSheet.create({
   tagText: { fontSize: 11, fontWeight: '800', color: '#008B8B' },
   descriptionSnippet: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, paddingTop: 10 },
+  footerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   postedTime: { fontSize: 11, fontWeight: '600' },
   applyBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, gap: 4 },
   applyBtnText: { fontSize: 12, fontWeight: '800', color: '#008B8B' },
+  applyBtnPrimary: { backgroundColor: '#008B8B', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
+  applyBtnPrimaryText: { fontSize: 12, fontWeight: '800', color: '#ffffff' },
   emptyContainer: { alignItems: 'center', marginTop: 40 },
   emptyText: { fontSize: 14, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
@@ -658,6 +653,7 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: '800' },
   submitBtn: { backgroundColor: '#008B8B', paddingVertical: 12, borderRadius: 12, alignItems: 'center', marginTop: 16 },
   submitBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 15 },
+  applyPrimaryBtn: { backgroundColor: '#0ea5a4', marginTop: 10 },
   detailJobTitle: { fontSize: 20, fontWeight: '900' },
   detailCompany: { fontSize: 15, fontWeight: '700', marginTop: 2 },
   detailSection: { marginTop: 14 },

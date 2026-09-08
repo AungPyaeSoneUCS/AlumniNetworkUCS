@@ -14,7 +14,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Animated,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,8 +21,8 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import api from '../services/api';
+import { GradientBackground, ScreenHeader, ActionIconButton, EmptyState, Avatar, useTheme } from '../components';
 
 // 1. IMPORT GLOBAL CONTEXT
 import { useAppContext } from "../context/AppContext";
@@ -335,17 +334,6 @@ export default function FeedsScreen({ navigation }: any) {
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [commentingMap, setCommentingMap] = useState<Record<string, boolean>>({});
 
-  // Theme Animation
-  const themeAnim = useRef(new Animated.Value(isDarkMode ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.timing(themeAnim, {
-      toValue: isDarkMode ? 1 : 0,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-  }, [isDarkMode, themeAnim]);
-
   // STRICT AUTH CHECK
   useEffect(() => {
     async function enforceAuth() {
@@ -611,36 +599,13 @@ export default function FeedsScreen({ navigation }: any) {
     <View style={styles.root}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
-      {/* --- ANIMATED BACKGROUND GRADIENTS --- */}
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
-        <LinearGradient colors={["#eaffff", "#f8fafc"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim }]}>
-        <LinearGradient colors={["#0f172a", "#1e293b"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
+      <GradientBackground isDarkMode={isDarkMode} />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
         {/* Top Header */}
-        <View style={styles.topBar}>
-          <Text style={[styles.screenTitle, { color: textColor }]}>{t.title}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            
-            <TouchableOpacity 
-              style={[styles.actionIconBtn, { backgroundColor: actionBg }]} 
-              onPress={() => navigation.navigate("Messages")}
-            >
-              <Ionicons name="chatbubbles" size={16} color={isDarkMode ? "#00BFC4" : "#008B8B"} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={toggleTheme}>
-              <Ionicons name={isDarkMode ? "moon" : "sunny"} size={16} color={isDarkMode ? "#f1cd72" : "#f59e0b"} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.langToggle, { backgroundColor: actionBg }]} onPress={() => setLang(lang === 'en' ? 'mm' : 'en')}>
-              <Text style={{ color: isDarkMode ? "#ffffff" : "#008B8B", fontSize: 12, fontWeight: "800" }}>{lang === 'en' ? 'MM' : 'EN'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScreenHeader title={t.title}>
+          <ActionIconButton icon="chatbubbles" onPress={() => navigation.navigate("Messages")} />
+        </ScreenHeader>
 
         {/* Main Scrollable Feed */}
         <FlatList
@@ -750,12 +715,7 @@ export default function FeedsScreen({ navigation }: any) {
           }
           ListEmptyComponent={
             !loading ? (
-              <View style={styles.emptyView}>
-                <Feather name="inbox" size={36} color={subTextColor} />
-                <Text style={[styles.emptyText, { color: subTextColor }]}>
-                  {t.noPosts}
-                </Text>
-              </View>
+              <EmptyState icon="inbox" message={t.noPosts} />
             ) : (
               <ActivityIndicator size="large" color="#008B8B" style={{ marginTop: 30 }} />
             )

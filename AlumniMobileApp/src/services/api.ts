@@ -133,6 +133,15 @@ export const userApi = {
   getCurrentUser: () => api.get<UserProfile>("/users/me"),
 };
 
+// Notifications API (in-app + push)
+export const notificationsApi = {
+  getNotifications: () => api.get<any>("/notifications"),
+  markAllRead: () => api.patch("/notifications"),
+  deleteNotification: (id: string) => api.delete(`/notifications/${id}`),
+  registerPushToken: (expoPushToken: string, platform: string) =>
+    api.post("/notifications/register-push", { expoPushToken, platform }),
+};
+
 // Jobs Services (Driven by User Experiences Data)
 export const jobsApi = {
   // Extract & transform experience items into job items
@@ -185,8 +194,16 @@ export const jobsApi = {
     return extractedJobs;
   },
 
-  applyForJob: (jobId: string, experienceId?: string) =>
-    api.post(`/jobs/${jobId}/apply`, { experienceId }),
+  applyForJob: (jobId: string, data: { experienceId?: string; coverLetter?: string; name?: string; email?: string; phone?: string }) =>
+    api.post(`/jobs/${jobId}/apply`, data),
+};
+
+// Job Applications API
+export const jobApplicationsApi = {
+  getMyApplications: () => api.get<any>("/jobs/applications/mine"),
+  getAllApplications: () => api.get<any>("/jobs/applications"),
+  updateApplicationStatus: (applicationId: string, status: string) =>
+    api.patch(`/jobs/applications/${applicationId}`, { status }),
 };
 
 export default api;

@@ -10,15 +10,14 @@ import {
   StyleSheet,
   Linking,
   Alert,
-  Animated,
   StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import api from "../services/api";
+import { GradientBackground, ScreenHeader, ActionIconButton, Avatar, EmptyState, useTheme } from "../components";
 
 // 1. IMPORT GLOBAL CONTEXT
 import { useAppContext } from "../context/AppContext";
@@ -200,18 +199,6 @@ export default function ProfileScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  // Theme Animation
-  const themeAnim = useRef(new Animated.Value(isDarkMode ? 1 : 0)).current;
-
-  // Sync animation when the global theme changes
-  useEffect(() => {
-    Animated.timing(themeAnim, {
-      toValue: isDarkMode ? 1 : 0,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-  }, [isDarkMode, themeAnim]);
-
   // 1. STRICT AUTH CHECK
   useEffect(() => {
     async function enforceAuth() {
@@ -330,13 +317,7 @@ export default function ProfileScreen({ navigation }: any) {
     <View style={styles.root}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
-      {/* --- ANIMATED BACKGROUND GRADIENTS --- */}
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
-        <LinearGradient colors={["#eaffff", "#f8fafc"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, { opacity: themeAnim }]}>
-        <LinearGradient colors={["#0f172a", "#1e293b"]} style={StyleSheet.absoluteFill} />
-      </Animated.View>
+      <GradientBackground isDarkMode={isDarkMode} />
 
       <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
         <ScrollView
@@ -352,33 +333,12 @@ export default function ProfileScreen({ navigation }: any) {
           }
         >
           {/* Top Bar Area */}
-          <View style={styles.topActions}>
-            <Text style={[styles.pageTitle, { color: textColor }]}>{t.pageTitle}</Text>
-            
-            <View style={styles.topBarRight}>
-              {/* Settings Toggle */}
-              <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={() => navigation.navigate("Settings")}>
-                <Ionicons name="settings-outline" size={18} color={isDarkMode ? "#ffffff" : "#0f172a"} />
-              </TouchableOpacity>
-
-              {/* Theme Toggle */}
-              <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={toggleTheme}>
-                <Ionicons name={isDarkMode ? "moon" : "sunny"} size={18} color={isDarkMode ? "#f1cd72" : "#f59e0b"} />
-              </TouchableOpacity>
-
-              {/* Language Toggle */}
-              <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={() => setLang(lang === "en" ? "mm" : "en")}>
-                <Text style={{ color: isDarkMode ? "#ffffff" : "#008B8B", fontSize: 12, fontWeight: "800" }}>
-                  {lang === "en" ? "MM" : "EN"}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Logout Button */}
-              <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <ScreenHeader title={t.pageTitle}>
+            <ActionIconButton icon="settings-outline" onPress={() => navigation.navigate("Settings")} />
+            <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+            </TouchableOpacity>
+          </ScreenHeader>
 
           {/* Profile Header Card */}
           {profile && (
