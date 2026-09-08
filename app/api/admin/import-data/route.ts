@@ -52,10 +52,6 @@ function toDocId(value: any) {
   return value;
 }
 
-function isFile(value: FormDataEntryValue): value is File {
-  return typeof value === "object" && value !== null && "name" in value && "arrayBuffer" in value;
-}
-
 // POST /api/admin/import-data
 // Accepts one or more `files` (multipart). Each filename becomes the collection:
 //   posts.json -> collection `posts`
@@ -69,7 +65,11 @@ export async function POST(req: Request) {
     const db = await getDb();
 
     const formData = await req.formData();
-    const files = formData.getAll("files").filter(isFile);
+    const files: File[] = [];
+
+    for (const value of formData.getAll("files")) {
+      if (value instanceof File) files.push(value);
+    }
 
     if (files.length === 0) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });

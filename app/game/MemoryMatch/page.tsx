@@ -62,7 +62,7 @@ export default function NeonMemoryMatch() {
 
   // --- Timer ---
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     if (gameState === "playing") {
       timer = setInterval(() => {
         setTimeElapsed((prev) => prev + 1);

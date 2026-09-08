@@ -58,9 +58,9 @@ export async function POST(req: Request) {
     }
 
     const formData = await req.formData();
-    const file = formData.get("file");
+    const file = formData.getAll("file")[0] ?? null;
 
-    if (!(file instanceof Blob)) {
+    if (!(file instanceof File)) {
       return NextResponse.json(
         { error: "Image file is required" },
         { status: 400 }
