@@ -132,6 +132,11 @@ api.interceptors.response.use(
 export const userApi = {
   getUsers: () => api.get<UserProfile[] | UserProfile>("/users"),
   getCurrentUser: () => api.get<UserProfile>("/users/me"),
+  changePassword: (data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) => api.post<{ success: boolean; message: string }>("/me/change-password", data),
 };
 
 // Notifications API (in-app + push)

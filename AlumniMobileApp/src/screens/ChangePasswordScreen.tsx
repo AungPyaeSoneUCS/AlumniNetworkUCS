@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import api from "../services/api";
+import { userApi } from "../services/api";
 import { useAppContext } from "../context/AppContext";
 import { GradientBackground, ScreenHeader, Card, useTheme } from "../components";
 
@@ -85,7 +85,7 @@ export default function ChangePasswordScreen() {
 
     setSubmitting(true);
     try {
-      await api.post("/me/change-password", {
+      await userApi.changePassword({
         currentPassword,
         newPassword,
         confirmPassword,

@@ -163,7 +163,6 @@ const getPostImageUrl = (url?: string) => {
   if (cleanPath.startsWith('http')) return cleanPath;
   if (cleanPath.startsWith('/uploads/')) return `${DOMAIN}${cleanPath}`;
   if (cleanPath.startsWith('uploads/')) return `${DOMAIN}/${cleanPath}`;
-  if (cleanPath.startsWith('/photo/')) return `${DOMAIN}/uploads${cleanPath}`;
   return `${DOMAIN}${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
 };
 
