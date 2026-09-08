@@ -9,6 +9,7 @@ import {
   StatusBar,
   Animated,
   Dimensions,
+  Platform,
   GestureResponderEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -68,27 +69,51 @@ const translations = {
 };
 
 // ----------------------------------------------------
-// COMPONENT: FLOATING TOUCH BUBBLE
+// COMPONENT: FALLING DIGITAL RAIN (binary "10 01")
 // ----------------------------------------------------
-const FloatingTouchBubble = ({ x, y, onComplete }: { x: number; y: number; onComplete: () => void }) => {
+type RainDrop = {
+  id: string;
+  x: number;
+  digit: string;
+  delay: number;
+  duration: number;
+  drift: number;
+  fontSize: number;
+  opacity: number;
+};
+
+const FallingRain = ({ drop, isDarkMode, onComplete }: { drop: RainDrop; isDarkMode: boolean; onComplete: () => void }) => {
   const animation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(animation, { toValue: 1, duration: 800, useNativeDriver: true }).start(() => onComplete());
-  }, [animation, onComplete]);
+    Animated.timing(animation, {
+      toValue: 1,
+      duration: drop.duration,
+      delay: drop.delay,
+      useNativeDriver: true,
+    }).start(() => onComplete());
+  }, [animation, drop.duration, drop.delay, onComplete]);
 
-  const translateY = animation.interpolate({ inputRange: [0, 1], outputRange: [0, -120] });
-  const opacity = animation.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.6, 0.6, 0] });
-  const scale = animation.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.5] });
+  const translateY = animation.interpolate({ inputRange: [0, 1], outputRange: [-140, height + 60] });
+  const translateX = animation.interpolate({ inputRange: [0, 1], outputRange: [0, drop.drift] });
+  const opacity = animation.interpolate({ inputRange: [0, 0.75, 1], outputRange: [drop.opacity, drop.opacity, 0] });
 
   return (
-    <Animated.View
+    <Animated.Text
       pointerEvents="none"
       style={[
-        styles.touchBubble,
-        { left: x - 20, top: y - 20, opacity, transform: [{ translateY }, { scale }] },
+        styles.rainDigit,
+        {
+          left: drop.x,
+          fontSize: drop.fontSize,
+          opacity,
+          color: isDarkMode ? "#03ff9a" : "#ffffff",
+          transform: [{ translateY }, { translateX }],
+        },
       ]}
-    />
+    >
+      {drop.digit}
+    </Animated.Text>
   );
 };
 
@@ -102,9 +127,18 @@ export default function WelcomeScreen({ navigation }: any) {
   const [isChecking, setIsChecking] = useState(true);
   const [loadingStatusText, setLoadingStatusText] = useState("");
   const [fatalError, setFatalError] = useState("");
-  const [touchBubbles, setTouchBubbles] = useState<{ id: string; x: number; y: number }[]>([]);
+  const [rainDrops, setRainDrops] = useState<RainDrop[]>([]);
 
   const t = translations[lang];
+
+  // Typewriter state for the university name
+  const [typedText, setTypedText] = useState("");
+  const line1Full = t.line1;
+
+  // Rain mode: binary digits, or heart rain after too many clicks
+  const [rainMode, setRainMode] = useState<"binary" | "heart">("binary");
+  const [clickCount, setClickCount] = useState(0);
+  const heartTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Theme Animation
   const themeAnim = useRef(new Animated.Value(isDarkMode ? 1 : 0)).current; 
@@ -128,6 +162,40 @@ export default function WelcomeScreen({ navigation }: any) {
   useEffect(() => {
     Animated.timing(themeAnim, { toValue: isDarkMode ? 1 : 0, duration: 500, useNativeDriver: true }).start();
   }, [isDarkMode, themeAnim]);
+
+  // --- TYPEWRITER EFFECT: University name types out every 10 seconds ---
+  useEffect(() => {
+    if (isChecking) return;
+    let timeout: ReturnType<typeof setTimeout>;
+    let interval: ReturnType<typeof setInterval>;
+    let index = 0;
+
+    const typeLine = () => {
+      index = 0;
+      setTypedText("");
+      interval = setInterval(() => {
+        index += 1;
+        setTypedText(line1Full.slice(0, index));
+        if (index >= line1Full.length) {
+          clearInterval(interval);
+          timeout = setTimeout(typeLine, 10000);
+        }
+      }, 45);
+    };
+
+    typeLine();
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [isChecking, line1Full]);
+
+  // Cleanup heart-rain timer on unmount
+  useEffect(() => {
+    return () => {
+      if (heartTimerRef.current) clearInterval(heartTimerRef.current);
+    };
+  }, []);
 
   // --- SMART BOOTLOADER: FETCH & CACHE ---
   const initializeApp = async () => {
@@ -202,10 +270,63 @@ export default function WelcomeScreen({ navigation }: any) {
     initializeApp();
   }, []);
 
+  const pushRain = (burst: RainDrop[]) => {
+    setRainDrops((prev) => [...prev, ...burst].slice(-60));
+  };
+
+  const spawnBinaryBurst = (x: number) => {
+    const burst: RainDrop[] = Array.from({ length: 8 }, (_, i) => ({
+      id: Date.now().toString() + "-b-" + i + "-" + Math.random().toString(),
+      x: Math.max(4, Math.min(width - 4, x + (Math.random() * 70 - 35))),
+      digit: Math.random() > 0.5 ? "1" : "0",
+      delay: i * 35 + Math.random() * 120,
+      duration: 900 + Math.random() * 1100,
+      drift: Math.random() * 60 - 30,
+      fontSize: 13 + Math.random() * 12,
+      opacity: 0.6 + Math.random() * 0.4,
+    }));
+    pushRain(burst);
+  };
+
+  const spawnHeartBurst = (x: number) => {
+    const burst: RainDrop[] = Array.from({ length: 8 }, (_, i) => ({
+      id: Date.now().toString() + "-h-" + i + "-" + Math.random().toString(),
+      x: Math.max(4, Math.min(width - 4, x + (Math.random() * 80 - 40))),
+      digit: Math.random() > 0.5 ? "❤️" : "🤍",
+      delay: i * 30 + Math.random() * 100,
+      duration: 1500 + Math.random() * 1500,
+      drift: Math.random() * 60 - 30,
+      fontSize: 18 + Math.random() * 14,
+      opacity: 0.8 + Math.random() * 0.2,
+    }));
+    pushRain(burst);
+  };
+
+  const startHeartMode = () => {
+    setRainMode("heart");
+    setClickCount(0);
+    if (heartTimerRef.current) clearInterval(heartTimerRef.current);
+    // Continuous heart rain for 26 seconds
+    heartTimerRef.current = setInterval(() => {
+      spawnHeartBurst(Math.random() * width);
+    }, 180);
+    setTimeout(() => {
+      if (heartTimerRef.current) clearInterval(heartTimerRef.current);
+      heartTimerRef.current = null;
+      setRainMode("binary");
+    }, 26000);
+  };
+
   const handleTouch = (event: GestureResponderEvent) => {
-    const { pageX, pageY } = event.nativeEvent;
-    const newBubble = { id: Date.now().toString() + Math.random().toString(), x: pageX, y: pageY };
-    setTouchBubbles((prev) => [...prev, newBubble]);
+    const { pageX } = event.nativeEvent;
+    if (rainMode === "heart") {
+      spawnHeartBurst(pageX);
+      return;
+    }
+    spawnBinaryBurst(pageX);
+    const next = clickCount + 1;
+    setClickCount(next);
+    if (next > 26) startHeartMode();
   };
 
   if (isChecking || fatalError) {
@@ -339,7 +460,7 @@ export default function WelcomeScreen({ navigation }: any) {
 
           {/* --- HERO SECTION --- */}
           <View style={styles.heroContainer}>
-            <Text style={styles.heroGoldText}>{t.line1}</Text>
+            <Text style={styles.heroGoldText}>{typedText}</Text>
             <Text style={[styles.heroWhiteText]}>{t.line2}</Text>
 
             <View style={styles.featuresList}>
@@ -386,14 +507,14 @@ export default function WelcomeScreen({ navigation }: any) {
         </View>
       </SafeAreaView>
 
-      {/* --- RENDER TOUCH BUBBLES --- */}
-      {touchBubbles.map((bubble) => (
-        <FloatingTouchBubble
-          key={bubble.id}
-          x={bubble.x}
-          y={bubble.y}
+      {/* --- RENDER FALLING BINARY RAIN --- */}
+      {rainDrops.map((drop) => (
+        <FallingRain
+          key={drop.id}
+          drop={drop}
+          isDarkMode={isDarkMode}
           onComplete={() => {
-            setTouchBubbles((prev) => prev.filter((b) => b.id !== bubble.id));
+            setRainDrops((prev) => prev.filter((d) => d.id !== drop.id));
           }}
         />
       ))}
@@ -462,19 +583,13 @@ const styles = StyleSheet.create({
     top: height * 0.4,
     right: -width * 0.2,
   },
-  touchBubble: {
+  rainDigit: {
     position: "absolute",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.4)",
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
-    shadowColor: "#fff",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
-    elevation: 5,
+    top: 0,
+    fontWeight: "900",
+    fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }),
+    textShadowColor: "rgba(0,191,196,0.9)",
+    textShadowRadius: 6,
     zIndex: 9999,
   },
   topBar: { 

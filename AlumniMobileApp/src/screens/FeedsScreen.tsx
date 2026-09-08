@@ -58,6 +58,11 @@ const translations = {
     imageUploadFail: 'Image upload failed. Posting without image.',
     postFail: 'Failed to create post',
     commentFail: 'Failed to add comment',
+    commentUpdateFail: 'Failed to update comment',
+    commentDeleteFail: 'Failed to delete comment',
+    edit: 'Edit',
+    deleteCommentTitle: 'Delete Comment',
+    deleteCommentDesc: 'Are you sure you want to delete this comment?',
     deleteFail: 'Failed to delete post',
     updateFail: 'Failed to update post',
     readMore: 'Read more',
@@ -85,6 +90,11 @@ const translations = {
     imageUploadFail: 'ပုံတင်၍မရပါ။ ပုံမပါဘဲ post တင်ပါမည်။',
     postFail: 'Post တင်၍မရပါ',
     commentFail: 'Comment ရေး၍မရပါ',
+    commentUpdateFail: 'Comment ပြင်၍မရပါ',
+    commentDeleteFail: 'Comment ဖျက်၍မရပါ',
+    edit: 'ပြင်ဆင်ရန်',
+    deleteCommentTitle: 'မှတ်ချက် ဖျက်မည်',
+    deleteCommentDesc: 'ဒီ comment ကို ဖျက်မှာ သေချာပါသလား?',
     deleteFail: 'Post ဖျက်၍မရပါ',
     updateFail: 'Post ပြင်၍မရပါ',
     readMore: 'ပိုမိုဖတ်ရှုရန်',
@@ -114,6 +124,8 @@ interface Comment {
   _id: string;
   content: string;
   createdAt?: string;
+  updatedAt?: string;
+  isOwner?: boolean;
   author: Author;
 }
 
@@ -179,11 +191,15 @@ const FeedPostCard = memo(({
   item, currentUserId, lang, isDarkMode, t,
   textColor, subTextColor, cardBg, cardBorder, inputBg, inputBorder,
   onLike, onAddComment, onDelete, onEditInit, onProfilePress,
+  onUpdateComment, onDeleteComment,
   isCommentsOpen, toggleComments, commentInput, setCommentInput, isCommenting
 }: any) => {
   const [avatarError, setAvatarError] = useState(false);
   const [postImgError, setPostImgError] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState('');
+  const [commentUpdating, setCommentUpdating] = useState(false);
 
   const isOwner = item.author?._id === currentUserId;
   const isLiked = item.likedByMe || (item.likes || []).includes(currentUserId);
@@ -201,6 +217,22 @@ const FeedPostCard = memo(({
     !expanded && isLongPost
       ? words.slice(0, WORD_LIMIT).join(' ') + '...'
       : item.content;
+
+  const saveCommentEdit = async (commentId: string) => {
+    if (!editCommentText.trim() || commentUpdating) return;
+    setCommentUpdating(true);
+    const ok = await onUpdateComment(item._id, commentId, editCommentText.trim());
+    setCommentUpdating(false);
+    if (ok) {
+      setEditingCommentId(null);
+      setEditCommentText('');
+    }
+  };
+
+  const startCommentEdit = (commentId: string, content: string) => {
+    setEditingCommentId(commentId);
+    setEditCommentText(content || '');
+  };
 
   return (
     <View style={[styles.postCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
@@ -314,9 +346,67 @@ const FeedPostCard = memo(({
                       )}
                       <Text style={[styles.commentAuthorName, { color: textColor }]}>{c.author?.name || 'Alumni'}</Text>
                     </View>
-                    <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.commentTime}>{timeAgo(c.createdAt)}</Text>
+                      {c.isOwner && (
+                        <TouchableOpacity
+                          style={{ padding: 2 }}
+                          onPress={() => {
+                            Alert.alert('Options', 'Select action', [
+                              {
+                                text: t.edit,
+                                onPress: () => startCommentEdit(c._id, c.content),
+                              },
+                              {
+                                text: t.delete,
+                                style: 'destructive',
+                                onPress: () => onDeleteComment(item._id, c._id),
+                              },
+                              { text: t.cancel, style: 'cancel' },
+                            ]);
+                          }}
+                        >
+                          <Feather name="more-vertical" size={13} color={subTextColor} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
-                  <Text style={[styles.commentContentText, { color: textColor }]}>{c.content}</Text>
+                  {editingCommentId === c._id ? (
+                    <>
+                      <TextInput
+                        style={[styles.commentEditInput, { backgroundColor: cardBg, borderColor: inputBorder, color: textColor }]}
+                        multiline
+                        maxLength={1000}
+                        value={editCommentText}
+                        onChangeText={setEditCommentText}
+                      />
+                      <View style={styles.commentEditActions}>
+                        <TouchableOpacity
+                          style={[styles.commentEditSave, (!editCommentText.trim() || commentUpdating) && { opacity: 0.5 }]}
+                          onPress={() => saveCommentEdit(c._id)}
+                          disabled={!editCommentText.trim() || commentUpdating}
+                        >
+                          {commentUpdating ? (
+                            <ActivityIndicator size="small" color="#ffffff" />
+                          ) : (
+                            <Text style={styles.commentEditSaveText}>{t.saveBtn}</Text>
+                          )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.commentEditCancel}
+                          onPress={() => {
+                            setEditingCommentId(null);
+                            setEditCommentText('');
+                          }}
+                          disabled={commentUpdating}
+                        >
+                          <Text style={[styles.commentEditCancelText, { color: subTextColor }]}>{t.cancel}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  ) : (
+                    <Text style={[styles.commentContentText, { color: textColor }]}>{c.content}</Text>
+                  )}
                 </View>
               );
             })
@@ -513,6 +603,60 @@ export default function FeedsScreen({ navigation }: any) {
     }
   };
 
+  const handleUpdateComment = async (postId: string, commentId: string, content: string): Promise<boolean> => {
+    if (!content.trim()) return false;
+    try {
+      const res = await api.put(`/posts/${postId}/comments/${commentId}`, { content });
+      if (res.data) {
+        const updatedComment = res.data.data || res.data;
+        setPosts((prev) =>
+          prev.map((post) => {
+            if (post._id === postId) {
+              const comments = (post.comments || []).map((c) =>
+                c._id === commentId ? { ...c, ...updatedComment } : c
+              );
+              return { ...post, comments, commentsCount: comments.length };
+            }
+            return post;
+          })
+        );
+        return true;
+      }
+    } catch (error) {
+      Alert.alert('Error', t.commentUpdateFail);
+    }
+    return false;
+  };
+
+  const handleDeleteComment = (postId: string, commentId: string) => {
+    Alert.alert(
+      t.deleteCommentTitle,
+      t.deleteCommentDesc,
+      [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.delete, style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/posts/${postId}/comments/${commentId}`);
+              setPosts((prev) =>
+                prev.map((post) => {
+                  if (post._id === postId) {
+                    const comments = (post.comments || []).filter((c) => c._id !== commentId);
+                    return { ...post, comments, commentsCount: comments.length };
+                  }
+                  return post;
+                })
+              );
+            } catch (err) {
+              Alert.alert('Error', t.commentDeleteFail);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleDeletePost = (postId: string) => {
     Alert.alert(
       t.deleteTitle,
@@ -610,13 +754,15 @@ export default function FeedsScreen({ navigation }: any) {
       onDelete={handleDeletePost}
       onEditInit={initEdit}
       onProfilePress={navToProfile}
+      onUpdateComment={handleUpdateComment}
+      onDeleteComment={handleDeleteComment}
       isCommentsOpen={openComments[item._id] || false}
       toggleComments={toggleComments}
       commentInput={commentInputs[item._id] || ''}
       setCommentInput={updateCommentInput}
       isCommenting={commentingMap[item._id] || false}
     />
-  ), [currentUserId, lang, t, isDarkMode, textColor, subTextColor, cardBg, cardBorder, inputBg, inputBorder, openComments, commentInputs, commentingMap, toggleComments, updateCommentInput, navToProfile, initEdit]);
+  ), [currentUserId, lang, t, isDarkMode, textColor, subTextColor, cardBg, cardBorder, inputBg, inputBorder, openComments, commentInputs, commentingMap, toggleComments, updateCommentInput, navToProfile, initEdit, handleUpdateComment, handleDeleteComment]);
 
   const filterOptions: Array<Category | 'All'> = ['All', ...CATEGORIES];
 
@@ -859,6 +1005,12 @@ const styles = StyleSheet.create({
   commentAuthorName: { fontSize: 12, fontWeight: '800' },
   commentTime: { fontSize: 10, color: '#94a3b8' },
   commentContentText: { fontSize: 13 },
+  commentEditInput: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, textAlignVertical: 'top' },
+  commentEditActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  commentEditSave: { backgroundColor: '#008B8B', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  commentEditSaveText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
+  commentEditCancel: { paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8 },
+  commentEditCancelText: { fontSize: 12, fontWeight: '800' },
   emptyView: { alignItems: 'center', justifyContent: 'center', marginTop: 40, gap: 8 },
   emptyText: { fontSize: 14, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
