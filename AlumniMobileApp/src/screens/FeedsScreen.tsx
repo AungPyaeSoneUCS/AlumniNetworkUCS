@@ -59,7 +59,9 @@ const translations = {
     postFail: 'Failed to create post',
     commentFail: 'Failed to add comment',
     deleteFail: 'Failed to delete post',
-    updateFail: 'Failed to update post'
+    updateFail: 'Failed to update post',
+    readMore: 'Read more',
+    showLess: 'Show less',
   },
   mm: {
     title: 'Alumni Feeds',
@@ -84,7 +86,9 @@ const translations = {
     postFail: 'Post တင်၍မရပါ',
     commentFail: 'Comment ရေး၍မရပါ',
     deleteFail: 'Post ဖျက်၍မရပါ',
-    updateFail: 'Post ပြင်၍မရပါ'
+    updateFail: 'Post ပြင်၍မရပါ',
+    readMore: 'ပိုမိုဖတ်ရှုရန်',
+    showLess: 'အနည်းငယ်သာပြမည်',
   }
 };
 
@@ -179,14 +183,24 @@ const FeedPostCard = memo(({
 }: any) => {
   const [avatarError, setAvatarError] = useState(false);
   const [postImgError, setPostImgError] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const isOwner = item.author?._id === currentUserId;
   const isLiked = item.likedByMe || (item.likes || []).includes(currentUserId);
   const commentsList = item.comments || [];
+  const brand = isDarkMode ? '#00BFC4' : '#008B8B';
 
   const authorImg = item.author?.image || item.author?.profileImage || item.author?.googleImage;
   const avatarUrl = !avatarError ? getImageUrl(authorImg, item.author?._id) : null;
   const postImgUrl = !postImgError ? getPostImageUrl(item.image) : null;
+
+  const WORD_LIMIT = 30;
+  const words = (item.content || '').trim().split(/\s+/);
+  const isLongPost = words.length > WORD_LIMIT && words[0] !== '';
+  const displayContent =
+    !expanded && isLongPost
+      ? words.slice(0, WORD_LIMIT).join(' ') + '...'
+      : item.content;
 
   return (
     <View style={[styles.postCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
@@ -231,16 +245,27 @@ const FeedPostCard = memo(({
         </View>
       </View>
 
-      <Text style={[styles.postBody, { color: textColor }]}>{item.content}</Text>
+      <Text style={[styles.postBody, { color: textColor }]}>{displayContent}</Text>
+
+      {isLongPost && (
+        <TouchableOpacity onPress={() => setExpanded((value) => !value)} style={styles.readMoreBtn}>
+          <Text style={[styles.readMoreText, { color: brand }]}>
+            {expanded ? t.showLess : t.readMore}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {postImgUrl ? (
         <Image source={{ uri: postImgUrl }} style={styles.postImage} contentFit="cover" cachePolicy="memory-disk" onError={() => setPostImgError(true)} />
       ) : null}
 
       <View style={[styles.actionBar, { borderTopColor: cardBorder }]}>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => onLike(item._id)}>
-          <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={18} color={isLiked ? '#ef4444' : subTextColor} />
-          <Text style={[styles.actionText, { color: isLiked ? '#ef4444' : subTextColor }]}>
+        <TouchableOpacity
+          style={[styles.actionBtn, isLiked && { backgroundColor: isDarkMode ? 'rgba(0,191,196,0.15)' : 'rgba(0,139,139,0.12)', borderRadius: 10 }]}
+          onPress={() => onLike(item._id)}
+        >
+          <Ionicons name={isLiked ? 'thumbs-up' : 'thumbs-up-outline'} size={18} color={isLiked ? brand : subTextColor} />
+          <Text style={[styles.actionText, { color: isLiked ? brand : subTextColor }]}>
             {(item.likes || []).length} {isLiked ? t.liked : t.like}
           </Text>
         </TouchableOpacity>
@@ -596,7 +621,7 @@ export default function FeedsScreen({ navigation }: any) {
   const filterOptions: Array<Category | 'All'> = ['All', ...CATEGORIES];
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       <GradientBackground isDarkMode={isDarkMode} />
@@ -781,7 +806,7 @@ const styles = StyleSheet.create({
   screenTitle: { fontSize: 24, fontWeight: '900' },
   actionIconBtn: { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center" },
   langToggle: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
-  listContent: { padding: 14, paddingBottom: 40 },
+  listContent: { padding: 14, paddingBottom: 110 },
   searchRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, marginBottom: 12, borderWidth: 1 },
   searchInput: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 14 },
   categoryScroll: { gap: 8, paddingBottom: 14 },
@@ -817,6 +842,8 @@ const styles = StyleSheet.create({
   categoryBadgeText: { fontSize: 11, fontWeight: '800', color: '#008B8B' },
   menuIcon: { padding: 4 },
   postBody: { fontSize: 14, lineHeight: 22, marginBottom: 12 },
+  readMoreBtn: { marginBottom: 12, alignSelf: 'flex-start' },
+  readMoreText: { fontSize: 14, fontWeight: '800' },
   postImage: { width: '100%', height: 220, borderRadius: 12, marginBottom: 12 },
   actionBar: { flexDirection: 'row', borderTopWidth: 1, paddingTop: 10, gap: 16 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },

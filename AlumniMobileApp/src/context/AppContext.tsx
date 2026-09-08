@@ -1,15 +1,18 @@
 // context/AppContext.tsx
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { registerForPushNotifications } from '../services/notifications';
+import { useColorScheme } from 'react-native';
 import { connectRealtime, disconnectRealtime } from '../services/realtime';
 
 type Lang = 'en' | 'mm';
+export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface AppContextType {
   lang: Lang;
   setLang: (lang: Lang) => void;
   isDarkMode: boolean;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
   isLoaded: boolean;
   isLoggedIn: boolean;
@@ -21,10 +24,13 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [lang, setLangState] = useState<Lang>('en');
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  const systemScheme = useColorScheme();
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  const isDarkMode = themeMode === 'system' ? systemScheme === 'dark' : themeMode === 'dark';
 
   const checkSession = useCallback(async () => {
     try {
@@ -51,7 +57,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         const savedTheme = await SecureStore.getItemAsync('app_theme');
 
         if (savedLang === 'en' || savedLang === 'mm') setLangState(savedLang);
-        if (savedTheme !== null) setIsDarkMode(savedTheme === 'dark');
+        if (savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system') {
+          setThemeModeState(savedTheme);
+        }
 
         await checkSession();
       } catch (error) {
@@ -63,11 +71,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     loadSettings();
   }, [checkSession]);
 
-  // When user logs in: connect realtime + register push token
+  // When user logs in: connect realtime
   useEffect(() => {
     if (isLoggedIn) {
       connectRealtime();
-      registerForPushNotifications();
     } else {
       disconnectRealtime();
     }
@@ -79,11 +86,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await SecureStore.setItemAsync('app_lang', newLang);
   };
 
-  // Toggle theme and save to storage
+  // Set theme mode (light / dark / system) and save to storage
+  const setThemeMode = async (mode: ThemeMode) => {
+    setThemeModeState(mode);
+    await SecureStore.setItemAsync('app_theme', mode);
+  };
+
+  // Toggle theme and save to storage (kept for in-screen quick toggles)
   const toggleTheme = async () => {
-    const newTheme = !isDarkMode;
-    setIsDarkMode(newTheme);
-    await SecureStore.setItemAsync('app_theme', newTheme ? 'dark' : 'light');
+    const newMode: ThemeMode = isDarkMode ? 'light' : 'dark';
+    await setThemeMode(newMode);
   };
 
   // Refresh auth state (call after login/logout)
@@ -92,7 +104,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, [checkSession]);
 
   return (
-    <AppContext.Provider value={{ lang, setLang, isDarkMode, toggleTheme, isLoaded, isLoggedIn, currentUserId, refreshAuth }}>
+    <AppContext.Provider value={{ lang, setLang, isDarkMode, themeMode, setThemeMode, toggleTheme, isLoaded, isLoggedIn, currentUserId, refreshAuth }}>
       {children}
     </AppContext.Provider>
   );

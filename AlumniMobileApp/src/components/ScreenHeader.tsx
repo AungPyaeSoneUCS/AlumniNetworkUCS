@@ -1,8 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import ThemeToggle from "./ThemeToggle";
-import LangToggle from "./LangToggle";
 import { useTheme } from "../hooks/useTheme";
 
 interface ScreenHeaderProps {
@@ -29,8 +27,6 @@ export function ScreenHeader({ title, subtitle, icon, children }: ScreenHeaderPr
       </View>
       <View style={styles.right}>
         {children}
-        <ThemeToggle />
-        <LangToggle />
       </View>
     </View>
   );

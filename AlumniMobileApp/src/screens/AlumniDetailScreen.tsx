@@ -320,17 +320,6 @@ export default function AlumniDetailScreen({ route, navigation }: any) {
             </TouchableOpacity>
             <Text style={[styles.topBarTitle, { color: textColor }]}>{t.pageTitle}</Text>
           </View>
-          
-          <View style={styles.topBarRight}>
-            <TouchableOpacity style={[styles.actionIconBtn, { backgroundColor: actionBg }]} onPress={toggleTheme}>
-              <Ionicons name={isDarkMode ? "moon" : "sunny"} size={16} color={isDarkMode ? "#f1cd72" : "#f59e0b"} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.langToggle, { backgroundColor: actionBg }]} onPress={() => setLang(lang === "en" ? "mm" : "en")}>
-              <Text style={{ color: isDarkMode ? "#ffffff" : "#008B8B", fontSize: 12, fontWeight: "800" }}>
-                {lang === "en" ? "MM" : "EN"}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         <ScrollView 

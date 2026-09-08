@@ -54,6 +54,7 @@ const translations = {
     deleteConfirmTitle: "Delete Job",
     deleteConfirmDesc: "Are you sure you want to delete this job posting?",
     noAuthor: "Author profile is unavailable for this job posting.",
+    viewsLabel: "views",
   },
   mm: {
     title: "အလုပ်အကိုင် အခွင့်အလမ်းများ",
@@ -73,6 +74,7 @@ const translations = {
     deleteConfirmTitle: "အလုပ်ဖျက်မည်",
     deleteConfirmDesc: "ဒီအလုပ်ကြော်ငြာကို ဖျက်မှာ သေချာပါသလား?",
     noAuthor: "ဤအလုပ်ကြော်ငြာအတွက် တင်သူအချက်အလက် မရရှိနိုင်ပါ။",
+    viewsLabel: "ကြည့်ရှုမှု",
   }
 };
 
@@ -133,8 +135,6 @@ const JobCard = memo(({
   item,
   currentUserId,
   onPress,
-  onConnect,
-  onApply,
   onDelete,
   t,
   lang,
@@ -143,13 +143,10 @@ const JobCard = memo(({
   subTextColor,
   cardBg,
   cardBorder,
-  actionBtnBg,
 }: {
   item: JobItem;
   currentUserId: string;
   onPress: (item: JobItem) => void;
-  onConnect: (item: JobItem) => void;
-  onApply: (item: JobItem) => void;
   onDelete: (jobId: string) => void;
   t: any;
   lang: Lang;
@@ -158,7 +155,6 @@ const JobCard = memo(({
   subTextColor: string;
   cardBg: string;
   cardBorder: string;
-  actionBtnBg: string;
 }) => {
   const [logoError, setLogoError] = useState(false);
   const logoUrl = !logoError ? getCompanyImageUrl(item.companyLogo || item.image) : null;
@@ -237,30 +233,6 @@ const JobCard = memo(({
       <Text style={[styles.descriptionSnippet, { color: subTextColor }]} numberOfLines={2}>
         {item.description}
       </Text>
-
-      <View style={[styles.cardFooter, { borderTopColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f1f5f9' }]}>
-        <Text style={[styles.postedTime, { color: subTextColor }]}>
-          {item.createdAt ? `${t.posted} ${timeAgo(item.createdAt)}` : ''}
-        </Text>
-
-        <View style={styles.footerActions}>
-          {!isOwner && (
-            <TouchableOpacity
-              style={[styles.applyBtnPrimary]}
-              onPress={() => onApply(item)}
-            >
-              <Text style={styles.applyBtnPrimaryText}>{t.apply}</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={[styles.applyBtn, { backgroundColor: actionBtnBg }]}
-            onPress={() => onConnect(item)}
-          >
-            <Text style={styles.applyBtnText}>{t.connect}</Text>
-            <Ionicons name="person-add-outline" size={14} color="#008B8B" />
-          </TouchableOpacity>
-        </View>
-      </View>
     </TouchableOpacity>
   );
 });
@@ -355,25 +327,6 @@ export default function JobsScreen({ navigation }: any) {
     );
   }, [selectedJob, t]);
 
-  const handleConnect = useCallback((job: JobItem) => {
-    const authorId = job.author?._id;
-    if (!authorId) {
-      Alert.alert('Notice', t.noAuthor);
-      return;
-    }
-
-    if (authorId === currentUserId) {
-      navigation.navigate('MainTabs', { screen: 'Profile' });
-    } else {
-      // Changed from 'UserProfile' to 'AlumniDetail'
-      navigation.navigate('AlumniDetail', { userId: authorId });
-    }
-  }, [currentUserId, navigation, t]);
-
-  const handleApply = useCallback((job: JobItem) => {
-    navigation.navigate('JobApply', { job });
-  }, [navigation]);
-
   const filteredJobs = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return jobs.filter((job) => {
@@ -401,7 +354,6 @@ export default function JobsScreen({ navigation }: any) {
   const subTextColor = isDarkMode ? "#94a3b8" : "#64748b";
   const cardBg = isDarkMode ? "#1e293b" : "#ffffff";
   const cardBorder = isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
-  const actionBtnBg = isDarkMode ? "rgba(255,255,255,0.05)" : "#f8fafc";
   const actionBg = isDarkMode ? "rgba(255,255,255,0.15)" : "rgba(0,139,139,0.1)";
 
   const renderItem = useCallback(({ item }: { item: JobItem }) => (
@@ -409,8 +361,6 @@ export default function JobsScreen({ navigation }: any) {
       item={item}
       currentUserId={currentUserId}
       onPress={(job) => setSelectedJob(job)}
-      onConnect={handleConnect}
-      onApply={handleApply}
       onDelete={handleDeleteJob}
       t={t}
       lang={lang}
@@ -419,14 +369,13 @@ export default function JobsScreen({ navigation }: any) {
       subTextColor={subTextColor}
       cardBg={cardBg}
       cardBorder={cardBorder}
-      actionBtnBg={actionBtnBg}
     />
-  ), [currentUserId, handleConnect, handleApply, handleDeleteJob, t, lang, isDarkMode, textColor, subTextColor, cardBg, cardBorder, actionBtnBg]);
+  ), [currentUserId, handleDeleteJob, t, lang, isDarkMode, textColor, subTextColor, cardBg, cardBorder]);
 
   const filterOptions = ['All', ...JOB_TYPES];
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       <GradientBackground isDarkMode={isDarkMode} />
@@ -509,21 +458,18 @@ export default function JobsScreen({ navigation }: any) {
                   <View style={[styles.tagRow, { marginVertical: 12 }]}>
                     {selectedJob.jobType ? (
                       <View style={[styles.tagBadge, { backgroundColor: isDarkMode ? 'rgba(0,191,196,0.15)' : '#eaffff' }]}>
-                        <Ionicons name="briefcase-outline" size={12} color="#008B8B" />
                         <Text style={styles.tagText}>{jobTypeLabels[lang][selectedJob.jobType] || selectedJob.jobType}</Text>
                       </View>
                     ) : null}
 
                     {selectedJob.location ? (
                       <View style={[styles.tagBadge, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f1f5f9' }]}>
-                        <Ionicons name="location-outline" size={12} color={subTextColor} />
                         <Text style={[styles.tagText, { color: subTextColor }]}>{selectedJob.location}</Text>
                       </View>
                     ) : null}
 
                     {selectedJob.salary ? (
                       <View style={[styles.tagBadge, { backgroundColor: isDarkMode ? 'rgba(241,205,114,0.15)' : '#fef9c3' }]}>
-                        <Ionicons name="cash-outline" size={12} color="#d97706" />
                         <Text style={[styles.tagText, { color: isDarkMode ? '#f1cd72' : '#b45309' }]}>{selectedJob.salary}</Text>
                       </View>
                     ) : null}
@@ -542,33 +488,27 @@ export default function JobsScreen({ navigation }: any) {
                   ) : null}
 
                   {selectedJob.author?.name ? (
-                    <Text style={[styles.postedByText, { color: subTextColor }]}>
-                      {t.postedBy}: {selectedJob.author.name}
-                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        const authorId = selectedJob.author?._id;
+                        setSelectedJob(null);
+                        if (!authorId) {
+                          Alert.alert('Notice', t.noAuthor);
+                          return;
+                        }
+                        if (authorId === currentUserId) {
+                          navigation.navigate('MainTabs', { screen: 'Profile' });
+                        } else {
+                          navigation.navigate('AlumniDetail', { userId: authorId });
+                        }
+                      }}
+                    >
+                      <Text style={[styles.postedByText, { color: '#008B8B' }]}>
+                        {selectedJob.author.name}
+                      </Text>
+                    </TouchableOpacity>
                   ) : null}
                 </ScrollView>
-
-                <TouchableOpacity
-                  style={styles.submitBtn}
-                  onPress={() => {
-                    handleConnect(selectedJob);
-                    setSelectedJob(null);
-                  }}
-                >
-                  <Text style={styles.submitBtnText}>{t.connect}</Text>
-                </TouchableOpacity>
-
-                {selectedJob.author?._id !== currentUserId && (
-                  <TouchableOpacity
-                    style={[styles.submitBtn, styles.applyPrimaryBtn]}
-                    onPress={() => {
-                      handleApply(selectedJob);
-                      setSelectedJob(null);
-                    }}
-                  >
-                    <Text style={styles.submitBtnText}>{t.apply}</Text>
-                  </TouchableOpacity>
-                )}
               </View>
             </View>
           </Modal>
@@ -614,7 +554,7 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: '#008B8B', borderColor: '#008B8B' },
   filterChipText: { fontSize: 13, fontWeight: '700' },
   filterChipTextActive: { color: '#ffffff' },
-  list: { padding: 16, paddingBottom: 24 },
+  list: { padding: 16, paddingBottom: 110 },
   card: {
     padding: 16,
     borderRadius: 16,
@@ -638,13 +578,6 @@ const styles = StyleSheet.create({
   tagBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, gap: 4 },
   tagText: { fontSize: 11, fontWeight: '800', color: '#008B8B' },
   descriptionSnippet: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, paddingTop: 10 },
-  footerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  postedTime: { fontSize: 11, fontWeight: '600' },
-  applyBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, gap: 4 },
-  applyBtnText: { fontSize: 12, fontWeight: '800', color: '#008B8B' },
-  applyBtnPrimary: { backgroundColor: '#008B8B', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
-  applyBtnPrimaryText: { fontSize: 12, fontWeight: '800', color: '#ffffff' },
   emptyContainer: { alignItems: 'center', marginTop: 40 },
   emptyText: { fontSize: 14, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },

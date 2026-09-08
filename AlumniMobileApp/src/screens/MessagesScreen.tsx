@@ -655,7 +655,7 @@ export default function MessagesScreen({ navigation, route }: any) {
   };
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       <GradientBackground isDarkMode={isDarkMode} />
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
   searchWrapper: { paddingHorizontal: 16, marginBottom: 10 },
   searchBox: { flexDirection: "row", alignItems: "center", borderRadius: 12, borderWidth: 1, paddingHorizontal: 12 },
   searchInput: { flex: 1, paddingVertical: 10, paddingHorizontal: 8, fontSize: 14, fontWeight: "600" },
-  userListContent: { paddingHorizontal: 16, paddingBottom: 40 },
+  userListContent: { paddingHorizontal: 16, paddingBottom: 110 },
   userCard: { flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 16, marginBottom: 10, borderWidth: 1 },
   userAvatar: { width: 46, height: 46, borderRadius: 23, marginRight: 12 },
   avatarPlaceholder: { backgroundColor: "#008B8B", justifyContent: "center", alignItems: "center" },

@@ -314,7 +314,7 @@ export default function ProfileScreen({ navigation }: any) {
   const profileImageUrl = profile ? getUserImage(profile) : null;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       <GradientBackground isDarkMode={isDarkMode} />
@@ -334,6 +334,7 @@ export default function ProfileScreen({ navigation }: any) {
         >
           {/* Top Bar Area */}
           <ScreenHeader title={t.pageTitle}>
+            <ActionIconButton icon="create-outline" onPress={() => navigation.navigate("EditProfile")} />
             <ActionIconButton icon="settings-outline" onPress={() => navigation.navigate("Settings")} />
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={18} color="#ef4444" />
@@ -382,7 +383,7 @@ export default function ProfileScreen({ navigation }: any) {
               </View>
 
               {/* Edit Profile Button */}
-              <TouchableOpacity style={styles.editProfileBtn} onPress={() => navigation.navigate("Settings")}>
+              <TouchableOpacity style={styles.editProfileBtn} onPress={() => navigation.navigate("EditProfile")}>
                 <Feather name="edit-2" size={14} color="#ffffff" />
                 <Text style={styles.editProfileBtnText}>{t.editProfile}</Text>
               </TouchableOpacity>
@@ -486,7 +487,7 @@ const styles = StyleSheet.create({
   errorText: { color: "#ef4444", fontSize: 16, fontWeight: "700" },
   retryBtn: { marginTop: 14, backgroundColor: "#008B8B", paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   retryBtnText: { color: "#ffffff", fontWeight: "700" },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  scrollContent: { padding: 16, paddingBottom: 110 },
   topActions: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   topBarRight: { flexDirection: "row", alignItems: "center", gap: 6 },
   pageTitle: { fontSize: 24, fontWeight: "900" },

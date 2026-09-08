@@ -358,7 +358,7 @@ export default function DirectoryScreen({ navigation }: any) {
   ), [openAlumniDetail, handleContactUrl, t, isDarkMode, textColor, subTextColor, cardBg, cardBorder, actionBtnBg]);
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       <GradientBackground isDarkMode={isDarkMode} />
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: '#008B8B', borderColor: '#008B8B' },
   filterChipText: { fontSize: 13, fontWeight: '700' },
   filterChipTextActive: { color: '#ffffff' },
-  list: { padding: 16, paddingBottom: 24 },
+  list: { padding: 16, paddingBottom: 110 },
   card: { 
     padding: 16, 
     borderRadius: 16, 

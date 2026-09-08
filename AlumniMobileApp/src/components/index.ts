@@ -1,5 +1,6 @@
 export { default as Avatar, resolveImageUrl } from "./Avatar";
 export { default as GradientBackground } from "./GradientBackground";
+export { default as GlassTabBar } from "./GlassTabBar";
 export { default as ThemeToggle } from "./ThemeToggle";
 export { default as LangToggle } from "./LangToggle";
 export { default as SearchBar } from "./SearchBar";

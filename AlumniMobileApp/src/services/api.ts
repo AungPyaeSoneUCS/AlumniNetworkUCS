@@ -54,6 +54,7 @@ export interface Job {
     name: string;
     image?: string;
   };
+  views?: number;
   createdAt?: string;
 }
 
