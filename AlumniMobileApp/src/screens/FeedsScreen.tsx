@@ -56,6 +56,8 @@ const translations = {
     sessionExpired: 'Session Expired',
     loginAgain: 'Please log in again to continue.',
     imageUploadFail: 'Image upload failed. Posting without image.',
+    permissionTitle: 'Permission Needed',
+    permissionMsg: 'Please allow photo access to attach images to your posts.',
     postFail: 'Failed to create post',
     commentFail: 'Failed to add comment',
     commentUpdateFail: 'Failed to update comment',
@@ -88,6 +90,8 @@ const translations = {
     sessionExpired: 'Session သက်တမ်းကုန်သွားပါပြီ',
     loginAgain: 'ဆက်လုပ်ရန် ကျေးဇူးပြု၍ ပြန်လည်ဝင်ရောက်ပါ။',
     imageUploadFail: 'ပုံတင်၍မရပါ။ ပုံမပါဘဲ post တင်ပါမည်။',
+    permissionTitle: 'ခွင့်ပြုချက် လိုအပ်ပါသည်',
+    permissionMsg: 'Post များတွင် ပုံထည့်ရန် ဓာတ်ပုံခွင့်ပြုချက် ဖွင့်ပေးပါ။',
     postFail: 'Post တင်၍မရပါ',
     commentFail: 'Comment ရေး၍မရပါ',
     commentUpdateFail: 'Comment ပြင်၍မရပါ',
@@ -495,6 +499,11 @@ export default function FeedsScreen({ navigation }: any) {
   }, [fetchPosts]);
 
   const handlePickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t.permissionTitle, t.permissionMsg);
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'], 
       allowsEditing: true,

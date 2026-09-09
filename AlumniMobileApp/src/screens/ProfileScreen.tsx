@@ -44,6 +44,10 @@ const translations = {
     experience: "Experience",
     present: "Present",
     notProvided: "Not provided",
+    jobType: "Type",
+    experienceYears: "Experience Years",
+    salary: "Salary",
+    website: "Website",
     error: "Error",
     cannotOpen: "Cannot open URL:",
     sessionExpired: "Session Expired",
@@ -63,6 +67,10 @@ const translations = {
     experience: "လုပ်ငန်းအတွေ့အကြုံ",
     present: "လက်ရှိ",
     notProvided: "မဖြည့်ထားပါ",
+    jobType: "အမျိုးအစား",
+    experienceYears: "လုပ်သက်နှစ်",
+    salary: "လစာ",
+    website: "Website",
     error: "အမှား",
     cannotOpen: "URL ကို ဖွင့်၍မရပါ:",
     sessionExpired: "Session သက်တမ်းကုန်သွားပါပြီ",
@@ -101,6 +109,17 @@ interface ContactInfo {
   company?: string;
   position?: string;
   address?: string;
+  facebook?: string;
+  telegram?: string;
+  instagram?: string;
+  youtube?: string;
+  linkedin?: string;
+  github?: string;
+  tiktok?: string;
+  viber?: string;
+  line?: string;
+  whatsapp?: string;
+  website?: string;
 }
 
 interface UserProfile {
@@ -186,6 +205,71 @@ function buildSocialUrl(key: string, value: string) {
   if (key === "website" || key === "portfolio") return `https://${cleanUsername(value, key)}`;
   const prefix = socialPrefixes[key] || "https://";
   return `${prefix}${cleanUsername(value, key)}`;
+}
+
+// ----------------------------------------------------
+// ALL SOCIAL PLATFORMS RESOLVER (matches the web profile design)
+// ----------------------------------------------------
+const socialConfigs: Array<{
+  key: string;
+  label: string;
+  icon: any;
+  color: string;
+}> = [
+  { key: "facebook", label: "Facebook", icon: "logo-facebook", color: "#1877f2" },
+  { key: "telegram", label: "Telegram", icon: "paper-plane", color: "#0088cc" },
+  { key: "instagram", label: "Instagram", icon: "logo-instagram", color: "#e1306c" },
+  { key: "youtube", label: "YouTube", icon: "logo-youtube", color: "#ff0000" },
+  { key: "linkedin", label: "LinkedIn", icon: "logo-linkedin", color: "#0a66c2" },
+  { key: "github", label: "GitHub", icon: "logo-github", color: "#24292e" },
+  { key: "tiktok", label: "TikTok", icon: "logo-tiktok", color: "#010101" },
+  { key: "viber", label: "Viber", icon: "call", color: "#7360f2" },
+  { key: "line", label: "Line", icon: "chatbubble-ellipses", color: "#00c300" },
+  { key: "whatsapp", label: "WhatsApp", icon: "logo-whatsapp", color: "#25d366" },
+  { key: "website", label: "Website", icon: "globe-outline", color: "#008B8B" },
+];
+
+function getSocialItems(user: UserProfile | null) {
+  const socials: Record<string, string | undefined> = {
+    ...(user?.socialLinks || {}),
+    ...(user?.contactInfo
+      ? {
+          facebook: user.contactInfo.facebook,
+          telegram: user.contactInfo.telegram,
+          instagram: user.contactInfo.instagram,
+          youtube: user.contactInfo.youtube,
+          linkedin: user.contactInfo.linkedin,
+          github: user.contactInfo.github,
+          tiktok: user.contactInfo.tiktok,
+          viber: user.contactInfo.viber,
+          line: user.contactInfo.line,
+          whatsapp: user.contactInfo.whatsapp,
+          website: user.contactInfo.website,
+        }
+      : {}),
+  };
+
+  return socialConfigs
+    .filter((cfg) => {
+      const value = socials[cfg.key];
+      return typeof value === "string" && value.trim().length > 0;
+    })
+    .map((cfg) => ({
+      key: cfg.key,
+      label: cfg.label,
+      icon: cfg.icon,
+      color: cfg.color,
+      href: buildSocialUrl(cfg.key, socials[cfg.key] || ""),
+    }));
+}
+
+function formatExpDate(value?: string) {
+  if (!value) return "N/A";
+  const [year, month] = value.split("-");
+  if (!year || !month) return value;
+  const date = new Date(Number(year), Number(month) - 1);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
 
@@ -312,6 +396,7 @@ export default function ProfileScreen({ navigation }: any) {
   }
 
   const profileImageUrl = profile ? getUserImage(profile) : null;
+  const socialItems = getSocialItems(profile);
 
   return (
     <View style={[styles.root, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}>
@@ -382,42 +467,27 @@ export default function ProfileScreen({ navigation }: any) {
                 </Text>
               </View>
 
-              {/* Edit Profile Button */}
-              <TouchableOpacity style={styles.editProfileBtn} onPress={() => navigation.navigate("EditProfile")}>
-                <Feather name="edit-2" size={14} color="#ffffff" />
-                <Text style={styles.editProfileBtnText}>{t.editProfile}</Text>
-              </TouchableOpacity>
-
               {profile.bio ? <Text style={[styles.bioText, { color: subTextColor }]}>{profile.bio}</Text> : null}
             </View>
           )}
 
-          {/* Social Links Row */}
-          {profile?.socialLinks && (
+          {/* Social Links Row - all platforms */}
+          {socialItems.length > 0 && (
             <View style={styles.socialRow}>
-              {profile.socialLinks.github ? (
-                <TouchableOpacity style={[styles.socialIconBtn, { backgroundColor: cardBg, borderColor: cardBorder }]} onPress={() => openUrl(buildSocialUrl("github", profile.socialLinks!.github!))}>
-                  <Ionicons name="logo-github" size={20} color={isDarkMode ? "#ffffff" : "#1e293b"} />
+              {socialItems.map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[styles.socialIconBtn, { backgroundColor: cardBg, borderColor: cardBorder }]}
+                  onPress={() => openUrl(item.href)}
+                  accessibilityLabel={item.label}
+                >
+                  <Ionicons
+                    name={item.icon}
+                    size={20}
+                    color={item.key === "github" || item.key === "tiktok" ? (isDarkMode ? "#e2e8f0" : item.color) : item.color}
+                  />
                 </TouchableOpacity>
-              ) : null}
-              
-              {profile.socialLinks.linkedin ? (
-                <TouchableOpacity style={[styles.socialIconBtn, { backgroundColor: cardBg, borderColor: cardBorder }]} onPress={() => openUrl(buildSocialUrl("linkedin", profile.socialLinks!.linkedin!))}>
-                  <Ionicons name="logo-linkedin" size={20} color="#0a66c2" />
-                </TouchableOpacity>
-              ) : null}
-              
-              {profile.socialLinks.facebook ? (
-                <TouchableOpacity style={[styles.socialIconBtn, { backgroundColor: cardBg, borderColor: cardBorder }]} onPress={() => openUrl(buildSocialUrl("facebook", profile.socialLinks!.facebook!))}>
-                  <Ionicons name="logo-facebook" size={20} color="#1877f2" />
-                </TouchableOpacity>
-              ) : null}
-              
-              {profile.socialLinks.website ? (
-                <TouchableOpacity style={[styles.socialIconBtn, { backgroundColor: cardBg, borderColor: cardBorder }]} onPress={() => openUrl(buildSocialUrl("website", profile.socialLinks!.website!))}>
-                  <Ionicons name="globe-outline" size={20} color="#008B8B" />
-                </TouchableOpacity>
-              ) : null}
+              ))}
             </View>
           )}
 
@@ -431,6 +501,13 @@ export default function ProfileScreen({ navigation }: any) {
                   <View style={[styles.iconWrapper, { backgroundColor: iconBg }]}><Feather name="phone" size={16} color="#008B8B" /></View>
                   <Text style={[styles.infoText, { color: isDarkMode ? "#e2e8f0" : "#334155" }]}>{profile.contactInfo.phone}</Text>
                 </View>
+              ) : null}
+
+              {profile.contactInfo.email ? (
+                <TouchableOpacity style={styles.infoRow} onPress={() => openUrl(`mailto:${profile.contactInfo!.email}`)}>
+                  <View style={[styles.iconWrapper, { backgroundColor: iconBg }]}><Feather name="mail" size={16} color="#008B8B" /></View>
+                  <Text style={[styles.infoText, { color: isDarkMode ? "#e2e8f0" : "#334155" }]}>{profile.contactInfo.email}</Text>
+                </TouchableOpacity>
               ) : null}
 
               {profile.contactInfo.company ? (
@@ -460,13 +537,57 @@ export default function ProfileScreen({ navigation }: any) {
                 <View key={index} style={styles.expItem}>
                   <View style={styles.expDot} />
                   <View style={styles.expContent}>
-                    <Text style={[styles.expPosition, { color: textColor }]}>{exp.position}</Text>
-                    <Text style={[styles.expCompany, { color: subTextColor }]}>{exp.company}</Text>
+                    <Text style={[styles.expPosition, { color: textColor }]}>{exp.position || t.notProvided}</Text>
+                    <Text style={[styles.expCompany, { color: subTextColor }]}>{exp.company || t.notProvided}</Text>
                     <Text style={styles.expDuration}>
-                      {exp.startDate || "N/A"} - {exp.isCurrent ? t.present : exp.endDate || "N/A"}
+                      {formatExpDate(exp.startDate)} - {exp.isCurrent ? t.present : formatExpDate(exp.endDate)}
                     </Text>
                     {exp.location ? (
                       <Text style={styles.expLocation}>{exp.location}</Text>
+                    ) : null}
+
+                    <View style={styles.expInfoGrid}>
+                      {exp.employmentType ? (
+                        <View style={styles.expInfoItem}>
+                          <Text style={styles.expInfoLabel}>{t.jobType}</Text>
+                          <Text style={styles.expInfoValue}>{exp.employmentType}</Text>
+                        </View>
+                      ) : null}
+                      {exp.experienceYear ? (
+                        <View style={styles.expInfoItem}>
+                          <Text style={styles.expInfoLabel}>{t.experienceYears}</Text>
+                          <Text style={styles.expInfoValue}>{exp.experienceYear}</Text>
+                        </View>
+                      ) : null}
+                      {exp.salary ? (
+                        <View style={styles.expInfoItem}>
+                          <Text style={styles.expInfoLabel}>{t.salary}</Text>
+                          <Text style={styles.expInfoValue}>{exp.salary}</Text>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    {exp.phone || exp.email || exp.website ? (
+                      <View style={styles.expContactBlock}>
+                        {exp.phone ? (
+                          <TouchableOpacity style={styles.expContactLink} onPress={() => openUrl(`tel:${exp.phone}`)}>
+                            <Feather name="phone" size={12} color="#008B8B" />
+                            <Text style={styles.expContactText}>{exp.phone}</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        {exp.email ? (
+                          <TouchableOpacity style={styles.expContactLink} onPress={() => openUrl(`mailto:${exp.email}`)}>
+                            <Feather name="mail" size={12} color="#008B8B" />
+                            <Text style={styles.expContactText}>{exp.email}</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        {exp.website ? (
+                          <TouchableOpacity style={styles.expContactLink} onPress={() => openUrl(buildSocialUrl("website", exp.website || ""))}>
+                            <Feather name="globe" size={12} color="#008B8B" />
+                            <Text style={styles.expContactText} numberOfLines={1}>{exp.website}</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
                     ) : null}
                   </View>
                 </View>
@@ -534,25 +655,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   academicText: { fontSize: 12, fontWeight: "800", color: "#008B8B" },
-  editProfileBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 18,
-    backgroundColor: "#008B8B",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 16,
-    elevation: 2,
-    shadowColor: "#008B8B",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  editProfileBtnText: { color: "#ffffff", fontSize: 13, fontWeight: "800" },
   bioText: { fontSize: 14, textAlign: "center", marginTop: 16, lineHeight: 22 },
-  socialRow: { flexDirection: "row", justifyContent: "center", gap: 14, marginBottom: 20 },
+  socialRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 14, rowGap: 14, marginBottom: 20 },
   socialIconBtn: {
     width: 48,
     height: 48,
@@ -588,4 +692,25 @@ const styles = StyleSheet.create({
   expCompany: { fontSize: 14, marginTop: 2, fontWeight: "600" },
   expDuration: { fontSize: 12, color: "#008B8B", marginTop: 4, fontWeight: "700" },
   expLocation: { fontSize: 12, color: "#64748b", marginTop: 2 },
+  expInfoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, rowGap: 8, marginTop: 10 },
+  expInfoItem: {
+    backgroundColor: "rgba(0,139,139,0.08)",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  expInfoLabel: { fontSize: 9, fontWeight: "800", color: "#008B8B", textTransform: "uppercase" },
+  expInfoValue: { fontSize: 12, color: "#475569", fontWeight: "700", marginTop: 1 },
+  expContactBlock: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    rowGap: 6,
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.06)",
+    paddingTop: 8,
+  },
+  expContactLink: { flexDirection: "row", alignItems: "center", gap: 5, maxWidth: "100%" },
+  expContactText: { fontSize: 12, color: "#008B8B", fontWeight: "700", flexShrink: 1 },
 });

@@ -15,7 +15,7 @@ import {
   Keyboard,
   RefreshControl,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { Image } from "expo-image";
@@ -27,6 +27,11 @@ import { ScreenHeader, SearchBar, EmptyState, Avatar, GradientBackground } from 
 type Lang = "en" | "mm";
 
 const DOMAIN = "https://alumni.ucsh.edu.mm";
+
+// The custom GlassTabBar floats absolutely over the screen bottom and its pill
+// sits ~79px above the bottom inset. Chat footer must clear it when this screen
+// is rendered inside the Tab navigator (the only real usage).
+const TAB_BAR_CLEARANCE = 90;
 
 const translations = {
   en: {
@@ -138,7 +143,19 @@ function formatTime(value?: string) {
 
 export default function MessagesScreen({ navigation, route }: any) {
   const { lang, setLang, isDarkMode, toggleTheme } = useAppContext();
+  const insets = useSafeAreaInsets();
   const t = translations[lang as Lang];
+
+  // While the keyboard is open it already covers the floating GlassTabBar, so
+  // the tab clearance is only needed when the keyboard is hidden. This keeps a
+  // tight gap between the keyboard and the input row while typing.
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // True when this screen is mounted inside the bottom Tab navigator (its
+  // navigation has a parent). The standalone Stack "Messages" screen has none.
+  const isInsideTabNavigator = !!navigation?.getParent?.();
+  const tabClearance = keyboardVisible ? 0 : isInsideTabNavigator ? TAB_BAR_CLEARANCE : 0;
+  const footerPaddingBottom = tabClearance + Math.max(insets.bottom, 10);
 
   const [me, setMe] = useState<UserInfo | null>(null);
   const [users, setUsers] = useState<UserInfo[]>([]);
@@ -156,6 +173,16 @@ export default function MessagesScreen({ navigation, route }: any) {
   const [editText, setEditText] = useState("");
 
   const flatListRef = useRef<FlatList>(null);
+
+  // Keyboard visibility: while it is open it already covers the floating tab bar.
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // Auth check & init
   useEffect(() => {
@@ -514,7 +541,8 @@ export default function MessagesScreen({ navigation, route }: any) {
             ref={flatListRef}
             data={groupedMessages}
             keyExtractor={(item, index) => item.message._id + index}
-            contentContainerStyle={styles.chatListContent}
+            style={styles.flex1}
+            contentContainerStyle={[styles.chatListContent, { flexGrow: 1 }]}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
             ListEmptyComponent={
@@ -623,7 +651,16 @@ export default function MessagesScreen({ navigation, route }: any) {
         )}
 
         {/* Input Footer */}
-        <View style={[styles.chatFooter, { backgroundColor: cardBg, borderTopColor: cardBorder }]}>
+        <View
+          style={[
+            styles.chatFooter,
+            {
+              backgroundColor: cardBg,
+              borderTopColor: cardBorder,
+              paddingBottom: footerPaddingBottom,
+            },
+          ]}
+        >
           {isRestrictedAdminChat ? (
             <View style={styles.restrictedBox}>
               <Ionicons name="shield-checkmark" size={18} color="#b45309" />

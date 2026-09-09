@@ -116,6 +116,8 @@ const text = {
     title: "Edit Profile",
     saveSuccess: "Profile updated successfully.",
     saveFailed: "Failed to save profile.",
+    permissionTitle: "Permission Needed",
+    permissionMsg: "Please allow photo access to update your profile photo.",
     saving: "Saving...",
     save: "Save",
     personal: "Personal",
@@ -158,6 +160,8 @@ const text = {
     title: "ပရိုဖိုင် ပြင်ဆင်ရန်",
     saveSuccess: "ပရိုဖိုင် ပြင်ဆင်ပြီးပါပြီ။",
     saveFailed: "ပရိုဖိုင် သိမ်းဆည်းမှု မအောင်မြင်ပါ။",
+    permissionTitle: "ခွင့်ပြုချက် လိုအပ်ပါသည်",
+    permissionMsg: "ပရိုဖိုင် ဓာတ်ပုံ ပြောင်းရန် ဓာတ်ပုံခွင့်ပြုချက် ဖွင့်ပေးပါ။",
     saving: "သိမ်းနေသည်...",
     save: "သိမ်းမည်",
     personal: "အခြေခံ",
@@ -288,8 +292,13 @@ export default function EditProfileScreen({ navigation }: any) {
   }
 
   const handlePickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(t.permissionTitle, t.permissionMsg);
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,

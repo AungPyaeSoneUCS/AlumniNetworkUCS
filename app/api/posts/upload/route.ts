@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import mongoose from "mongoose";
-import { exec } from "child_process";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -111,22 +110,6 @@ export async function POST(req: Request) {
 
     await mkdir(uploadDir, { recursive: true, mode: 0o777 });
     await writeFile(path.join(uploadDir, fileName), buffer, { mode: 0o777 });
-
-    // Trigger PM2 restart with a delay so the client receives the response first,
-    // and the newly-uploaded photo becomes visible (Next.js static cache is flushed).
-    setTimeout(() => {
-      exec("pm2 restart all", (error, stdout, stderr) => {
-        if (error) {
-          console.error(`PM2 Restart Error: ${error.message}`);
-          return;
-        }
-        if (stderr) {
-          console.error(`PM2 Restart stderr: ${stderr}`);
-          return;
-        }
-        console.log(`PM2 Restart stdout: ${stdout}`);
-      });
-    }, 2000);
 
     return NextResponse.json(
       {

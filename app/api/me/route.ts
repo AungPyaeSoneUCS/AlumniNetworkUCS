@@ -2,7 +2,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import mongoose from "mongoose";
-import { exec } from "child_process";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -382,22 +381,6 @@ export async function PUT(req: Request) {
     if (!updatedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-
-    // Trigger PM2 restart with a delay so the client receives the response first,
-    // and the updated profile data (e.g. new photo) becomes visible immediately.
-    setTimeout(() => {
-      exec("pm2 restart all", (error, stdout, stderr) => {
-        if (error) {
-          console.error("Failed to restart PM2:", error);
-          return;
-        }
-        if (stderr) {
-          console.error(`PM2 Restart stderr: ${stderr}`);
-          return;
-        }
-        console.log(`PM2 Restart stdout: ${stdout}`);
-      });
-    }, 2000);
 
     return NextResponse.json(cleanProfileResponse(updatedUser), { status: 200 });
   } catch (error) {

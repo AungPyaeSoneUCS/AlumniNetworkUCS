@@ -1,11 +1,20 @@
 // file: src/services/realtime.ts
-import Pusher from "pusher-js";
+import PusherDefault from "pusher-js";
 import * as SecureStore from "expo-secure-store";
 
 const PUSHER_KEY = "2caec8fb61105b6ea493";
 const PUSHER_CLUSTER = "ap1";
 
-let pusher: Pusher | null = null;
+// Metro resolves `react-native` package field → `dist/react-native/pusher.js`,
+// which bundles `module.exports.Pusher = <class>` (a NAMED export, no default).
+// A default import therefore binds the whole exports object and `new Pusher()`
+// throws "TypeError: Object cannot be used as a constructor". Grab the class
+// from the module object while keeping the imported type for type-safety.
+type PusherConstructor = typeof PusherDefault;
+type PusherInstance = InstanceType<PusherConstructor>;
+const PusherClass = (PusherDefault as any).Pusher as PusherConstructor;
+
+let pusher: PusherInstance | null = null;
 let currentUserId: string | null = null;
 
 export interface RealtimeMessage {
@@ -37,9 +46,12 @@ function getConversationId(userA: string, userB: string): string {
   return [userA, userB].sort().join("-");
 }
 
-export function getPusher(): Pusher | null {
+export function getPusher(): PusherInstance | null {
   if (!pusher) {
-    pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER, enabledTransports: ["ws", "wss"] });
+    pusher = new PusherClass(PUSHER_KEY, {
+      cluster: PUSHER_CLUSTER,
+      enabledTransports: ["ws", "wss"],
+    });
   }
   return pusher;
 }
