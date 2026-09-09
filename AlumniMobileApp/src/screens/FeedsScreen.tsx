@@ -564,7 +564,7 @@ export default function FeedsScreen({ navigation }: any) {
     }
   };
 
-  const handleToggleLike = async (postId: string) => {
+  const handleToggleLike = useCallback(async (postId: string) => {
     try {
       const res = await api.patch(`/posts/${postId}/like`);
       if (res.data) {
@@ -582,9 +582,9 @@ export default function FeedsScreen({ navigation }: any) {
     } catch (error) {
       console.error('Like error:', error);
     }
-  };
+  }, [currentUserId]);
 
-  const handleAddComment = async (postId: string) => {
+  const handleAddComment = useCallback(async (postId: string) => {
     const text = (commentInputs[postId] || '').trim();
     if (!text) return;
 
@@ -609,9 +609,9 @@ export default function FeedsScreen({ navigation }: any) {
     } finally {
       setCommentingMap((prev) => ({ ...prev, [postId]: false }));
     }
-  };
+  }, [commentInputs, t]);
 
-  const handleUpdateComment = async (postId: string, commentId: string, content: string): Promise<boolean> => {
+  const handleUpdateComment = useCallback(async (postId: string, commentId: string, content: string): Promise<boolean> => {
     if (!content.trim()) return false;
     try {
       const res = await api.put(`/posts/${postId}/comments/${commentId}`, { content });
@@ -634,9 +634,9 @@ export default function FeedsScreen({ navigation }: any) {
       Alert.alert('Error', t.commentUpdateFail);
     }
     return false;
-  };
+  }, [t]);
 
-  const handleDeleteComment = (postId: string, commentId: string) => {
+  const handleDeleteComment = useCallback((postId: string, commentId: string) => {
     Alert.alert(
       t.deleteCommentTitle,
       t.deleteCommentDesc,
@@ -663,9 +663,9 @@ export default function FeedsScreen({ navigation }: any) {
         },
       ]
     );
-  };
+  }, [t]);
 
-  const handleDeletePost = (postId: string) => {
+  const handleDeletePost = useCallback((postId: string) => {
     Alert.alert(
       t.deleteTitle,
       t.deleteDesc,
@@ -684,7 +684,7 @@ export default function FeedsScreen({ navigation }: any) {
         },
       ]
     );
-  };
+  }, [t]);
 
   const handleUpdatePost = async () => {
     if (!editingPost || !editContent.trim() || savingEdit) return;
@@ -770,7 +770,7 @@ export default function FeedsScreen({ navigation }: any) {
       setCommentInput={updateCommentInput}
       isCommenting={commentingMap[item._id] || false}
     />
-  ), [currentUserId, lang, t, isDarkMode, textColor, subTextColor, cardBg, cardBorder, inputBg, inputBorder, openComments, commentInputs, commentingMap, toggleComments, updateCommentInput, navToProfile, initEdit, handleUpdateComment, handleDeleteComment]);
+  ), [currentUserId, lang, t, isDarkMode, textColor, subTextColor, cardBg, cardBorder, inputBg, inputBorder, openComments, commentInputs, commentingMap, handleToggleLike, handleAddComment, handleDeletePost, toggleComments, updateCommentInput, navToProfile, initEdit, handleUpdateComment, handleDeleteComment]);
 
   const filterOptions: Array<Category | 'All'> = ['All', ...CATEGORIES];
 

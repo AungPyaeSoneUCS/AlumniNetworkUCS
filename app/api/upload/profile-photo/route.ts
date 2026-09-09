@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { exec } from "child_process";
 import { Types } from "mongoose";
 
 import { auth } from "@/auth";
@@ -80,11 +81,28 @@ export async function POST(req: Request) {
     // Save the file with 777 permissions.
     await writeFile(filePath, buffer, { mode: 0o777 });
 
-    // Save the public URL to the database
-    const imageUrl = `/uploads/photo/${userId}/profile/${fileName}`;
+    // Save the public URL to the database (cache-busting query makes the
+    // newly-uploaded photo visible immediately, without waiting for a restart).
+    const imageUrl = `/uploads/photo/${userId}/profile/${fileName}?v=${Date.now()}`;
 
     user.image = imageUrl;
     await user.save();
+
+    // Restart PM2 after a 10s delay so the profile save/refetch completes
+    // first (avoids 502), then flushes the photo cache so the new photo shows.
+    setTimeout(() => {
+      exec("pm2 restart all", (error, stdout, stderr) => {
+        if (error) {
+          console.error(`PM2 Restart Error: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          console.error(`PM2 Restart stderr: ${stderr}`);
+          return;
+        }
+        console.log(`PM2 Restart stdout: ${stdout}`);
+      });
+    }, 10000);
 
     return NextResponse.json(
       {

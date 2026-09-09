@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Download,
   Edit,
   Filter,
   MessageCircle,
@@ -121,6 +122,7 @@ const text = {
     recentPostsText: "Top News posts this month",
     noRecentPosts: "No News posts this month.",
     all: "All",
+    saveToDevice: "Save",
   },
   mm: {
     searchPosts: "Post များ ရှာမည်...",
@@ -171,6 +173,7 @@ const text = {
     recentPostsText: "ဒီလအတွင်း News posts များ",
     noRecentPosts: "ဒီလအတွင်း News post မရှိသေးပါ။",
     all: "အားလုံး",
+    saveToDevice: "သိမ်းမည်",
   },
 };
 
@@ -276,6 +279,9 @@ export default function FeedsPage() {
   const [editContent, setEditContent] = useState("");
   const [editCategory, setEditCategory] = useState<Category>("General");
   const [postToDelete, setPostToDelete] = useState<string | null>(null); // <-- Added Modal state for deleting posts
+
+  // Photo viewer
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
 
   // Synchronize dynamic updates back into the storage session
   useEffect(() => {
@@ -729,6 +735,7 @@ export default function FeedsPage() {
                   onDelete={(id) => setPostToDelete(id)} // Open Post Delete Modal
                   onLike={toggleLike}
                   onCommentsChange={updatePostComments}
+                  onViewImage={setViewerImage}
                   t={t}
                   currentLang={currentLang}
                 />
@@ -856,6 +863,13 @@ export default function FeedsPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL: Photo Viewer */}
+      <PhotoViewer
+        image={viewerImage}
+        onClose={() => setViewerImage(null)}
+        t={t}
+      />
     </main>
   );
 }
@@ -1282,6 +1296,7 @@ function PostCard({
   onDelete,
   onLike,
   onCommentsChange,
+  onViewImage,
   t,
   currentLang,
 }: {
@@ -1292,6 +1307,7 @@ function PostCard({
   onDelete: (id: string) => void;
   onLike: (id: string) => void;
   onCommentsChange: (postId: string, comments: Comment[]) => void;
+  onViewImage: (url: string) => void;
   t: (typeof text)[Lang];
   currentLang: Lang;
 }) {
@@ -1552,16 +1568,25 @@ function PostCard({
             }`}
           >
             {postImages.slice(0, 3).map((image, imageIndex) => (
-              <Image
+              <button
                 key={`${image}-${imageIndex}`}
-                src={image}
-                alt="Post image"
-                width={900}
-                height={600}
-                className={`w-full rounded-2xl object-cover shadow-sm ${
+                type="button"
+                onClick={() => onViewImage(image)}
+                title={t.saveToDevice}
+                className={`block w-full cursor-zoom-in overflow-hidden rounded-2xl transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[var(--ucsh-primary)] ${
                   postImages.length === 1 ? "max-h-[420px]" : "h-52"
                 }`}
-              />
+              >
+                <Image
+                  src={image}
+                  alt="Post image"
+                  width={900}
+                  height={600}
+                  className={`w-full object-cover ${
+                    postImages.length === 1 ? "max-h-[420px]" : "h-52"
+                  }`}
+                />
+              </button>
             ))}
           </div>
         )}
@@ -1825,5 +1850,86 @@ function BackgroundDecor() {
       <div className="pointer-events-none absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[var(--ucsh-primary)]/25 blur-3xl" />
       <div className="pointer-events-none absolute left-1/2 top-1/3 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-white/25 blur-3xl" />
     </>
+  );
+}
+
+async function downloadImage(src: string) {
+  try {
+    const res = await fetch(src);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = src.split("/").pop()?.split("?")[0] || "photo.jpg";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    console.error("Download image failed:", error);
+    window.open(src, "_blank", "noopener,noreferrer");
+  }
+}
+
+function PhotoViewer({
+  image,
+  onClose,
+  t,
+}: {
+  image: string | null;
+  onClose: () => void;
+  t: (typeof text)[Lang];
+}) {
+  useEffect(() => {
+    if (!image) return;
+
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [image, onClose]);
+
+  if (!image) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <img
+        src={image}
+        alt="Post photo"
+        onClick={(event) => event.stopPropagation()}
+        className="max-h-[88vh] max-w-[95vw] rounded-xl object-contain shadow-2xl"
+      />
+
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/25"
+      >
+        <X size={22} />
+      </button>
+
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          downloadImage(image);
+        }}
+        className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-gradient-to-r from-[var(--ucsh-primary)] to-[var(--ucsh-secondary)] px-6 py-3 text-sm font-black text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl"
+      >
+        <Download size={18} />
+        {t.saveToDevice}
+      </button>
+    </div>
   );
 }

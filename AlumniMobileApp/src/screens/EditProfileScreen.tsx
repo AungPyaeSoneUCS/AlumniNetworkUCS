@@ -222,7 +222,6 @@ const getImageUrl = (url?: string) => {
   if (cleanPath.startsWith('http')) return cleanPath;
   if (cleanPath.startsWith('/uploads/')) return `${DOMAIN}${cleanPath}`;
   if (cleanPath.startsWith('uploads/')) return `${DOMAIN}/${cleanPath}`;
-  if (cleanPath.startsWith('/photo/')) return `${DOMAIN}/uploads${cleanPath}`;
   return `${DOMAIN}${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
 };
 
@@ -314,12 +313,12 @@ export default function EditProfileScreen({ navigation }: any) {
         const type = match ? `image/${match[1]}` : `image/jpeg`;
         formData.append('file', { uri, name: filename, type } as any);
 
-        const res = await api.post('/posts/upload', formData, {
+        const res = await api.post('/upload/profile-photo', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
 
-        if (res.data?.url) {
-          updateField("image", res.data.url);
+        if (res.data?.image) {
+          updateField("image", res.data.image);
           setImageError(false);
         }
       } catch (err) {

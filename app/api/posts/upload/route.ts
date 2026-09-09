@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import mongoose from "mongoose";
+import { exec } from "child_process";
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -111,9 +112,26 @@ export async function POST(req: Request) {
     await mkdir(uploadDir, { recursive: true, mode: 0o777 });
     await writeFile(path.join(uploadDir, fileName), buffer, { mode: 0o777 });
 
+    // Restart PM2 after a 10s delay so the follow-up create-post request
+    // completes first (avoids 502), then flushes the photo cache so the
+    // newly-uploaded image becomes visible.
+    setTimeout(() => {
+      exec("pm2 restart all", (error, stdout, stderr) => {
+        if (error) {
+          console.error(`PM2 Restart Error: ${error.message}`);
+          return;
+        }
+        if (stderr) {
+          console.error(`PM2 Restart stderr: ${stderr}`);
+          return;
+        }
+        console.log(`PM2 Restart stdout: ${stdout}`);
+      });
+    }, 10000);
+
     return NextResponse.json(
       {
-        url: `/photo/posts/upload/${fileName}`,
+        url: `/photo/posts/upload/${fileName}?v=${Date.now()}`,
       },
       { status: 200 }
     );
