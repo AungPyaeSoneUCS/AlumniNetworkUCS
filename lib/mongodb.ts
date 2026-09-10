@@ -1,5 +1,4 @@
 // file: lib/mongodb.ts
-
 import mongoose from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI!;
@@ -13,13 +12,11 @@ interface MongooseCache {
   promise: Promise<typeof mongoose> | null;
 }
 
-// Ensure TypeScript knows about the global cache variable
 declare global {
   // eslint-disable-next-line no-var
   var mongooseCache: MongooseCache;
 }
 
-// Initialize the cache globally
 let cached = global.mongooseCache;
 
 if (!cached) {
@@ -27,7 +24,6 @@ if (!cached) {
 }
 
 export async function connectDB() {
-  // Return the cached connection if it exists and is fully connected (readyState 1)
   if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
   }
@@ -35,7 +31,7 @@ export async function connectDB() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      serverSelectionTimeoutMS: 5000, 
+      serverSelectionTimeoutMS: 5000, // Fails fast in 5 seconds
       connectTimeoutMS: 10000,        
     };
 
@@ -49,7 +45,7 @@ export async function connectDB() {
   } catch (e) {
     cached.promise = null;
     console.error("Failed to connect to MongoDB:", e);
-    throw e;
+    throw e; // This passes the error up to your API route
   }
 
   return cached.conn;
