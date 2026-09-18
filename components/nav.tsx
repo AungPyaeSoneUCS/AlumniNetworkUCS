@@ -24,6 +24,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { useI18n } from "@/components/providers";
 import NotificationBell from "@/components/notification-bell";
+import NavAvatar from "@/components/nav-avatar";
 
 const navText = {
   en: {
@@ -311,12 +312,10 @@ export default function Nav() {
                     className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white text-[#008B8B] shadow-sm transition hover:scale-105 active:scale-95"
                   >
                     {me?.image || data.user.image ? (
-                      <Image
-                        src={me?.image || data.user.image || "/avatar.png"}
+                      <NavAvatar
+                        key={me?.image || data.user.image || "avatar"}
+                        src={me?.image || data.user.image}
                         alt={me?.name || data.user.name || t.profile}
-                        width={36}
-                        height={36}
-                        className="h-full w-full object-cover"
                       />
                     ) : (
                       <UserCircle size={23} />

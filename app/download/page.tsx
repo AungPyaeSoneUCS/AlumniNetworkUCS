@@ -3,8 +3,9 @@
 "use client";
 
 import Link from "next/link";
-import { Download, Cloud, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useI18n } from "@/components/providers";
+import { PwaInstallButton } from "@/components/pwa-register";
 
 type Lang = "en" | "mm";
 
@@ -19,8 +20,6 @@ const text = {
 
     slogan: "Take the UCSH Community with you",
     
-    directDownload: "Direct Download APK",
-    driveDownload: "Google Drive Mirror",
     telegramDownload: "Telegram Channel",
     githubSource: "GitHub Source",
     backHome: "Back to Home",
@@ -35,8 +34,6 @@ const text = {
 
     slogan: "UCSH အသိုက်အဝန်းကို သင့်နှင့်အတူ ယူဆောင်လာပါ",
     
-    directDownload: "တိုက်ရိုက် ဒေါင်းလုဒ်ဆွဲရန်",
-    driveDownload: "Google Drive မှ ဒေါင်းလုဒ်ဆွဲရန်",
     telegramDownload: "Telegram မှ ဒေါင်းလုဒ်ဆွဲရန်",
     githubSource: "GitHub Source Code",
     backHome: "ပင်မစာမျက်နှာ",
@@ -88,15 +85,8 @@ export default function DownloadPage() {
             </p>
 
             <div className="animate-hero-7 mt-8 flex flex-col flex-wrap gap-3 sm:flex-row">
-              {/* Direct APK Download Link */}
-              <a
-                href="/download/release.apk"
-                download
-                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[#f1cd72] px-6 py-3 text-sm font-black text-slate-950 shadow-lg transition duration-300 hover:-translate-y-1 hover:bg-yellow-200 hover:shadow-xl"
-              >
-                <Download size={18} />
-                {content.directDownload}
-              </a>
+              {/* PWA Install (Web App) */}
+              <PwaInstallButton />
 
               {/* Telegram Link */}
               <a
@@ -120,17 +110,6 @@ export default function DownloadPage() {
                   <path d="M22 2 11 13" />
                 </svg>
                 {content.telegramDownload}
-              </a>
-
-              {/* Google Drive Link */}
-              <a
-                href="https://drive.google.com/drive/folders/1-xS2-rm47469TX7fO0okNLcTq4-O_LfI?usp=drive_link"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 border border-white/25 px-6 py-3 text-sm font-black text-white shadow-lg backdrop-blur transition duration-300 hover:-translate-y-1 hover:bg-white/20"
-              >
-                <Cloud size={18} />
-                {content.driveDownload}
               </a>
 
               {/* GitHub Link with Custom SVG instead of lucide-react */}
@@ -166,10 +145,6 @@ export default function DownloadPage() {
                 {content.backHome}
               </Link>
             </div>
-            
-            <p className="animate-hero-7 mt-6 max-w-[680px] text-[13px] font-medium leading-snug text-white/60 sm:text-[14px]">
-              Note: You may need to enable "Install from Unknown Sources" in your device settings to install the downloaded APK.
-            </p>
           </div>
         </div>
       </section>
