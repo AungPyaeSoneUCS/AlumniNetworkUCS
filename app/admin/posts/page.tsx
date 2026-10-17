@@ -19,9 +19,8 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Post from "@/models/Post";
+import { prisma } from "@/lib/prisma";
+import { getUsersByIds } from "@/lib/db";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import ConfirmDelete from "@/components/admin/confirm-delete";
 import PrintUsersButton from "@/components/admin/print-users-button";
@@ -909,19 +908,20 @@ async function deletePost(formData: FormData) {
     redirect("/admin/login");
   }
 
-  await connectDB();
-
-  const admin: any = await User.findOne({
-    email: session.user.email,
-  })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") {
     redirect("/admin/login");
   }
 
-  await Post.findByIdAndDelete(id);
+  await prisma.$transaction([
+    prisma.postLike.deleteMany({ where: { postId: id } }),
+    prisma.postComment.deleteMany({ where: { postId: id } }),
+    prisma.post.deleteMany({ where: { id } }),
+  ]);
 
   revalidatePath("/admin/posts");
   revalidatePath("/admin/dashboard");
@@ -986,25 +986,69 @@ export default async function AdminPostsPage({
     redirect("/admin/login");
   }
 
-  await connectDB();
-
-  const admin: any = await User.findOne({
-    email: session.user.email,
-  })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") {
     redirect("/admin/login");
   }
 
-  const posts: any[] = await Post.find({})
-    .sort({ createdAt: -1 })
-    .populate(
-      "author",
-      "name email image profileImage googleImage googleProfileImage department graduatedYear",
-    )
-    .lean();
+  const postRows: any[] = await prisma.post.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+
+  const postIds = postRows.map((post) => post.id);
+
+  const [likeRows, commentRows] = await Promise.all([
+    prisma.postLike.findMany({
+      where: { postId: { in: postIds } },
+      select: { postId: true, userId: true },
+    }),
+    prisma.postComment.findMany({
+      where: { postId: { in: postIds } },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+
+  const authorMap = await getUsersByIds(
+    postRows.map((post) => post.author).filter(Boolean),
+  );
+
+  const likesByPost = new Map<string, string[]>();
+  for (const like of likeRows) {
+    const list = likesByPost.get(like.postId) || [];
+    list.push(like.userId);
+    likesByPost.set(like.postId, list);
+  }
+
+  const commentsByPost = new Map<string, any[]>();
+  for (const comment of commentRows) {
+    const list = commentsByPost.get(comment.postId) || [];
+    list.push(comment);
+    commentsByPost.set(comment.postId, list);
+  }
+
+  const posts: any[] = postRows.map((post) => {
+    const authorRow = authorMap.get(post.author);
+
+    return {
+      ...post,
+      _id: String(post.id),
+      likes: likesByPost.get(post.id) || [],
+      comments: commentsByPost.get(post.id) || [],
+      author: authorRow
+        ? {
+            _id: authorRow.id,
+            id: authorRow.id,
+            name: authorRow.name,
+            email: authorRow.email,
+            image: authorRow.image,
+          }
+        : null,
+    };
+  });
 
   const categories = Array.from(
     new Set(

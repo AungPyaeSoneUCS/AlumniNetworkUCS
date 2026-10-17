@@ -1,16 +1,14 @@
 // file: app/api/messages/[userId]/react/route.ts
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
 import { pusherServer } from "@/lib/pusher";
-import User from "@/models/User";
-import Message from "@/models/Message";
+import { prisma } from "@/lib/prisma";
+import { getUsersByIds, isValidId, parseList, serializeList } from "@/lib/db";
 
 function cleanUser(user: any) {
   return {
-    _id: String(user?._id || ""),
+    _id: String(user?._id || user?.id || ""),
     name: user?.name || "Unknown Alumni",
     email: user?.email || "",
     image: user?.image || "",
@@ -21,7 +19,7 @@ function cleanUser(user: any) {
 
 function cleanMessage(message: any) {
   return {
-    _id: String(message?._id || ""),
+    _id: String(message?._id || message?.id || ""),
     text: message?.text || "",
     isDeleted: Boolean(message?.isDeleted),
     isEdited: Boolean(message?.isEdited),
@@ -59,7 +57,7 @@ export async function PATCH(
     const { userId } = await context.params;
     const { messageId, emoji } = await req.json();
 
-    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(messageId)) {
+    if (!isValidId(userId) || !isValidId(messageId)) {
       return NextResponse.json({ error: "Invalid IDs" }, { status: 400 });
     }
 
@@ -67,84 +65,104 @@ export async function PATCH(
       return NextResponse.json({ error: "Emoji required" }, { status: 400 });
     }
 
-    await connectDB();
-
     let currentUser: any = null;
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id");
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select(
-        "_id"
-      );
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
     }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const message = await Message.findById(messageId);
+    const message = await prisma.message.findUnique({ where: { id: messageId } });
     if (!message) {
       return NextResponse.json({ error: "Message not found" }, { status: 404 });
     }
 
     // Check user is part of this conversation
     const isParticipant =
-      String(message.sender) === String(currentUser._id) ||
-      String(message.receiver) === String(currentUser._id);
+      String(message.sender) === String(currentUser.id) ||
+      String(message.receiver) === String(currentUser.id);
 
     if (!isParticipant) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Toggle reaction
-    const existingReaction = message.reactions.find(
-      (r: any) => r.emoji === emoji
-    );
+    const existingReaction = await prisma.messageReaction.findFirst({
+      where: { messageId, emoji },
+      orderBy: { createdAt: "asc" },
+    });
 
     if (existingReaction) {
-      const userIndex = existingReaction.users.findIndex(
-        (u: any) => String(u) === String(currentUser._id)
+      const reactionUsers = parseList(existingReaction.users);
+      const userIndex = reactionUsers.findIndex(
+        (u) => String(u) === String(currentUser.id)
       );
 
       if (userIndex > -1) {
         // User already reacted with this emoji — remove their reaction
-        existingReaction.users.splice(userIndex, 1);
+        reactionUsers.splice(userIndex, 1);
 
         // If no users left for this emoji, remove the entire reaction entry
-        if (existingReaction.users.length === 0) {
-          message.reactions = message.reactions.filter(
-            (r: any) => r.emoji !== emoji
-          );
+        if (reactionUsers.length === 0) {
+          await prisma.messageReaction.deleteMany({
+            where: { messageId, emoji },
+          });
+        } else {
+          await prisma.messageReaction.update({
+            where: { id: existingReaction.id },
+            data: { users: serializeList(reactionUsers) },
+          });
         }
       } else {
         // User reacting with a new emoji on this message
-        existingReaction.users.push(currentUser._id);
+        reactionUsers.push(String(currentUser.id));
+        await prisma.messageReaction.update({
+          where: { id: existingReaction.id },
+          data: { users: serializeList(reactionUsers) },
+        });
       }
     } else {
       // No reaction with this emoji yet — add new
-      message.reactions.push({ emoji, users: [currentUser._id] });
+      await prisma.messageReaction.create({
+        data: {
+          messageId,
+          emoji,
+          users: serializeList([String(currentUser.id)]),
+        },
+      });
     }
 
-    await message.save();
+    const reactionRows = await prisma.messageReaction.findMany({
+      where: { messageId },
+      orderBy: { createdAt: "asc" },
+    });
 
-    // Re-populate for full sender/receiver objects
-    await message.populate([
-      {
-        path: "sender",
-        select: "name email role image department graduatedYear",
-      },
-      {
-        path: "receiver",
-        select: "name email role image department graduatedYear",
-      },
-    ]);
+    const messageUsers = await getUsersByIds([message.sender, message.receiver]);
 
-    const cleanedPayload = cleanMessage(message.toObject());
+    const cleanedPayload = cleanMessage({
+      ...message,
+      sender: messageUsers.get(message.sender),
+      receiver: messageUsers.get(message.receiver),
+      reactions: reactionRows.map((r) => ({
+        emoji: r.emoji,
+        users: parseList(r.users),
+      })),
+    });
 
     // Broadcast via Pusher
     const convoId = getConversationId(
-      String(message.sender._id),
-      String(message.receiver._id)
+      String(message.sender),
+      String(message.receiver)
     );
 
     await pusherServer.trigger(

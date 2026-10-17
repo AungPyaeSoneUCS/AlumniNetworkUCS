@@ -20,9 +20,8 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Post from "@/models/Post";
+import { prisma } from "@/lib/prisma";
+import { getUsersByIds } from "@/lib/db";
 import StaffSidebar from "@/components/staff/staff-sidebar";
 import ConfirmDelete from "@/components/admin/confirm-delete";
 import PrintUsersButton from "@/components/admin/print-users-button";
@@ -662,13 +661,10 @@ async function deletePost(formData: FormData) {
     redirect("/staff/login");
   }
 
-  await connectDB();
-
-  const staffUser: any = await User.findOne({
-    email: session.user.email,
-  })
-    .select("_id role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (
     !staffUser ||
@@ -677,7 +673,7 @@ async function deletePost(formData: FormData) {
     redirect("/staff/login");
   }
 
-  await Post.findByIdAndDelete(id);
+  await prisma.post.delete({ where: { id } });
 
   revalidatePath("/staff/posts");
   revalidatePath("/staff/dashboard");
@@ -742,13 +738,10 @@ export default async function StaffPostsPage({
     redirect("/staff/login");
   }
 
-  await connectDB();
-
-  const staffUser: any = await User.findOne({
-    email: session.user.email,
-  })
-    .select("_id role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (
     !staffUser ||
@@ -757,13 +750,61 @@ export default async function StaffPostsPage({
     redirect("/staff/login");
   }
 
-  const posts: any[] = await Post.find({})
-    .sort({ createdAt: -1 })
-    .populate(
-      "author",
-      "name email image profileImage googleImage googleProfileImage department graduatedYear",
-    )
-    .lean();
+  const postRows = await prisma.post.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+
+  const postIds = postRows.map((p) => p.id);
+
+  const [likeRows, commentRows] = await Promise.all([
+    prisma.postLike.findMany({
+      where: { postId: { in: postIds } },
+      select: { postId: true, userId: true },
+    }),
+    prisma.postComment.findMany({
+      where: { postId: { in: postIds } },
+      select: { id: true, postId: true },
+    }),
+  ]);
+
+  const likesByPost = new Map<string, string[]>();
+  for (const like of likeRows) {
+    const list = likesByPost.get(like.postId) || [];
+    list.push(like.userId);
+    likesByPost.set(like.postId, list);
+  }
+
+  const commentsCountByPost = new Map<string, number>();
+  for (const comment of commentRows) {
+    commentsCountByPost.set(
+      comment.postId,
+      (commentsCountByPost.get(comment.postId) || 0) + 1,
+    );
+  }
+
+  const authorIds = postRows.map((p) => p.author);
+  const authorsById = await getUsersByIds(authorIds);
+
+  const posts: any[] = postRows.map((post) => {
+    const authorUser = authorsById.get(post.author);
+
+    return {
+      _id: post.id,
+      content: post.content,
+      category: post.category,
+      createdAt: post.createdAt,
+      likes: likesByPost.get(post.id) || [],
+      commentsCount: commentsCountByPost.get(post.id) || 0,
+      author: authorUser
+        ? {
+            _id: authorUser.id,
+            name: authorUser.name,
+            email: authorUser.email,
+            image: authorUser.image,
+          }
+        : {},
+    };
+  });
 
   const categories = Array.from(
     new Set(

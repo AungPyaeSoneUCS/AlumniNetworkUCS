@@ -1,8 +1,7 @@
 // file: app/api/settings/logo/route.ts
 
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
-import { connectDB } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
 // 1. Define CORS headers for Web and Mobile cross-origin requests
@@ -13,18 +12,6 @@ const corsHeaders = {
   "Access-Control-Allow-Credentials": "true",
 };
 
-// 2. Mongoose Schema Setup
-const settingSchema = new mongoose.Schema(
-  {
-    key: { type: String, required: true, unique: true },
-    value: { type: String, required: true },
-  },
-  { timestamps: true }
-);
-
-// Prevent mongoose from compiling the model multiple times in development
-const Setting = mongoose.models.Setting || mongoose.model("Setting", settingSchema);
-
 // 3. OPTIONS: Handle preflight CORS requests from Mobile/Web clients
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
@@ -33,9 +20,9 @@ export async function OPTIONS() {
 // 4. GET: Fetch the current logo for the Nav bar (Web & Mobile)
 export async function GET() {
   try {
-    await connectDB();
-
-    const logoSetting = await Setting.findOne({ key: "siteLogo" });
+    const logoSetting = await prisma.setting.findUnique({
+      where: { key: "siteLogo" },
+    });
     
     return NextResponse.json(
       { logoUrl: logoSetting ? logoSetting.value : "/logo/logo-250.png" },
@@ -64,8 +51,6 @@ export async function POST(req: Request) {
       );
     }
 
-    await connectDB(); 
-
     const body = await req.json();
     const { logoUrl } = body;
 
@@ -77,11 +62,11 @@ export async function POST(req: Request) {
     }
 
     // Upsert logic: Update the existing "siteLogo" document, or create it if missing
-    const updatedSetting = await Setting.findOneAndUpdate(
-      { key: "siteLogo" },
-      { value: logoUrl },
-      { upsert: true, new: true } 
-    );
+    const updatedSetting = await prisma.setting.upsert({
+      where: { key: "siteLogo" },
+      update: { value: logoUrl },
+      create: { key: "siteLogo", value: logoUrl },
+    });
 
     return NextResponse.json(
       { success: true, logoUrl: updatedSetting.value },

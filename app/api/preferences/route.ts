@@ -4,9 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 const PreferenceSchema = z.object({
   languagePreference: z.enum(["en", "mm"]).optional(),
@@ -27,11 +25,10 @@ export async function GET() {
       );
     }
 
-    await connectDB();
-
-    const user = await User.findOne({
-      email: session.user.email,
-    }).select("languagePreference themePreference");
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { languagePreference: true, themePreference: true },
+    });
 
     return NextResponse.json(
       {
@@ -98,24 +95,12 @@ export async function PUT(req: Request) {
         ? "dark"
         : "light";
 
-    await connectDB();
+    const existingUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
 
-    const updatedUser = await User.findOneAndUpdate(
-      {
-        email: session.user.email,
-      },
-      {
-        $set: {
-          languagePreference,
-          themePreference,
-        },
-      },
-      {
-        new: true,
-      }
-    ).select("languagePreference themePreference");
-
-    if (!updatedUser) {
+    if (!existingUser) {
       return NextResponse.json(
         {
           error: "User not found",
@@ -125,6 +110,15 @@ export async function PUT(req: Request) {
         }
       );
     }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        languagePreference,
+        themePreference,
+      },
+      select: { languagePreference: true, themePreference: true },
+    });
 
     return NextResponse.json(
       {

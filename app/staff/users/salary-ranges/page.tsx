@@ -6,8 +6,7 @@ import { redirect } from "next/navigation";
 import { BarChart3 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import StaffSidebar from "@/components/staff/staff-sidebar";
 import SalaryRangesExporter from "@/components/admin/salary-ranges-exporter";
 import { SalaryRangesFilters } from "@/components/admin/report-auto-filters";
@@ -527,23 +526,39 @@ export default async function StaffSalaryRangesPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/staff/login");
 
-  await connectDB();
-
-  const staffUser: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!staffUser || (staffUser.role !== "staff" && staffUser.role !== "admin")) {
     redirect("/staff/login");
   }
 
-  const allUsers: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select("_id role experiences")
-    .lean();
+  const allUsers: any[] = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: { id: true, role: true },
+  });
+
+  const allExperiences = await prisma.experience.findMany({
+    select: { id: true, userId: true, position: true, employmentType: true, salary: true },
+  });
+
+  const experiencesByUser = new Map<string, any[]>();
+  allExperiences.forEach((exp) => {
+    const key = exp.userId || "";
+    if (!experiencesByUser.has(key)) experiencesByUser.set(key, []);
+    experiencesByUser.get(key)!.push(exp);
+  });
 
   // Only consider standard alumni users for metrics
-  const users = allUsers.filter((user) => user.role === "user");
+  const users = allUsers
+    .filter((user) => user.role === "user")
+    .map((user) => ({
+      ...user,
+      _id: user.id,
+      experiences: experiencesByUser.get(user.id) || [],
+    }));
 
   const experienceOptionsSet = new Set<string>();
   const salaryMap = new Map<string, { minSalary: number; maxSalary: number }>();

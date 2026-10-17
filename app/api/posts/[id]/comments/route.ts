@@ -1,14 +1,11 @@
 // app/api/posts/[id]/comments/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
 import { pusherServer } from "@/lib/pusher";
-import User from "@/models/User";
-import Post from "@/models/Post";
-import Notification from "@/models/Notification";
+import { prisma } from "@/lib/prisma";
+import { isValidId, getUsersByIds } from "@/lib/db";
 
 type Props = {
   params: Promise<{
@@ -25,13 +22,13 @@ function cleanComment(comment: any, isOwner: boolean = false) {
   const author = comment?.author || {};
 
   return {
-    _id: String(comment?._id || ""),
+    _id: String(comment?._id || comment?.id || ""),
     content: comment?.content || "",
     createdAt: comment?.createdAt || null,
     updatedAt: comment?.updatedAt || null,
-    isOwner: isOwner, // <-- Added this field
+    isOwner: isOwner,
     author: {
-      _id: String(author._id || ""),
+      _id: String(author._id || author.id || ""),
       name: author.name || "Unknown Alumni",
       image: author.image || "",
       department: author.department || "",
@@ -42,15 +39,16 @@ function cleanComment(comment: any, isOwner: boolean = false) {
 
 // Dual Authentication Helper (Web Cookies or Mobile Headers)
 async function getAuthenticatedUser(req: Request) {
-  await connectDB();
-
   // 1. Check Mobile App Headers (x-user-id or Authorization)
   const mobileHeaderId =
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true },
+    });
     if (user) return user;
   }
 
@@ -58,9 +56,10 @@ async function getAuthenticatedUser(req: Request) {
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email })
-        .select("_id email")
-        .lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+      });
       if (user) return user;
     }
   } catch (err) {
@@ -79,7 +78,7 @@ export async function POST(req: Request, { params }: Props) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidId(id)) {
       return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
     }
 
@@ -93,45 +92,54 @@ export async function POST(req: Request, { params }: Props) {
       );
     }
 
-    const post = await Post.findById(id);
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { author: true },
+    });
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     // Add new comment
-    post.comments.push({
-      author: user._id,
-      content: parsed.data.content,
+    await prisma.postComment.create({
+      data: {
+        postId: id,
+        authorId: user.id,
+        content: parsed.data.content,
+      },
     });
 
-    await post.save();
-
     // Notify post author on comment (skip self-comment)
-    if (String(post.author) !== String(user._id)) {
+    if (String(post.author) !== String(user.id)) {
       try {
-        const commenter = await User.findById(user._id).select("name").lean();
-        const commenterName = (commenter as any)?.name || "Someone";
+        const commenter = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { name: true },
+        });
+        const commenterName = commenter?.name || "Someone";
         const truncatedComment =
           parsed.data.content.length > 80
             ? parsed.data.content.slice(0, 80) + "..."
             : parsed.data.content;
 
-        const notification = await Notification.create({
-          receiver: post.author,
-          sender: user._id,
-          type: "comment",
-          title: "New Comment",
-          body: `${commenterName} commented: ${truncatedComment}`,
-          link: `/feeds?post=${id}`,
-          read: false,
+        const notification = await prisma.notification.create({
+          data: {
+            receiver: post.author,
+            sender: user.id,
+            type: "comment",
+            title: "New Comment",
+            body: `${commenterName} commented: ${truncatedComment}`,
+            link: `/feeds?post=${id}`,
+            read: false,
+          },
         });
 
         await pusherServer.trigger(
           `notifications-${post.author}`,
           "new-notification",
           {
-            _id: String(notification._id),
+            _id: String(notification.id),
             title: notification.title,
             body: notification.body,
             link: notification.link,
@@ -143,12 +151,36 @@ export async function POST(req: Request, { params }: Props) {
       }
     }
 
-    // Populate the newly added comment author data
-    const updatedPost: any = await Post.findById(id)
-      .populate("comments.author", "name image department graduatedYear")
-      .lean();
-
-    const newComment = updatedPost.comments[updatedPost.comments.length - 1];
+    // Fetch the newly added comment
+    const comments = await prisma.postComment.findMany({
+      where: { postId: id },
+      orderBy: { createdAt: "asc" },
+    });
+    const newCommentRow = comments[comments.length - 1];
+    if (!newCommentRow) {
+      return NextResponse.json({ error: "Failed to create comment" }, { status: 500 });
+    }
+    const usersMap = await getUsersByIds([newCommentRow.authorId]);
+    const cAuthor = usersMap.get(newCommentRow.authorId) || {
+      id: newCommentRow.authorId,
+      name: "Unknown Alumni",
+      image: "",
+    };
+    const newComment = {
+      id: newCommentRow.id,
+      _id: newCommentRow.id,
+      content: newCommentRow.content,
+      createdAt: newCommentRow.createdAt,
+      updatedAt: newCommentRow.updatedAt,
+      author: {
+        _id: cAuthor.id,
+        id: cAuthor.id,
+        name: cAuthor.name,
+        image: cAuthor.image,
+        department: "",
+        graduatedYear: null,
+      },
+    };
 
     // 2. Pass `true` to cleanComment because the user making this POST request is the owner
     return NextResponse.json(cleanComment(newComment, true), { status: 201 });

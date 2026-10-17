@@ -1,11 +1,85 @@
 // file: app/api/admin/import-data/route.ts
 
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
+import { serializeList } from "@/lib/db";
+
+const TABLE_DELEGATES: Record<string, any> = {
+  approved_students: prisma.approvedStudent,
+  contact_settings: prisma.contactSetting,
+  experiences: prisma.experience,
+  job_applications: prisma.jobApplication,
+  jobs: prisma.job,
+  message_reactions: prisma.messageReaction,
+  messages: prisma.message,
+  notifications: prisma.notification,
+  otps: prisma.otp,
+  post_comments: prisma.postComment,
+  post_likes: prisma.postLike,
+  posts: prisma.post,
+  push_tokens: prisma.pushToken,
+  settings: prisma.setting,
+  students: prisma.student,
+  users: prisma.user,
+  vote_projects: prisma.voteProject,
+  vote_users: prisma.voteUser,
+};
+
+const USER_SCALARS = [
+  "name",
+  "email",
+  "password",
+  "role",
+  "position",
+  "isBlocked",
+  "image",
+  "bio",
+  "graduatedYear",
+  "degree",
+  "isVerified",
+  "fatherName",
+  "isProfilePublic",
+  "profileVisibility",
+  "languagePreference",
+  "themePreference",
+];
+
+const CONTACT_MAP: [string, string][] = [
+  ["phone", "contactPhone"],
+  ["email", "contactEmail"],
+  ["address", "contactAddress"],
+  ["company", "contactCompany"],
+  ["position", "contactPosition"],
+];
+
+const SOCIAL_MAP: [string, string][] = [
+  ["facebook", "socialFacebook"],
+  ["telegram", "socialTelegram"],
+  ["instagram", "socialInstagram"],
+  ["youtube", "socialYoutube"],
+  ["linkedin", "socialLinkedin"],
+  ["github", "socialGithub"],
+  ["tiktok", "socialTiktok"],
+  ["viber", "socialViber"],
+  ["line", "socialLine"],
+  ["x", "socialX"],
+  ["twitter", "socialTwitter"],
+  ["whatsapp", "socialWhatsapp"],
+  ["website", "socialWebsite"],
+];
+
+const JSON_COLUMNS: Record<string, string[]> = {
+  posts: ["images"],
+  message_reactions: ["users"],
+  vote_projects: ["languagesAndTools", "photos"],
+};
+
+const STRIP_COLUMNS: Record<string, string[]> = {
+  posts: ["likes", "comments"],
+  messages: ["reactions"],
+};
 
 async function requireAdmin() {
   const session = await auth();
@@ -14,11 +88,10 @@ async function requireAdmin() {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role isBlocked")
-    .lean();
+  const admin = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, role: true, isBlocked: true },
+  });
 
   if (!admin) {
     return { error: NextResponse.json({ error: "Admin not found" }, { status: 404 }) };
@@ -39,30 +112,83 @@ async function requireAdmin() {
   return { error: null };
 }
 
-async function getDb() {
-  const db = mongoose.connection.db;
-  if (!db) throw new Error("Database connection is not ready");
-  return db;
+function toIdString(value: any): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && typeof value.$oid === "string") return value.$oid;
+  return String(value);
 }
 
-function toDocId(value: any) {
-  if (typeof value === "string" && /^[a-fA-F0-9]{24}$/.test(value)) {
-    return new mongoose.Types.ObjectId(value);
+function flattenUserDoc(doc: any) {
+  const data: Record<string, any> = {};
+
+  for (const key of USER_SCALARS) {
+    const value = doc[key];
+    if (value !== undefined && value !== null) data[key] = value;
   }
-  return value;
+
+  if (data.graduatedYear !== undefined) data.graduatedYear = String(data.graduatedYear);
+
+  const ci = doc.contactInfo && typeof doc.contactInfo === "object" ? doc.contactInfo : {};
+  for (const [from, to] of CONTACT_MAP) {
+    const value = ci[from] ?? doc[to];
+    if (value !== undefined && value !== null) data[to] = value;
+  }
+
+  const sl = doc.socialLinks && typeof doc.socialLinks === "object" ? doc.socialLinks : {};
+  for (const [from, to] of SOCIAL_MAP) {
+    const value = sl[from] ?? doc[to];
+    if (value !== undefined && value !== null) data[to] = value;
+  }
+
+  if (doc.createdAt) data.createdAt = new Date(doc.createdAt);
+  if (doc.updatedAt) data.updatedAt = new Date(doc.updatedAt);
+
+  return data;
+}
+
+function toData(collectionName: string, doc: any) {
+  if (collectionName === "users") {
+    const data = flattenUserDoc(doc);
+    const id = toIdString(doc._id ?? doc.id);
+    if (id) data.id = id;
+    return data;
+  }
+
+  const strip = STRIP_COLUMNS[collectionName] || [];
+  const data: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(doc)) {
+    if (key === "_id" || key === "__v" || key === "id") continue;
+    if (strip.includes(key)) continue;
+    if (value === undefined) continue;
+    data[key] = value;
+  }
+
+  const id = toIdString(doc._id ?? doc.id);
+  if (id) data.id = id;
+
+  if (data.graduatedYear !== undefined && data.graduatedYear !== null) {
+    data.graduatedYear = String(data.graduatedYear);
+  }
+  if (data.createdAt) data.createdAt = new Date(data.createdAt);
+  if (data.updatedAt) data.updatedAt = new Date(data.updatedAt);
+
+  for (const column of JSON_COLUMNS[collectionName] || []) {
+    if (Array.isArray(data[column])) data[column] = serializeList(data[column]);
+  }
+
+  return data;
 }
 
 // POST /api/admin/import-data
 // Accepts one or more `files` (multipart). Each filename becomes the collection:
-//   posts.json -> collection `posts`
-// Documents that already exist (same `_id`) are skipped, never overwritten.
+//   posts.json -> table `posts`
+// Documents that already exist (same `_id`/`id`) are skipped, never overwritten.
 export async function POST(req: Request) {
   try {
     const { error } = await requireAdmin();
     if (error) return error;
-
-    await connectDB();
-    const db = await getDb();
 
     const formData = await req.formData();
     const files: File[] = [];
@@ -98,59 +224,61 @@ export async function POST(req: Request) {
         continue;
       }
 
-try {
-          const text = await file.text();
-          let docs: any = JSON.parse(text);
-          if (!Array.isArray(docs)) docs = [docs];
+      const delegate = TABLE_DELEGATES[collectionName];
+      if (!delegate) {
+        results.push({
+          filename,
+          collection: collectionName,
+          inserted: 0,
+          skipped: 0,
+          error: "Unknown collection",
+        });
+        continue;
+      }
 
-          const coll = db.collection(collectionName);
-          let inserted = 0;
-          let skipped = 0;
+      try {
+        const text = await file.text();
+        let docs: any = JSON.parse(text);
+        if (!Array.isArray(docs)) docs = [docs];
 
-          for (const doc of docs) {
-            if (!doc || typeof doc !== "object") {
-              skipped++;
-              continue;
-            }
+        let inserted = 0;
+        let skipped = 0;
 
-            delete doc.__v;
+        for (const doc of docs) {
+          if (!doc || typeof doc !== "object") {
+            skipped++;
+            continue;
+          }
 
-            try {
-              const id = toDocId(doc._id);
-              const copy = { ...doc };
-              delete copy._id;
+          try {
+            const data = toData(collectionName, doc);
+            const id = data.id as string | undefined;
 
-              if (id === undefined || id === null || id === "") {
-                await coll.insertOne(copy);
-                inserted++;
-                continue;
-              }
-
-              const exists = await coll.findOne({ _id: id });
+            if (id) {
+              const exists = await delegate.findUnique({ where: { id } });
               if (exists) {
                 skipped++;
                 continue;
               }
-
-              copy._id = id;
-              await coll.insertOne(copy);
-              inserted++;
-            } catch {
-              // duplicate or invalid document — skip it
-              skipped++;
             }
-          }
 
-          results.push({ filename, collection: collectionName, inserted, skipped });
-        } catch (err: any) {
-          results.push({
-            filename,
-            collection: collectionName,
-            inserted: 0,
-            skipped: 0,
-            error: (err?.message as string) || String(err),
-          });
+            await delegate.create({ data });
+            inserted++;
+          } catch {
+            skipped++;
+          }
         }
+
+        results.push({ filename, collection: collectionName, inserted, skipped });
+      } catch (err: any) {
+        results.push({
+          filename,
+          collection: collectionName,
+          inserted: 0,
+          skipped: 0,
+          error: (err?.message as string) || String(err),
+        });
+      }
     }
 
     return NextResponse.json({ success: true, results }, { status: 200 });

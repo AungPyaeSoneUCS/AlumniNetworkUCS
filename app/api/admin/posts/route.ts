@@ -3,14 +3,12 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-
-import User from "@/models/User";
-import Post from "@/models/Post";
+import { prisma } from "@/lib/prisma";
+import { parseList, serializeList, getUsersByIds, isValidId } from "@/lib/db";
 
 function cleanAuthor(author: any) {
   return {
-    _id: String(author?._id || ""),
+    _id: String(author?._id || author?.id || ""),
     name: author?.name || "Unknown Alumni",
     email: author?.email || "",
     image: author?.image || "",
@@ -19,16 +17,17 @@ function cleanAuthor(author: any) {
   };
 }
 
-function cleanPost(post: any) {
+function cleanPost(post: any, likesCount?: number, commentsCount?: number) {
   const comments = Array.isArray(post?.comments) ? post.comments : [];
+  const likes = Array.isArray(post?.likes) ? post.likes : [];
 
   return {
-    _id: String(post?._id || ""),
+    _id: String(post?._id || post?.id || ""),
     content: post?.content || "",
     category: post?.category || "General",
     image: post?.image || "",
-    likesCount: Array.isArray(post?.likes) ? post.likes.length : 0,
-    commentsCount: comments.length || post?.commentsCount || 0,
+    likesCount: likesCount ?? (likes.length ?? 0),
+    commentsCount: commentsCount ?? (comments.length || post?.commentsCount || 0),
     isEdited: Boolean(post?.isEdited),
     createdAt: post?.createdAt || null,
     updatedAt: post?.updatedAt || null,
@@ -46,13 +45,10 @@ async function requireAdmin() {
     };
   }
 
-  await connectDB();
-
-  const admin: any = await User.findOne({
-    email: session.user.email,
-  })
-    .select("_id role isBlocked")
-    .lean();
+  const admin = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, role: true, isBlocked: true },
+  });
 
   if (!admin) {
     return {
@@ -100,18 +96,65 @@ export async function GET(req: Request) {
     }
 
     if (q) {
-      filter.$or = [
-        { content: { $regex: q, $options: "i" } },
-        { category: { $regex: q, $options: "i" } },
+      filter.OR = [
+        { content: { contains: q } },
+        { category: { contains: q } },
       ];
     }
 
-    const posts = await Post.find(filter)
-      .sort({ createdAt: -1 })
-      .populate("author", "name email image department graduatedYear")
-      .lean();
+    const posts = await prisma.post.findMany({
+      where: filter,
+      orderBy: { createdAt: "desc" },
+    });
 
-    return NextResponse.json(posts.map(cleanPost));
+    const postIds = posts.map((p) => p.id);
+    const authorIds = posts.map((p) => p.author);
+    const usersMap = await getUsersByIds(authorIds);
+    const [likeCounts, commentCounts] = await Promise.all([
+      prisma.postLike.groupBy({
+        by: ["postId"],
+        where: { postId: { in: postIds } },
+        _count: true,
+      }),
+      prisma.postComment.groupBy({
+        by: ["postId"],
+        where: { postId: { in: postIds } },
+        _count: true,
+      }),
+    ]);
+    const likeMap = Object.fromEntries(likeCounts.map((l) => [l.postId, l._count]));
+    const commentMap = Object.fromEntries(commentCounts.map((c) => [c.postId, c._count]));
+
+    const result = posts.map((post) => {
+      const author = usersMap.get(post.author) || {
+        id: post.author,
+        name: "Unknown Alumni",
+        email: "",
+        image: "",
+      };
+      const enriched = {
+        id: post.id,
+        _id: post.id,
+        content: post.content,
+        category: post.category,
+        image: post.image,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        isEdited: post.isEdited,
+        author: {
+          _id: author.id,
+          id: author.id,
+          name: author.name,
+          email: author.email,
+          image: author.image,
+          department: "",
+          graduatedYear: null,
+        },
+      };
+      return cleanPost(enriched, likeMap[post.id], commentMap[post.id]);
+    });
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("GET /api/admin/posts error:", error);
 
@@ -130,17 +173,20 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const postId = searchParams.get("postId")?.trim() || "";
 
-    if (!postId) {
+    if (!postId || !isValidId(postId)) {
       return NextResponse.json({ error: "Missing postId" }, { status: 400 });
     }
 
-    const post = await Post.findById(postId).select("_id");
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true },
+    });
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    await Post.findByIdAndDelete(postId);
+    await prisma.post.delete({ where: { id: postId } });
 
     return NextResponse.json({
       success: true,

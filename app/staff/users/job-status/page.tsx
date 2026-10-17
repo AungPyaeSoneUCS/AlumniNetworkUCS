@@ -5,8 +5,7 @@ import { redirect } from "next/navigation";
 import { BarChart3 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import StaffSidebar from "@/components/staff/staff-sidebar";
 import JobStatusChart from "@/components/admin/job-status-chart";
 import JobStatusExporter from "@/components/admin/job-status-exporter";
@@ -625,23 +624,39 @@ export default async function StaffJobStatusPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/staff/login");
 
-  await connectDB();
-
-  const staffUser: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!staffUser || (staffUser.role !== "staff" && staffUser.role !== "admin")) {
     redirect("/staff/login");
   }
 
-  const allUsers: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select("_id role graduatedYear experiences")
-    .lean();
+  const allUsers: any[] = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: { id: true, role: true, graduatedYear: true },
+  });
+
+  const allExperiences = await prisma.experience.findMany({
+    select: { id: true, userId: true, position: true, isCurrent: true },
+  });
+
+  const experiencesByUser = new Map<string, any[]>();
+  allExperiences.forEach((exp) => {
+    const key = exp.userId || "";
+    if (!experiencesByUser.has(key)) experiencesByUser.set(key, []);
+    experiencesByUser.get(key)!.push(exp);
+  });
 
   // ONLY show metrics for regular users/alumni
-  const users = allUsers.filter((user) => user.role === "user");
+  const users = allUsers
+    .filter((user) => user.role === "user")
+    .map((user) => ({
+      ...user,
+      _id: user.id,
+      experiences: experiencesByUser.get(user.id) || [],
+    }));
 
   const yearOptions = Array.from(
     new Set(

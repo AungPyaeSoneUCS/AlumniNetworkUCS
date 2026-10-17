@@ -1,11 +1,9 @@
 // file: app/api/notifications/route.ts
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Notification from "@/models/Notification";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 export async function GET(req: Request) {
   try {
@@ -17,37 +15,39 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
     // Identify current user either by Mobile Header ID or Web Session Email
     let currentUser: any = null;
-    
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id").lean();
+
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id").lean();
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
     }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const notifications = await Notification.find({
-      receiver: currentUser._id,
-    })
-      .sort({ createdAt: -1 })
-      .limit(30)
-      .lean();
+    const notifications = await prisma.notification.findMany({
+      where: { receiver: currentUser.id },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    });
 
-    const unreadCount = await Notification.countDocuments({
-      receiver: currentUser._id,
-      read: false,
+    const unreadCount = await prisma.notification.count({
+      where: { receiver: currentUser.id, read: false },
     });
 
     return NextResponse.json({
       unreadCount,
-      notifications: notifications.map((item: any) => ({
-        _id: String(item._id),
+      notifications: notifications.map((item) => ({
+        _id: String(item.id),
         type: item.type || "message",
         title: item.title || "",
         body: item.body || "",
@@ -76,25 +76,29 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
     // Identify current user either by Mobile Header ID or Web Session Email
     let currentUser: any = null;
-    
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id").lean();
+
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id").lean();
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
     }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    await Notification.updateMany(
-      { receiver: currentUser._id, read: false },
-      { $set: { read: true } }
-    );
+    await prisma.notification.updateMany({
+      where: { receiver: currentUser.id, read: false },
+      data: { read: true },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

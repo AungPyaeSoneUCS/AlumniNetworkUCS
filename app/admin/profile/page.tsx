@@ -3,8 +3,7 @@
 import type React from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import ProfileClientForm from "./client-form";
 
@@ -21,10 +20,10 @@ export default async function AdminProfilePage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id name email role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, name: true, email: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 

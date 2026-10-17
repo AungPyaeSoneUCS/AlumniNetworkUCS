@@ -4,8 +4,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 type AdminCheckResult =
   | { ok: true }
@@ -18,11 +17,10 @@ async function checkAdmin(): Promise<AdminCheckResult> {
     return { error: "Unauthorized", status: 401 };
   }
 
-  await connectDB();
-
-  const admin = await User.findOne({ email: session.user.email })
-    .select("role")
-    .lean();
+  const admin = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
 
   if (!admin || admin.role !== "admin") {
     return { error: "Forbidden", status: 403 };
@@ -37,7 +35,6 @@ function isEmailValid(email: string) {
 
 export async function POST(req: Request) {
   try {
-    // 1. Verify Admin Authentication
     const adminCheck = await checkAdmin();
 
     if (!adminCheck.ok) {
@@ -47,14 +44,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // 2. Parse Data
     const body = await req.json();
     const name = String(body.name || "").trim();
     const position = String(body.position || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
     const password = String(body.password || "");
 
-    // Validation
     if (!name || !position || !email || !password) {
       return NextResponse.json(
         { error: "Name, Position, Email, and Password are required." },
@@ -76,8 +71,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Check if the target email is already taken in the User model
-    const existingUser = await User.findOne({ email }).select("_id").lean();
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
     if (existingUser) {
       return NextResponse.json(
         { error: "This email is already registered to another user." },
@@ -85,16 +82,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Hash password and create Staff account
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newStaff = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: "staff", // Strictly assigned as staff
-      position,      // The new position field
-      isBlocked: false,
+    const newStaff = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: "staff",
+        position,
+        isBlocked: false,
+      },
     });
 
     return NextResponse.json(
@@ -102,7 +100,7 @@ export async function POST(req: Request) {
         success: true,
         message: "Staff account created successfully.",
         user: {
-          id: newStaff._id,
+          id: newStaff.id,
           name: newStaff.name,
           email: newStaff.email,
           role: newStaff.role,
@@ -114,7 +112,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Staff creation error:", error);
 
-    if (error?.code === 11000) {
+    if (error?.code === "P2002" || error?.code === 11000) {
       return NextResponse.json(
         { error: "Duplicate registration error occurred." },
         { status: 400 },

@@ -18,9 +18,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import ApprovedStudent from "@/models/ApprovedStudent";
+import { prisma } from "@/lib/prisma";
 import StaffSidebar from "@/components/staff/staff-sidebar";
 import ConfirmDelete from "@/components/admin/confirm-delete";
 import AutoSubmitManageUsersFilters from "@/components/admin/auto-submit-manage-users-filters";
@@ -453,39 +451,51 @@ async function deleteUserAccount(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) redirect("/staff/login");
 
-  await connectDB();
-
-  const staffUser: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!staffUser || (staffUser.role !== "staff" && staffUser.role !== "admin")) {
     redirect("/staff/login");
   }
 
-  if (String(staffUser._id) === id) return;
+  if (staffUser.id === id) return;
 
-  const userToDelete: any = await User.findById(id).lean();
+  const userToDelete = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true, name: true, role: true, graduatedYear: true },
+  });
 
   // Staff can only delete regular users/alumni
   if (userToDelete && userToDelete.role === "user") {
     if (userToDelete.name) {
-      const safeName = userToDelete.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
-      const queryFilter: any = {
-        name: new RegExp(`^\\s*${safeName}\\s*$`, "i"),
-      };
+      const targetName = userToDelete.name.trim().toLowerCase();
+      const targetYear = userToDelete.graduatedYear
+        ? String(userToDelete.graduatedYear).trim()
+        : "";
 
-      if (userToDelete.graduatedYear) {
-        queryFilter.graduatedYear = Number(userToDelete.graduatedYear);
-      }
-
-      await ApprovedStudent.updateMany(queryFilter, {
-        $set: { registered: false },
+      const approvedStudents = await prisma.approvedStudent.findMany({
+        select: { id: true, name: true, graduatedYear: true },
       });
+
+      const matchingIds = approvedStudents
+        .filter(
+          (student) =>
+            student.name.trim().toLowerCase() === targetName &&
+            (!targetYear || String(student.graduatedYear) === targetYear),
+        )
+        .map((student) => student.id);
+
+      if (matchingIds.length > 0) {
+        await prisma.approvedStudent.updateMany({
+          where: { id: { in: matchingIds } },
+          data: { registered: false },
+        });
+      }
     }
 
-    await User.findByIdAndDelete(id);
+    await prisma.user.delete({ where: { id } });
   }
 
   revalidatePath("/staff/manage-users");
@@ -531,25 +541,37 @@ export default async function StaffManageUsersPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/staff/login");
 
-  await connectDB();
-
-  const staffUser: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!staffUser || (staffUser.role !== "staff" && staffUser.role !== "admin")) {
     redirect("/staff/login");
   }
 
   // Strictly fetch only users with role === 'user' (Alumni)
-  const allUsers: any[] = await User.find({ role: "user" })
-    .sort({ createdAt: -1 })
-    .select(
-      "_id name email image role degree department graduatedYear contactInfo.phone phone phoneNumber createdAt",
-    )
-    .lean();
+  const allUsers = await prisma.user.findMany({
+    where: { role: "user" },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      role: true,
+      degree: true,
+      graduatedYear: true,
+      contactPhone: true,
+      createdAt: true,
+    },
+  });
 
-  const users = allUsers;
+  const users = allUsers.map((user) => ({
+    ...user,
+    _id: user.id,
+    contactInfo: { phone: user.contactPhone },
+  }));
 
   const degreeOptions = Array.from(
     new Set(

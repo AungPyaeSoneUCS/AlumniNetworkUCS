@@ -5,8 +5,7 @@ import { redirect } from "next/navigation";
 import { BarChart3 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import GraduatedYearsChart from "@/components/admin/graduated-years-chart";
 import GraduatedYearsExporter from "@/components/admin/graduated-years-exporter";
@@ -515,18 +514,19 @@ export default async function AdminGraduatedYearsPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const users: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select("_id name email role degree department graduatedYear")
-    .lean();
+  const userRows: any[] = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: { id: true, name: true, email: true, role: true, degree: true, graduatedYear: true },
+  });
+
+  const users: any[] = userRows.map((user) => ({ ...user, _id: user.id }));
 
   // ONLY include exact users with role "user" (exclude staff, admin, etc.)
   const normalUsers = users.filter((user) => user.role === "user");

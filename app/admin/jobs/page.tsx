@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import PrintUsersButton from "@/components/admin/print-users-button";
 import AutoSubmitJobsFilters from "@/components/admin/auto-submit-jobs-filters";
@@ -47,7 +46,7 @@ type JobItem = Experience & {
   userEmail: string;
   userImage?: string;
   userDepartment?: string;
-  userGraduatedYear?: number | null;
+  userGraduatedYear?: string | number | null;
 };
 
 const text = {
@@ -528,22 +527,41 @@ export default async function AdminJobsPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const users: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select(
-      "_id name email image profileImage googleImage role department degree graduatedYear experiences",
-    )
-    .lean();
+  const users: any[] = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      role: true,
+      degree: true,
+      graduatedYear: true,
+    },
+  });
 
-  const normalUsers = users.filter((user) => user.role !== "admin");
+  const experienceRows: any[] = await prisma.experience.findMany({});
+
+  const experiencesByUser = new Map<string, any[]>();
+  for (const experience of experienceRows) {
+    const list = experiencesByUser.get(experience.userId) || [];
+    list.push(experience);
+    experiencesByUser.set(experience.userId, list);
+  }
+
+  const normalUsers = users
+    .filter((user) => user.role !== "admin")
+    .map((user) => ({
+      ...user,
+      experiences: experiencesByUser.get(user.id) || [],
+    }));
 
   const jobs: JobItem[] = normalUsers.flatMap((user) =>
     Array.isArray(user.experiences)
@@ -561,11 +579,11 @@ export default async function AdminJobsPage({
           )
           .map((job: Experience) => ({
             ...job,
-            userId: String(user._id),
+            userId: String(user.id),
             userName: user.name || t.unknownAlumni,
             userEmail: user.email || "",
-            userImage: user.profileImage || user.image || user.googleImage || "",
-            userDepartment: user.degree || user.department || "",
+            userImage: user.image || "",
+            userDepartment: user.degree || "",
             userGraduatedYear: user.graduatedYear || null,
           }))
       : [],

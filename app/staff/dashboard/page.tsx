@@ -5,10 +5,7 @@ import { redirect } from "next/navigation";
 import { Briefcase, Newspaper, UserCheck, Users, GraduationCap, LineChart, PieChart, ChevronRight } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Post from "@/models/Post";
-import ApprovedStudent from "@/models/ApprovedStudent";
+import { prisma } from "@/lib/prisma";
 import StaffSidebar from "@/components/staff/staff-sidebar";
 
 type Lang = "en" | "mm";
@@ -126,24 +123,54 @@ export default async function StaffDashboardPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/staff/login");
 
-  await connectDB();
-
-  const staffUser: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!staffUser || (staffUser.role !== "staff" && staffUser.role !== "admin")) {
     redirect("/staff/login");
   }
 
-  const [allUsers, allPosts, allRegisteredData] = await Promise.all([
-    User.find({}).select("_id role experiences graduatedYear").lean(),
-    Post.find({}).select("_id category").lean(),
-    ApprovedStudent.find({}).select("_id graduatedYear registered").lean(),
-  ]);
+  const [allUsers, allPosts, allRegisteredData, allExperiences] =
+    await Promise.all([
+      prisma.user.findMany({
+        select: { id: true, role: true, graduatedYear: true },
+      }),
+      prisma.post.findMany({ select: { id: true, category: true } }),
+      prisma.approvedStudent.findMany({
+        select: { id: true, graduatedYear: true, registered: true },
+      }),
+      prisma.experience.findMany({
+        select: {
+          userId: true,
+          company: true,
+          position: true,
+          employmentType: true,
+          location: true,
+          phone: true,
+          email: true,
+          salary: true,
+          website: true,
+          isCurrent: true,
+        },
+      }),
+    ]);
+
+  const experiencesByUser = new Map<string, any[]>();
+  for (const exp of allExperiences) {
+    const list = experiencesByUser.get(exp.userId) || [];
+    list.push(exp);
+    experiencesByUser.set(exp.userId, list);
+  }
+
+  const usersWithExperiences = allUsers.map((u) => ({
+    ...u,
+    experiences: experiencesByUser.get(u.id) || [],
+  }));
 
   // Only include users with role === 'user' (excludes 'admin' and 'staff')
-  const alumniUsers = allUsers.filter((user: any) => user.role === "user");
+  const alumniUsers = usersWithExperiences.filter((user) => user.role === "user");
 
   // ---------------------------------------------------------
   // 1. TOP CARDS AGGREGATION (1x4 Grid)

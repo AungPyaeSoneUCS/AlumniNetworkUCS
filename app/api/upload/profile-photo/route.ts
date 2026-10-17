@@ -3,11 +3,9 @@ import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { exec } from "child_process";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma, isValidId } from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
@@ -19,15 +17,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
     // Identify current user either by Mobile Header ID or Web Session Email
     let user: any = null;
 
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      user = await User.findById(mobileUserId);
+    if (mobileUserId && isValidId(mobileUserId)) {
+      user = await prisma.user.findUnique({ where: { id: mobileUserId } });
     } else if (session?.user?.email) {
-      user = await User.findOne({ email: session.user.email });
+      user = await prisma.user.findUnique({ where: { email: session.user.email } });
     }
 
     if (!user) {
@@ -58,7 +54,7 @@ export async function POST(req: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const userId = user._id.toString();
+    const userId = String(user.id);
 
     // Safely build the path to the directory
     const uploadDir = path.join(
@@ -85,8 +81,10 @@ export async function POST(req: Request) {
     // newly-uploaded photo visible immediately, without waiting for a restart).
     const imageUrl = `/uploads/photo/${userId}/profile/${fileName}?v=${Date.now()}`;
 
-    user.image = imageUrl;
-    await user.save();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { image: imageUrl },
+    });
 
     // Restart PM2 after a 10s delay so the profile save/refetch completes
     // first (avoids 502), then flushes the photo cache so the new photo shows.

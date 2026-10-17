@@ -1,11 +1,9 @@
 // file: app/api/jobs/applications/mine/route.ts
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import JobApplication from "@/models/JobApplication";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 // GET /api/jobs/applications/mine - List current user's job applications
 export async function GET(req: Request) {
@@ -17,26 +15,31 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
-    let currentUser: any = null;
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id").lean();
+    let currentUser: { id: string } | null = null;
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id").lean();
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
     }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const applications = await JobApplication.find({ applicant: currentUser._id })
-      .sort({ createdAt: -1 })
-      .lean();
+    const applications = await prisma.jobApplication.findMany({
+      where: { applicant: currentUser.id },
+      orderBy: { createdAt: "desc" },
+    });
 
     return NextResponse.json(
-      applications.map((app: any) => ({
-        _id: String(app._id),
+      applications.map((app) => ({
+        _id: String(app.id),
         jobId: String(app.jobId),
         title: app.title || "",
         company: app.company || "",

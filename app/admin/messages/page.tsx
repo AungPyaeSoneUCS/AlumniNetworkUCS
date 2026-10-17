@@ -20,29 +20,71 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Message from "@/models/Message";
+import { prisma } from "@/lib/prisma";
 
 export default async function AdminMessagesPage() {
   const session = await auth();
 
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id name email image role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, name: true, email: true, image: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const messages: any[] = await Message.find({})
-    .sort({ createdAt: -1 })
-    .limit(200)
-    .populate("sender", "name email image department graduatedYear")
-    .populate("receiver", "name email image department graduatedYear")
-    .lean();
+  const messageRows: any[] = await prisma.message.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: {
+      id: true,
+      sender: true,
+      receiver: true,
+      text: true,
+      seen: true,
+      createdAt: true,
+    },
+  });
+
+  const participantIds = Array.from(
+    new Set(
+      messageRows.flatMap((message) => [message.sender, message.receiver]),
+    ),
+  ).filter(Boolean) as string[];
+
+  const participantRows: any[] = participantIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: participantIds } },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          degree: true,
+          graduatedYear: true,
+        },
+      })
+    : [];
+
+  const participantsById = new Map<string, any>();
+  for (const participant of participantRows) {
+    participantsById.set(participant.id, {
+      _id: participant.id,
+      name: participant.name,
+      email: participant.email,
+      image: participant.image,
+      department: participant.degree,
+      graduatedYear: participant.graduatedYear,
+    });
+  }
+
+  const messages: any[] = messageRows.map((message) => ({
+    ...message,
+    _id: message.id,
+    sender: participantsById.get(message.sender) || null,
+    receiver: participantsById.get(message.receiver) || null,
+  }));
 
   const seenCount = messages.filter((message) => message.seen).length;
   const unseenCount = messages.length - seenCount;

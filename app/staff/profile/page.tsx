@@ -3,8 +3,7 @@
 import type React from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import StaffSidebar from "@/components/staff/staff-sidebar";
 import ProfileClientForm from "./client-form";
 
@@ -21,11 +20,10 @@ export default async function StaffProfilePage({
   const session = await auth();
   if (!session?.user?.email) redirect("/staff/login");
 
-  await connectDB();
-  // We added "position" to the select query
-  const staffUser: any = await User.findOne({ email: session.user.email })
-    .select("_id name email position role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, name: true, email: true, position: true, role: true },
+  });
 
   if (!staffUser || (staffUser.role !== "staff" && staffUser.role !== "admin")) {
     redirect("/staff/login");

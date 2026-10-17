@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 type Lang = "en" | "mm";
 
@@ -117,11 +116,9 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  await connectDB();
-
-  const currentUser: any = await User.findOne({
-    email: session.user.email,
-  }).lean();
+  const currentUser: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+  });
 
   if (!currentUser) {
     redirect("/login");
@@ -129,26 +126,29 @@ export default async function DashboardPage() {
 
   const lang: Lang = currentUser.languagePreference === "mm" ? "mm" : "en";
   const t = text[lang];
-  const userId = String(currentUser._id);
+  const userId = String(currentUser.id);
   const currentUserDegree = getDegree(currentUser);
 
   const currentUserImage =
     currentUser.image || session.user.image || "/avatar.png";
 
-  const publicFilter = {
-    $or: [{ isProfilePublic: true }, { isProfilePublic: { $exists: false } }],
-  };
+  const totalAlumni = await prisma.user.count({
+    where: { isProfilePublic: true },
+  });
 
-  const totalAlumni = await User.countDocuments(publicFilter);
-
-  const recentUsers = await User.find({
-    ...publicFilter,
-    _id: { $ne: currentUser._id },
-  })
-    .sort({ createdAt: -1 })
-    .limit(5)
-    .select("name image degree department graduatedYear createdAt")
-    .lean();
+  const recentUsers = await prisma.user.findMany({
+    where: { isProfilePublic: true, id: { not: currentUser.id } },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: {
+      id: true,
+      name: true,
+      image: true,
+      degree: true,
+      graduatedYear: true,
+      createdAt: true,
+    },
+  });
 
   const cards = [
     {
@@ -331,8 +331,8 @@ export default async function DashboardPage() {
 
                   return (
                     <Link
-                      key={String(user._id)}
-                      href={`/profile/${String(user._id)}`}
+                      key={user.id}
+                      href={`/profile/${user.id}`}
                       className="flex items-center gap-4 rounded-2xl border border-[#25C9C8]/20 bg-[#F8FFFF] p-4 shadow-sm transition hover:-translate-y-1 hover:bg-white hover:shadow-lg"
                     >
                       <Image

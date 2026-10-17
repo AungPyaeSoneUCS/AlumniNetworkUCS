@@ -1,14 +1,11 @@
 // app/api/posts/[id]/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
 import { pusherServer } from "@/lib/pusher";
-import User from "@/models/User";
-import Post from "@/models/Post";
-import Notification from "@/models/Notification";
+import { prisma } from "@/lib/prisma";
+import { parseList, serializeList, isValidId, getUsersByIds } from "@/lib/db";
 
 type Props = {
   params: Promise<{
@@ -29,13 +26,13 @@ function cleanComment(comment: any) {
   const author = comment?.author || {};
 
   return {
-    _id: String(comment?._id || ""),
+    _id: String(comment?._id || comment?.id || ""),
     content: comment?.content || "",
     createdAt: comment?.createdAt || null,
     updatedAt: comment?.updatedAt || null,
 
     author: {
-      _id: String(author._id || ""),
+      _id: String(author._id || author.id || ""),
       name: author.name || "Unknown Alumni",
       image: author.image || "",
       department: author.department || "",
@@ -49,14 +46,13 @@ function cleanPost(post: any, currentUserId?: string) {
   const comments = Array.isArray(post?.comments) ? post.comments : [];
   const likes = Array.isArray(post?.likes) ? post.likes.map(String) : [];
 
-  const images = Array.isArray(post?.images)
+  const imagesArr = Array.isArray(post?.images)
     ? post.images.filter(Boolean)
-    : post?.image
-      ? [post.image]
-      : [];
+    : parseList(post?.images).filter(Boolean);
+  const images = imagesArr.length > 0 ? imagesArr : post?.image ? [post.image] : [];
 
   return {
-    _id: String(post?._id || ""),
+    _id: String(post?._id || post?.id || ""),
     content: post?.content || "",
     category: post?.category || "General",
 
@@ -74,7 +70,7 @@ function cleanPost(post: any, currentUserId?: string) {
     updatedAt: post?.updatedAt || null,
 
     author: {
-      _id: String(author._id || ""),
+      _id: String(author._id || author.id || ""),
       name: author.name || "Unknown Alumni",
       email: author.email || "",
       image: author.image || "",
@@ -83,22 +79,23 @@ function cleanPost(post: any, currentUserId?: string) {
     },
 
     isOwner: currentUserId
-      ? String(author._id || "") === String(currentUserId)
+      ? String(author._id || author.id || "") === String(currentUserId)
       : false,
   };
 }
 
 // Dual Authentication Helper (Web Cookies or Mobile Headers)
 async function getAuthenticatedUser(req: Request) {
-  await connectDB();
-
   // 1. Check Mobile App Headers (x-user-id or Authorization)
   const mobileHeaderId =
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).select("_id email role").lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true, role: true },
+    });
     if (user) return user;
   }
 
@@ -106,9 +103,10 @@ async function getAuthenticatedUser(req: Request) {
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email })
-        .select("_id email role")
-        .lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true, role: true },
+      });
       if (user) return user;
     }
   } catch (err) {
@@ -130,18 +128,21 @@ export async function PUT(req: Request, { params }: Props) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidId(id)) {
       return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
     }
 
-    const post: any = await Post.findById(id).select("author").lean();
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { author: true },
+    });
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     // Ownership check (author or admin can edit)
-    const isOwner = String(post.author) === String(currentUser._id);
+    const isOwner = String(post.author) === String(currentUser.id);
     const isAdmin = currentUser.role === "admin";
 
     if (!isOwner && !isAdmin) {
@@ -171,27 +172,85 @@ export async function PUT(req: Request, { params }: Props) {
           ? [parsed.data.image]
           : [];
 
-    const updatedPost = await Post.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          content: parsed.data.content,
-          category: parsed.data.category,
-          image: images[0] || "",
-          images,
-          isEdited: true,
-        },
+    const updatedPost = await prisma.post.update({
+      where: { id },
+      data: {
+        content: parsed.data.content,
+        category: parsed.data.category,
+        image: images[0] || "",
+        images: serializeList(images),
+        isEdited: true,
       },
-      {
-        new: true,
-        runValidators: true,
-      }
-    )
-      .populate("author", "name email image department graduatedYear")
-      .populate("comments.author", "name image department graduatedYear")
-      .lean();
+    });
 
-    return NextResponse.json(cleanPost(updatedPost, String(currentUser._id)), {
+    const postIds = [updatedPost.id];
+    const commentRows = await prisma.postComment.findMany({
+      where: { postId: { in: postIds } },
+      orderBy: { createdAt: "asc" },
+    });
+    const allUserIds = Array.from(
+      new Set([updatedPost.author, ...commentRows.map((c) => c.authorId)])
+    );
+    const usersMap = await getUsersByIds(allUserIds);
+    const likeRows = await prisma.postLike.findMany({
+      where: { postId: { in: postIds } },
+      select: { postId: true, userId: true },
+    });
+    const likesArr = likeRows.filter((r) => r.postId === updatedPost.id).map((r) => r.userId);
+    const author = usersMap.get(updatedPost.author) || {
+      id: updatedPost.author,
+      name: "Unknown Alumni",
+      email: "",
+      image: "",
+    };
+    const comments = commentRows.map((comment) => {
+      const cAuthor = usersMap.get(comment.authorId) || {
+        id: comment.authorId,
+        name: "Unknown Alumni",
+        image: "",
+      };
+      return {
+        id: comment.id,
+        _id: comment.id,
+        content: comment.content,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+        author: {
+          _id: cAuthor.id,
+          id: cAuthor.id,
+          name: cAuthor.name,
+          image: cAuthor.image,
+          department: "",
+          graduatedYear: null,
+        },
+      };
+    });
+    const imagesArr = images;
+    const populatedPost = {
+      id: updatedPost.id,
+      _id: updatedPost.id,
+      content: updatedPost.content,
+      category: updatedPost.category,
+      image: updatedPost.image,
+      images: imagesArr,
+      likes: likesArr,
+      comments,
+      commentsCount: comments.length,
+      isEdited: updatedPost.isEdited,
+      createdAt: updatedPost.createdAt,
+      updatedAt: updatedPost.updatedAt,
+      author: {
+        _id: author.id,
+        id: author.id,
+        name: author.name,
+        email: author.email,
+        image: author.image,
+        department: "",
+        graduatedYear: null,
+      },
+    };
+
+    return NextResponse.json(cleanPost(populatedPost, String(currentUser.id)), {
       status: 200,
     });
   } catch (error) {
@@ -215,21 +274,21 @@ export async function DELETE(req: Request, { params }: Props) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidId(id)) {
       return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
     }
 
-    const post: any = await Post.findById(id)
-      .select("author content category")
-      .populate("author", "name email")
-      .lean();
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { author: true, content: true, category: true },
+    });
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
     // Ownership check (author or admin can delete)
-    const isOwner = String(post.author?._id || post.author) === String(currentUser._id);
+    const isOwner = String(post.author) === String(currentUser.id);
     const isAdmin = currentUser.role === "admin";
 
     if (!isOwner && !isAdmin) {
@@ -239,28 +298,30 @@ export async function DELETE(req: Request, { params }: Props) {
       );
     }
 
-    await Post.findByIdAndDelete(id);
+    await prisma.post.delete({ where: { id } });
 
     // Notify the original author when an admin removes their post
-    const authorId = String(post.author?._id || post.author || "");
+    const authorId = String(post.author || "");
     if (isAdmin && !isOwner && authorId) {
       try {
         const category = post.category || "General";
-        const notification = await Notification.create({
-          receiver: authorId,
-          sender: currentUser._id,
-          type: "admin",
-          title: "Post Removed",
-          body: `An admin removed your ${category} post: "${(post.content || "").slice(0, 80)}"`,
-          link: "/feeds",
-          read: false,
+        const notification = await prisma.notification.create({
+          data: {
+            receiver: authorId,
+            sender: currentUser.id,
+            type: "admin",
+            title: "Post Removed",
+            body: `An admin removed your ${category} post: "${(post.content || "").slice(0, 80)}"`,
+            link: "/feeds",
+            read: false,
+          },
         });
 
         await pusherServer.trigger(
           `notifications-${authorId}`,
           "new-notification",
           {
-            _id: String(notification._id),
+            _id: String(notification.id),
             type: "admin",
             title: notification.title,
             body: notification.body,

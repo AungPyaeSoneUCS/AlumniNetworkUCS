@@ -18,8 +18,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 
 type Lang = "en" | "mm";
@@ -80,25 +79,28 @@ async function updateStaffAccount(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
   // Verify Admin
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
   // Check if the target user exists and is a staff member
-  const targetUser: any = await User.findById(id).select("role").lean();
+  const targetUser: any = await prisma.user.findUnique({
+    where: { id },
+    select: { role: true },
+  });
   if (!targetUser || targetUser.role !== "staff") {
     redirect(`/admin/manage-staff?lang=${lang}`);
   }
 
   // Check if the new email is already taken by a DIFFERENT user
-  const existingEmailUser = await User.findOne({ email, _id: { $ne: id } })
-    .select("_id")
-    .lean();
+  const existingEmailUser = await prisma.user.findFirst({
+    where: { email, id: { not: id } },
+    select: { id: true },
+  });
 
   if (existingEmailUser) {
     redirect(`/admin/manage-staff/${id}?lang=${lang}&error=email_exists`);
@@ -116,7 +118,7 @@ async function updateStaffAccount(formData: FormData) {
     updates.password = await bcrypt.hash(password, 10);
   }
 
-  await User.findByIdAndUpdate(id, { $set: updates });
+  await prisma.user.update({ where: { id }, data: updates });
 
   revalidatePath("/admin/manage-staff");
   revalidatePath(`/admin/manage-staff/${id}`);
@@ -154,23 +156,31 @@ export default async function EditStaffPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
   // Fetch the Staff Member's details
-  const staffMember: any = await User.findById(id)
-    .select("_id name email position role")
-    .lean();
+  const staffRow: any = await prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      position: true,
+      role: true,
+    },
+  });
 
   // If user doesn't exist or isn't staff, boot them back to the manage list
-  if (!staffMember || staffMember.role !== "staff") {
+  if (!staffRow || staffRow.role !== "staff") {
     redirect(`/admin/manage-staff?lang=${lang}`);
   }
+
+  const staffMember: any = { ...staffRow, _id: staffRow.id };
 
   return (
     <div className="min-h-screen bg-slate-50/50 text-slate-950 dark:bg-slate-950 dark:text-white">

@@ -3,9 +3,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import ApprovedStudent from "@/models/ApprovedStudent";
+import { prisma } from "@/lib/prisma";
 
 type StaffCheckResult =
   | { ok: true }
@@ -14,7 +12,7 @@ type StaffCheckResult =
 type NormalizedStudent = {
   name: string;
   fatherName: string;
-  graduatedYear: string; // <-- Updated to string
+  graduatedYear: string;
 };
 
 async function checkStaffOrAdmin(): Promise<StaffCheckResult> {
@@ -24,11 +22,10 @@ async function checkStaffOrAdmin(): Promise<StaffCheckResult> {
     return { error: "Unauthorized", status: 401 };
   }
 
-  await connectDB();
-
-  const user = await User.findOne({ email: session.user.email })
-    .select("role")
-    .lean();
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
 
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
     return { error: "Forbidden", status: 403 };
@@ -51,7 +48,6 @@ function normalizeStudent(row: any): NormalizedStudent {
       row["father name"],
   );
 
-  // <-- Updated: Parse directly to a string without Number conversions
   const graduatedYear = cleanValue(
     row.graduatedYear ||
       row.graduated_year ||
@@ -67,7 +63,6 @@ function normalizeStudent(row: any): NormalizedStudent {
 }
 
 function isValidStudent(student: NormalizedStudent) {
-  // <-- Updated: Removed numeric min/max checks to allow strings like "2027 (Junior)"
   return (
     Boolean(student.name) &&
     Boolean(student.fatherName) &&
@@ -80,7 +75,7 @@ function getRequiredError() {
 }
 
 function getDuplicateError(error?: any) {
-  const field = Object.keys(error?.keyPattern || {})[0];
+  const field = error?.meta?.target?.[0] || Object.keys(error?.keyPattern || {})[0];
 
   if (field === "studentId" || field === "rollNumber" || field === "nrc") {
     return "Old database index still exists in MongoDB. Please drop old indexes.";
@@ -89,13 +84,18 @@ function getDuplicateError(error?: any) {
   return "Duplicate register data exists.";
 }
 
-// Helper to prevent duplicate entries based on Name + Father Name + Year
 async function findExistingStudent(student: NormalizedStudent) {
-  return ApprovedStudent.findOne({
-    name: student.name,
-    fatherName: student.fatherName,
-    graduatedYear: student.graduatedYear,
+  return prisma.approvedStudent.findFirst({
+    where: {
+      name: student.name,
+      fatherName: student.fatherName,
+      graduatedYear: student.graduatedYear,
+    },
   });
+}
+
+function withId<T extends { id: string }>(row: T) {
+  return { ...row, _id: row.id };
 }
 
 export async function GET() {
@@ -109,11 +109,11 @@ export async function GET() {
       );
     }
 
-    const students = await ApprovedStudent.find()
-      .sort({ graduatedYear: -1, createdAt: -1 })
-      .lean();
+    const students = await prisma.approvedStudent.findMany({
+      orderBy: [{ graduatedYear: "desc" }, { createdAt: "desc" }],
+    });
 
-    return NextResponse.json({ students });
+    return NextResponse.json({ students: students.map(withId) });
   } catch (error) {
     console.error("GET register users failed:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -133,16 +133,23 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    // Handle Bulk Import Array
     if (Array.isArray(body.students)) {
       let added = 0;
       let skipped = 0;
-      const createdStudents = [];
+
+      const toCreate: NormalizedStudent[] = [];
+      const seen = new Set<string>();
 
       for (const row of body.students) {
         const student = normalizeStudent(row);
 
         if (!isValidStudent(student)) {
+          skipped++;
+          continue;
+        }
+
+        const key = `${student.name}||${student.fatherName}||${student.graduatedYear}`;
+        if (seen.has(key)) {
           skipped++;
           continue;
         }
@@ -153,27 +160,33 @@ export async function POST(req: Request) {
           continue;
         }
 
-        const created = await ApprovedStudent.create({
-          name: student.name,
-          fatherName: student.fatherName,
-          graduatedYear: student.graduatedYear,
-          approved: true,
-        });
-
-        createdStudents.push(created);
-        added++;
+        seen.add(key);
+        toCreate.push(student);
       }
+
+      const createdStudents =
+        toCreate.length > 0
+          ? await prisma.approvedStudent.createManyAndReturn({
+              data: toCreate.map((student) => ({
+                name: student.name,
+                fatherName: student.fatherName,
+                graduatedYear: student.graduatedYear,
+                approved: true,
+              })),
+            })
+          : [];
+
+      added = createdStudents.length;
 
       return NextResponse.json({
         success: true,
         message: `${added} added, ${skipped} skipped.`,
         added,
         skipped,
-        students: createdStudents,
+        students: createdStudents.map(withId),
       });
     }
 
-    // Handle Single Addition
     const student = normalizeStudent(body);
 
     if (!isValidStudent(student)) {
@@ -188,22 +201,24 @@ export async function POST(req: Request) {
       );
     }
 
-    const createdStudent = await ApprovedStudent.create({
-      name: student.name,
-      fatherName: student.fatherName,
-      graduatedYear: student.graduatedYear, // Saves as string
-      approved: true,
+    const createdStudent = await prisma.approvedStudent.create({
+      data: {
+        name: student.name,
+        fatherName: student.fatherName,
+        graduatedYear: student.graduatedYear,
+        approved: true,
+      },
     });
 
     return NextResponse.json({
       success: true,
       message: "Register user data added successfully.",
-      student: createdStudent,
+      student: withId(createdStudent),
     });
   } catch (error: any) {
     console.error("POST register users failed:", error);
 
-    if (error?.code === 11000) {
+    if (error?.code === "P2002" || error?.code === 11000) {
       return NextResponse.json(
         { error: getDuplicateError(error) },
         { status: 400 },

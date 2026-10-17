@@ -5,10 +5,7 @@ import { redirect } from "next/navigation";
 import { Briefcase, Newspaper, UserCheck, Users, GraduationCap, LineChart, PieChart, ChevronRight } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Post from "@/models/Post";
-import ApprovedStudent from "@/models/ApprovedStudent";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 
 type Lang = "en" | "mm";
@@ -27,18 +24,16 @@ type Experience = {
 
 const text = {
   en: {
-    // Stat Cards Title
     alumni: "Alumni",
     posts: "Posts",
     jobs: "Jobs",
     registerData: "Registrations",
 
-    // Chart Titles
     chartUsersTitle: "Graduates by Year",
     chartJobsTitle: "Employment Status",
     chartPostsTitle: "Posts by Category",
     chartRegTitle: "Registrations by Year",
-    
+
     employed: "Employed",
     unemployed: "Unemployed",
     registered: "Registered",
@@ -47,13 +42,11 @@ const text = {
     noData: "No sufficient data",
   },
   mm: {
-    // Stat Cards Title
-    alumni: "ကျောင်းသားဟောင်းများ", // Alumni
+    alumni: "ကျောင်းသားဟောင်းများ",
     posts: "ပို့စ်များ",
     jobs: "အလုပ်အကိုင်များ",
     registerData: "မှတ်ပုံတင်သူများ",
 
-    // Chart Titles
     chartUsersTitle: "နှစ်အလိုက် ဘွဲ့ရဦးရေ",
     chartJobsTitle: "အလုပ်အကိုင် အခြေအနေ",
     chartPostsTitle: "ကဏ္ဍအလိုက် ပို့စ်များ",
@@ -88,28 +81,26 @@ function isValidJobExperience(job: Experience) {
   return isCurrent && hasDetails;
 }
 
-function hasJob(user: any) {
-  if (!Array.isArray(user?.experiences)) return false;
-  return user.experiences.some((exp: any) => isValidJobExperience(exp));
+function hasJob(user: any, experiencesByUserId: Map<string, Experience[]>) {
+  const exps = experiencesByUserId.get(user.id) || experiencesByUserId.get(user._id);
+  if (!Array.isArray(exps)) return false;
+  return exps.some((exp: any) => isValidJobExperience(exp));
 }
 
 function getGraduatedYear(item: any) {
   return item?.graduatedYear ? String(item.graduatedYear) : "Unknown";
 }
 
-// Custom sorting helper for years with Senior/Junior suffixes
 function sortYearsHelper(a: { label: string }, b: { label: string }) {
   const getVal = (str: string) => {
-    // Extract base year (e.g. "2027")
     const num = parseInt(str.replace(/\D/g, "")) || 0;
-    
-    // Add sorting weight: Senior comes before Junior
+
     let weight = 0;
     const lower = str.toLowerCase();
     if (lower.includes("senior")) weight = 1;
     else if (lower.includes("junior")) weight = 2;
-    
-    return num * 10 + weight; 
+
+    return num * 10 + weight;
   };
   return getVal(a.label) - getVal(b.label);
 }
@@ -126,34 +117,45 @@ export default async function AdminDashboardPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const [allUsers, allPosts, allRegisteredData] = await Promise.all([
-    User.find({}).select("_id role experiences graduatedYear").lean(),
-    Post.find({}).select("_id category").lean(),
-    ApprovedStudent.find({}).select("_id graduatedYear registered").lean(),
+  const [allUsers, allPosts, allRegisteredData, allExperiences] = await Promise.all([
+    prisma.user.findMany({ select: { id: true, role: true, graduatedYear: true } }),
+    prisma.post.findMany({ select: { id: true, category: true } }),
+    prisma.approvedStudent.findMany({ select: { id: true, graduatedYear: true, registered: true } }),
+    prisma.experience.findMany({ select: { userId: true, company: true, position: true, employmentType: true, location: true, phone: true, email: true, salary: true, website: true, isCurrent: true } }),
   ]);
 
-  // Only include users with role === 'user' (excludes 'admin' and 'staff')
   const alumniUsers = allUsers.filter((user: any) => user.role === "user");
 
-  // ---------------------------------------------------------
-  // 1. TOP CARDS AGGREGATION (1x4 Grid)
-  // ---------------------------------------------------------
+  const experiencesByUserId = new Map<string, Experience[]>();
+  for (const exp of allExperiences) {
+    const list = experiencesByUserId.get(exp.userId) || [];
+    list.push({
+      company: exp.company,
+      position: exp.position,
+      employmentType: exp.employmentType,
+      location: exp.location,
+      phone: exp.phone,
+      email: exp.email,
+      salary: exp.salary,
+      website: exp.website,
+      isCurrent: exp.isCurrent,
+    });
+    experiencesByUserId.set(exp.userId, list);
+  }
+
   const totalAlumni = alumniUsers.length;
   const totalPosts = allPosts.length;
   const totalRegisterData = allRegisteredData.length;
 
   const allJobs = alumniUsers.flatMap((user: any) =>
-    Array.isArray(user.experiences)
-      ? user.experiences.filter((job: Experience) => isValidJobExperience(job))
-      : [],
+    experiencesByUserId.get(user.id) ? experiencesByUserId.get(user.id)!.filter((job: Experience) => isValidJobExperience(job)) : []
   );
   const totalJobs = allJobs.length;
 
@@ -161,7 +163,7 @@ export default async function AdminDashboardPage({
     {
       title: t.alumni,
       value: totalAlumni,
-      href: `/admin/manage-users?lang=${lang}`, // Route preserved, assuming it handles alumni
+      href: `/admin/manage-users?lang=${lang}`,
       icon: Users,
       color: "from-[#00BFC4] to-[#008B8B]",
     },
@@ -188,11 +190,6 @@ export default async function AdminDashboardPage({
     },
   ];
 
-  // ---------------------------------------------------------
-  // 2. CHART AGGREGATIONS (2x2 Grid)
-  // ---------------------------------------------------------
-
-  // Chart 1: Alumni by Year
   const userYearsMap = new Map<string, number>();
   alumniUsers.forEach((user) => {
     const year = getGraduatedYear(user);
@@ -200,17 +197,16 @@ export default async function AdminDashboardPage({
   });
   const usersChartData = Array.from(userYearsMap.entries())
     .map(([label, value]) => ({ label, value }))
-    .sort(sortYearsHelper) // UPDATED SORTING
+    .sort(sortYearsHelper)
     .slice(-10);
 
-  // Chart 2: Jobs by Year (Employed vs Unemployed)
   const jobYearsMap = new Map<string, { total: number; employed: number }>();
   alumniUsers.forEach((user) => {
     const year = getGraduatedYear(user);
     if (year !== "Unknown") {
       const old = jobYearsMap.get(year) || { total: 0, employed: 0 };
       old.total += 1;
-      if (hasJob(user)) old.employed += 1;
+      if (hasJob(user, experiencesByUserId)) old.employed += 1;
       jobYearsMap.set(year, old);
     }
   });
@@ -220,10 +216,9 @@ export default async function AdminDashboardPage({
       value1: data.employed,
       value2: data.total - data.employed,
     }))
-    .sort(sortYearsHelper) // UPDATED SORTING
+    .sort(sortYearsHelper)
     .slice(-10);
 
-  // Chart 3: Posts by Category
   const categoryMap = new Map<string, number>();
   allPosts.forEach((post: any) => {
     const cat = cleanText(post.category) || t.general;
@@ -234,7 +229,6 @@ export default async function AdminDashboardPage({
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
 
-  // Chart 4: Registrations by Year (Registered vs Not Registered)
   const regYearsMap = new Map<string, { total: number; registered: number }>();
   allRegisteredData.forEach((student: any) => {
     const year = getGraduatedYear(student);
@@ -251,7 +245,7 @@ export default async function AdminDashboardPage({
       value1: data.registered,
       value2: data.total - data.registered,
     }))
-    .sort(sortYearsHelper) // UPDATED SORTING
+    .sort(sortYearsHelper)
     .slice(-10);
 
   return (
@@ -261,8 +255,6 @@ export default async function AdminDashboardPage({
 
         <section className="flex flex-1 flex-col h-full min-w-0 p-3 sm:p-4 md:p-6 lg:overflow-hidden">
           <div className="flex flex-col h-full w-full max-w-7xl mx-auto space-y-3 sm:space-y-4 lg:overflow-y-auto lg:pr-2 pb-6 lg:pb-0">
-
-            {/* 1x4 Grid - Summary Count Cards */}
             <div className="grid shrink-0 grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
               {mainCards.map((item) => {
                 const Icon = item.icon;
@@ -293,58 +285,53 @@ export default async function AdminDashboardPage({
               })}
             </div>
 
-            {/* 2x2 Grid - Flexible Graphs */}
             <div className="grid flex-1 min-h-0 grid-cols-1 grid-rows-1 xl:grid-cols-2 xl:grid-rows-2 gap-3 sm:gap-4">
-              
-              {/* TOP LEFT - Chart 1: Alumni */}
-              <ChartWrapper 
-                title={t.chartUsersTitle} 
+              <ChartWrapper
+                title={t.chartUsersTitle}
                 icon={GraduationCap}
                 colorClass="text-[#008B8B] dark:text-[#25C9C8]"
                 bgClass="bg-cyan-50 dark:bg-[#008B8B]/10"
                 href={`/admin/users/graduated-years?lang=${lang}`}
               >
                 {usersChartData.length > 0 ? (
-                  <SimpleBarChart 
-                    data={usersChartData} 
-                    color="from-[#00BFC4] to-[#008B8B]" 
+                  <SimpleBarChart
+                    data={usersChartData}
+                    color="from-[#00BFC4] to-[#008B8B]"
                   />
                 ) : (
                   <EmptyChart text={t.noData} />
                 )}
               </ChartWrapper>
 
-              {/* TOP RIGHT - Chart 3: Posts */}
-              <ChartWrapper 
-                title={t.chartPostsTitle} 
+              <ChartWrapper
+                title={t.chartPostsTitle}
                 icon={PieChart}
                 colorClass="text-[#008B8B] dark:text-[#25C9C8]"
                 bgClass="bg-cyan-50 dark:bg-[#008B8B]/10"
                 href={`/admin/posts?lang=${lang}`}
               >
                 {postsChartData.length > 0 ? (
-                  <SimpleBarChart 
-                    data={postsChartData} 
-                    color="from-[#00BFC4] to-[#008B8B]" 
+                  <SimpleBarChart
+                    data={postsChartData}
+                    color="from-[#00BFC4] to-[#008B8B]"
                   />
                 ) : (
                   <EmptyChart text={t.noData} />
                 )}
               </ChartWrapper>
 
-              {/* BOTTOM LEFT - Chart 2: Jobs */}
-              <ChartWrapper 
-                title={t.chartJobsTitle} 
+              <ChartWrapper
+                title={t.chartJobsTitle}
                 icon={Briefcase}
                 colorClass="text-[#008B8B] dark:text-[#25C9C8]"
                 bgClass="bg-cyan-50 dark:bg-[#008B8B]/10"
                 href={`/admin/users/job-status?lang=${lang}`}
               >
                 {jobsChartData.length > 0 ? (
-                  <GroupedBarChart 
-                    data={jobsChartData} 
-                    color1="from-[#00BFC4] to-[#008B8B]" 
-                    color2="from-violet-500 to-indigo-500" 
+                  <GroupedBarChart
+                    data={jobsChartData}
+                    color1="from-[#00BFC4] to-[#008B8B]"
+                    color2="from-violet-500 to-indigo-500"
                     label1={t.employed}
                     label2={t.unemployed}
                   />
@@ -353,19 +340,18 @@ export default async function AdminDashboardPage({
                 )}
               </ChartWrapper>
 
-              {/* BOTTOM RIGHT - Chart 4: Registrations */}
-              <ChartWrapper 
-                title={t.chartRegTitle} 
+              <ChartWrapper
+                title={t.chartRegTitle}
                 icon={UserCheck}
                 colorClass="text-[#008B8B] dark:text-[#25C9C8]"
                 bgClass="bg-cyan-50 dark:bg-[#008B8B]/10"
                 href={`/admin/register-users?lang=${lang}`}
               >
                 {regChartData.length > 0 ? (
-                  <GroupedBarChart 
-                    data={regChartData} 
-                    color1="from-[#00BFC4] to-[#008B8B]" 
-                    color2="from-violet-500 to-indigo-500" 
+                  <GroupedBarChart
+                    data={regChartData}
+                    color1="from-[#00BFC4] to-[#008B8B]"
+                    color2="from-violet-500 to-indigo-500"
                     label1={t.registered}
                     label2={t.notRegistered}
                   />
@@ -373,7 +359,6 @@ export default async function AdminDashboardPage({
                   <EmptyChart text={t.noData} />
                 )}
               </ChartWrapper>
-
             </div>
           </div>
         </section>
@@ -381,10 +366,6 @@ export default async function AdminDashboardPage({
     </div>
   );
 }
-
-// ----------------------------------------------------------------------
-// REUSABLE DASHBOARD CHART COMPONENTS
-// ----------------------------------------------------------------------
 
 function ChartWrapper({
   title,
@@ -412,8 +393,8 @@ function ChartWrapper({
             {title}
           </h2>
         </div>
-        
-        <Link 
+
+        <Link
           href={href}
           className="group flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition-all hover:bg-[#00BFC4] hover:text-white active:scale-95 dark:bg-slate-800 dark:text-slate-500 dark:hover:bg-[#25C9C8] dark:hover:text-slate-900"
         >
@@ -443,7 +424,7 @@ function SimpleBarChart({
         {data.map((item, index) => {
           const percentage = totalItems > 0 ? Math.round((item.value / totalItems) * 100) : 0;
           const heightPercent = Math.max((item.value / max) * 72, item.value ? 8 : 4);
-          
+
           return (
             <div key={index} className="group flex flex-1 flex-col items-center h-full text-center">
               <div className="flex-1 w-full flex items-end justify-center min-h-0 relative">
@@ -463,7 +444,6 @@ function SimpleBarChart({
                 </div>
               </div>
 
-              {/* UPDATED: Reduced font size to text-[10px] sm:text-xs, keeping line-clamp-2 and adding leading-tight */}
               <p className="mt-1.5 shrink-0 line-clamp-2 leading-tight w-full px-1 text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-500 transition-colors group-hover:text-slate-900 dark:group-hover:text-white">
                 {item.label}
               </p>
@@ -546,7 +526,6 @@ function GroupedBarChart({
                 </div>
               </div>
 
-              {/* UPDATED: Reduced font size to text-[10px] sm:text-xs, added line-clamp-2, leading-tight and text-center */}
               <p className="mt-1.5 w-full shrink-0 line-clamp-2 leading-tight text-center text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 {item.label}
               </p>

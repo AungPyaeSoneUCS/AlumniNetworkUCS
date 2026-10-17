@@ -1,12 +1,9 @@
 // file: app/api/jobs/[id]/apply/route.ts
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import JobApplication from "@/models/JobApplication";
-import Job from "@/models/Job";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 // POST /api/jobs/[id]/apply - Submit a job application
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -20,7 +17,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     const { id } = await params;
 
-    if (!Types.ObjectId.isValid(id)) {
+    if (!isValidId(id)) {
       return NextResponse.json({ error: "Invalid job id" }, { status: 400 });
     }
 
@@ -31,13 +28,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "name, email and coverLetter are required" }, { status: 400 });
     }
 
-    await connectDB();
-
-    let currentUser: any = null;
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id name email").lean();
+    let currentUser: { id: string; name: string; email: string } | null = null;
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true, name: true, email: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id name email").lean();
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, name: true, email: true },
+      });
     }
 
     if (!currentUser) {
@@ -48,35 +49,42 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // by recording the experience reference. Keep it simple and permissive.
     let jobTitle = "";
     let jobCompany = "";
-    const jobDoc = await Job.findById(id).select("title company").lean();
+    const jobDoc = await prisma.job.findUnique({
+      where: { id },
+      select: { title: true, company: true },
+    });
     if (jobDoc) {
       jobTitle = jobDoc.title;
       jobCompany = jobDoc.company;
     }
 
     // Prevent duplicate applications to the same job from the same applicant
-    const existing = await JobApplication.findOne({ jobId: id, applicant: currentUser._id }).lean();
+    const existing = await prisma.jobApplication.findFirst({
+      where: { jobId: id, applicant: currentUser.id },
+    });
     if (existing) {
       return NextResponse.json({ error: "You have already applied to this job." }, { status: 409 });
     }
 
-    const application = await JobApplication.create({
-      jobId: id,
-      applicant: currentUser._id,
-      title: jobTitle,
-      company: jobCompany,
-      coverLetter,
-      name,
-      email,
-      phone: phone || "",
-      experienceId: experienceId || "",
-      status: "pending",
+    const application = await prisma.jobApplication.create({
+      data: {
+        jobId: id,
+        applicant: currentUser.id,
+        title: jobTitle,
+        company: jobCompany,
+        coverLetter,
+        name,
+        email,
+        phone: phone || "",
+        experienceId: experienceId || "",
+        status: "pending",
+      },
     });
 
     return NextResponse.json({
       success: true,
       application: {
-        _id: String(application._id),
+        _id: String(application.id),
         status: application.status,
         jobId: String(application.jobId),
         createdAt: application.createdAt,

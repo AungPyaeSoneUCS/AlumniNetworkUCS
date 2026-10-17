@@ -22,8 +22,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AddStaffForm from "@/components/admin/add-staff-form";
 import ConfirmDelete from "@/components/admin/confirm-delete";
@@ -294,18 +293,20 @@ async function deleteStaffAccount(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
-  if (String(admin._id) === id) return; // Prevent self-deletion
+  if (String(admin.id) === id) return; // Prevent self-deletion
 
-  const userToDelete: any = await User.findById(id).select("role").lean();
+  const userToDelete: any = await prisma.user.findUnique({
+    where: { id },
+    select: { role: true },
+  });
   if (userToDelete && userToDelete.role === "staff") {
-    await User.findByIdAndDelete(id);
+    await prisma.user.delete({ where: { id } });
   }
 
   revalidatePath("/admin/manage-staff");
@@ -338,28 +339,32 @@ async function addStaffAccount(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const existingUser = await User.findOne({ email }).select("_id").lean();
+  const existingUser = await prisma.user.findFirst({
+    where: { email },
+    select: { id: true },
+  });
   if (existingUser) {
     redirect(`/admin/manage-staff?tab=add&lang=${lang}&error=email_exists`);
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  await User.create({
-    name,
-    email,
-    password: hashedPassword,
-    role: "staff",
-    position, 
-    isBlocked: false,
+  await prisma.user.create({
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+      role: "staff",
+      position,
+      isBlocked: false,
+    },
   });
 
   revalidatePath("/admin/manage-staff");
@@ -392,18 +397,31 @@ export default async function AdminManageStaffPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const allStaff: any[] = await User.find({ role: "staff" })
-    .sort({ createdAt: -1 })
-    .select("_id name email image role position createdAt")
-    .lean();
+  const rawStaff: any[] = await prisma.user.findMany({
+    where: { role: "staff" },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      role: true,
+      position: true,
+      createdAt: true,
+    },
+  });
+
+  const allStaff: any[] = rawStaff.map((staff) => ({
+    ...staff,
+    _id: staff.id,
+  }));
 
   let filteredStaff = allStaff.filter((user) => {
     const name = cleanText(user.name).toLowerCase();

@@ -1,12 +1,10 @@
 // file: app/api/me/change-password/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma, isValidId } from "@/lib/db";
 
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
@@ -23,15 +21,16 @@ const ChangePasswordSchema = z.object({
 // DUAL AUTHENTICATION HELPER (Web Cookies or Mobile Headers)
 // ----------------------------------------------------
 async function getAuthenticatedUser(req: Request) {
-  await connectDB();
-
   // 1. Check Mobile App Headers (x-user-id or Authorization)
   const mobileHeaderId =
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true, role: true },
+    });
     if (user) return user;
   }
 
@@ -39,7 +38,10 @@ async function getAuthenticatedUser(req: Request) {
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email }).lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true, role: true },
+      });
       if (user) return user;
     }
   } catch {
@@ -92,7 +94,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await User.findById(currentUser._id).select("+password").lean();
+    const user = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+      select: { id: true, password: true },
+    });
 
     if (!user || !user.password) {
       return NextResponse.json(
@@ -110,8 +115,9 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await User.findByIdAndUpdate(currentUser._id, {
-      $set: { password: hashedPassword },
+    await prisma.user.update({
+      where: { id: currentUser.id },
+      data: { password: hashedPassword },
     });
 
     return NextResponse.json(

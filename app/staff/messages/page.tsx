@@ -20,29 +20,45 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Message from "@/models/Message";
+import { prisma } from "@/lib/prisma";
+import { getUsersByIds } from "@/lib/db";
 
 export default async function AdminMessagesPage() {
   const session = await auth();
 
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id name email image role")
-    .lean();
+  const admin = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, name: true, email: true, image: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const messages: any[] = await Message.find({})
-    .sort({ createdAt: -1 })
-    .limit(200)
-    .populate("sender", "name email image department graduatedYear")
-    .populate("receiver", "name email image department graduatedYear")
-    .lean();
+  const messageRows = await prisma.message.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+
+  const senderReceiverIds = [
+    ...messageRows.map((m) => m.sender),
+    ...messageRows.map((m) => m.receiver),
+  ];
+  const usersById = await getUsersByIds(senderReceiverIds);
+
+  const messages: any[] = messageRows.map((message) => {
+    const senderUser = usersById.get(message.sender);
+    const receiverUser = usersById.get(message.receiver);
+
+    return {
+      _id: message.id,
+      seen: message.seen,
+      text: message.text,
+      createdAt: message.createdAt,
+      sender: senderUser ? { ...senderUser, _id: senderUser.id } : {},
+      receiver: receiverUser ? { ...receiverUser, _id: receiverUser.id } : {},
+    };
+  });
 
   const seenCount = messages.filter((message) => message.seen).length;
   const unseenCount = messages.length - seenCount;

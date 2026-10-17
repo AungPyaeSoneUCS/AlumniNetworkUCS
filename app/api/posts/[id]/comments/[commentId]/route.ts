@@ -1,12 +1,10 @@
 // file: app/api/posts/[id]/comments/[commentId]/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Post from "@/models/Post";
+import { prisma } from "@/lib/prisma";
+import { isValidId, getUsersByIds } from "@/lib/db";
 
 type Props = {
   params: Promise<{
@@ -23,13 +21,13 @@ function cleanComment(comment: any, isOwner: boolean = true) {
   const author = comment?.author || {};
 
   return {
-    _id: String(comment?._id || ""),
+    _id: String(comment?._id || comment?.id || ""),
     content: comment?.content || "",
     createdAt: comment?.createdAt || null,
     updatedAt: comment?.updatedAt || null,
     isOwner: isOwner,
     author: {
-      _id: String(author._id || ""),
+      _id: String(author._id || author.id || ""),
       name: author.name || "Unknown Alumni",
       image: author.image || "",
       department: author.department || "",
@@ -40,15 +38,16 @@ function cleanComment(comment: any, isOwner: boolean = true) {
 
 // Dual Authentication Helper (Web Cookies or Mobile Headers)
 async function getAuthenticatedUser(req: Request) {
-  await connectDB();
-
   // 1. Check Mobile App Headers
   const mobileHeaderId =
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true },
+    });
     if (user) return user;
   }
 
@@ -56,9 +55,10 @@ async function getAuthenticatedUser(req: Request) {
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email })
-        .select("_id email")
-        .lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+      });
       if (user) return user;
     }
   } catch (err) {
@@ -81,8 +81,8 @@ export async function PUT(req: Request, { params }: Props) {
     }
 
     if (
-      !mongoose.Types.ObjectId.isValid(id) ||
-      !mongoose.Types.ObjectId.isValid(commentId)
+      !isValidId(id) ||
+      !isValidId(commentId)
     ) {
       return NextResponse.json({ error: "Invalid ID parameters" }, { status: 400 });
     }
@@ -97,19 +97,15 @@ export async function PUT(req: Request, { params }: Props) {
       );
     }
 
-    const post = await Post.findById(id);
-    if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
-    }
-
-    // Find the comment inside the post's comments array
-    const comment = post.comments.id(commentId);
-    if (!comment) {
+    const comment = await prisma.postComment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment || comment.postId !== id) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
     // Verify Ownership - only the comment author can edit it
-    if (String(comment.author) !== String(user._id)) {
+    if (String(comment.authorId) !== String(user.id)) {
       return NextResponse.json(
         { error: "Forbidden: You can only edit your own comments" },
         { status: 403 }
@@ -117,18 +113,32 @@ export async function PUT(req: Request, { params }: Props) {
     }
 
     // Update the comment
-    comment.content = parsed.data.content;
-    comment.updatedAt = new Date();
-    await post.save();
+    const updatedCommentRow = await prisma.postComment.update({
+      where: { id: commentId },
+      data: { content: parsed.data.content },
+    });
 
-    // Populate the author so the frontend gets the full object back
-    const updatedPost: any = await Post.findById(id)
-      .populate("comments.author", "name image department graduatedYear")
-      .lean();
-
-    const updatedComment = updatedPost.comments.find(
-      (c: any) => String(c._id) === commentId
-    );
+    const usersMap = await getUsersByIds([updatedCommentRow.authorId]);
+    const cAuthor = usersMap.get(updatedCommentRow.authorId) || {
+      id: updatedCommentRow.authorId,
+      name: "Unknown Alumni",
+      image: "",
+    };
+    const updatedComment = {
+      id: updatedCommentRow.id,
+      _id: updatedCommentRow.id,
+      content: updatedCommentRow.content,
+      createdAt: updatedCommentRow.createdAt,
+      updatedAt: updatedCommentRow.updatedAt,
+      author: {
+        _id: cAuthor.id,
+        id: cAuthor.id,
+        name: cAuthor.name,
+        image: cAuthor.image,
+        department: "",
+        graduatedYear: null,
+      },
+    };
 
     return NextResponse.json(cleanComment(updatedComment, true), { status: 200 });
   } catch (error) {
@@ -153,25 +163,30 @@ export async function DELETE(req: Request, { params }: Props) {
     }
 
     if (
-      !mongoose.Types.ObjectId.isValid(id) ||
-      !mongoose.Types.ObjectId.isValid(commentId)
+      !isValidId(id) ||
+      !isValidId(commentId)
     ) {
       return NextResponse.json({ error: "Invalid ID parameters" }, { status: 400 });
     }
 
-    const post = await Post.findById(id);
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { author: true },
+    });
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    const comment = post.comments.id(commentId);
-    if (!comment) {
+    const comment = await prisma.postComment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment || comment.postId !== id) {
       return NextResponse.json({ error: "Comment not found" }, { status: 404 });
     }
 
     // Verify Ownership (Allow post owner OR comment owner to delete)
-    const isCommentAuthor = String(comment.author) === String(user._id);
-    const isPostAuthor = String(post.author) === String(user._id);
+    const isCommentAuthor = String(comment.authorId) === String(user.id);
+    const isPostAuthor = String(post.author) === String(user.id);
 
     if (!isCommentAuthor && !isPostAuthor) {
       return NextResponse.json(
@@ -181,8 +196,7 @@ export async function DELETE(req: Request, { params }: Props) {
     }
 
     // Remove the comment
-    post.comments.pull(commentId);
-    await post.save();
+    await prisma.postComment.delete({ where: { id: commentId } });
 
     return NextResponse.json({ success: true, message: "Comment deleted" }, { status: 200 });
   } catch (error) {

@@ -1,10 +1,8 @@
 // app/api/users/me/route.ts
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma, isValidId } from "@/lib/db";
 
 function cleanText(value: any) {
   return typeof value === "string" ? value.trim() : "";
@@ -14,33 +12,33 @@ function cleanDegree(user: any) {
   return cleanText(user.degree || user.department);
 }
 
-function cleanContactInfo(contactInfo: any = {}) {
+function cleanContactInfo(user: any = {}) {
   return {
-    phone: cleanText(contactInfo.phone),
-    email: cleanText(contactInfo.email),
-    address: cleanText(contactInfo.address),
-    company: cleanText(contactInfo.company),
-    position: cleanText(contactInfo.position),
+    phone: cleanText(user.contactPhone),
+    email: cleanText(user.contactEmail),
+    address: cleanText(user.contactAddress),
+    company: cleanText(user.contactCompany),
+    position: cleanText(user.contactPosition),
   };
 }
 
-function cleanSocialLinks(socialLinks: any = {}) {
-  const xValue = cleanText(socialLinks.x || socialLinks.twitter);
+function cleanSocialLinks(user: any = {}) {
+  const xValue = cleanText(user.socialX || user.socialTwitter);
 
   return {
-    facebook: cleanText(socialLinks.facebook),
-    telegram: cleanText(socialLinks.telegram),
-    instagram: cleanText(socialLinks.instagram),
-    youtube: cleanText(socialLinks.youtube),
-    linkedin: cleanText(socialLinks.linkedin),
-    github: cleanText(socialLinks.github),
-    tiktok: cleanText(socialLinks.tiktok),
-    viber: cleanText(socialLinks.viber),
-    line: cleanText(socialLinks.line),
+    facebook: cleanText(user.socialFacebook),
+    telegram: cleanText(user.socialTelegram),
+    instagram: cleanText(user.socialInstagram),
+    youtube: cleanText(user.socialYoutube),
+    linkedin: cleanText(user.socialLinkedin),
+    github: cleanText(user.socialGithub),
+    tiktok: cleanText(user.socialTiktok),
+    viber: cleanText(user.socialViber),
+    line: cleanText(user.socialLine),
     x: xValue,
     twitter: xValue,
-    whatsapp: cleanText(socialLinks.whatsapp),
-    website: cleanText(socialLinks.website),
+    whatsapp: cleanText(user.socialWhatsapp),
+    website: cleanText(user.socialWebsite),
   };
 }
 
@@ -63,16 +61,28 @@ function cleanExperiences(experiences: any[] = []) {
   }));
 }
 
-function cleanUser(user: any, sessionEmail?: string | null) {
+function cleanUser(user: any, experiences: any[] = [], sessionEmail?: string | null) {
   const {
-    password,
-    batch,
-    department,
-    personalContact,
-    professionalContact,
-    skills,
-    projects,
-    ...safeUser
+    id,
+    contactPhone,
+    contactEmail,
+    contactAddress,
+    contactCompany,
+    contactPosition,
+    socialFacebook,
+    socialTelegram,
+    socialInstagram,
+    socialYoutube,
+    socialLinkedin,
+    socialGithub,
+    socialTiktok,
+    socialViber,
+    socialLine,
+    socialX,
+    socialTwitter,
+    socialWhatsapp,
+    socialWebsite,
+    ...rest
   } = user;
 
   const isOwnProfile =
@@ -80,8 +90,8 @@ function cleanUser(user: any, sessionEmail?: string | null) {
     String(sessionEmail).toLowerCase() === String(user.email).toLowerCase();
 
   return {
-    ...safeUser,
-    _id: String(user._id),
+    ...rest,
+    _id: String(id),
 
     name: cleanText(user.name),
     email: cleanText(user.email),
@@ -91,10 +101,11 @@ function cleanUser(user: any, sessionEmail?: string | null) {
     graduatedYear: user.graduatedYear ? String(user.graduatedYear) : "",
 
     degree: cleanDegree(user),
+    department: cleanDegree(user),
 
-    contactInfo: cleanContactInfo(user.contactInfo),
-    experiences: cleanExperiences(user.experiences),
-    socialLinks: cleanSocialLinks(user.socialLinks),
+    contactInfo: cleanContactInfo(user),
+    experiences: cleanExperiences(experiences),
+    socialLinks: cleanSocialLinks(user),
 
     isOwnProfile,
     isProfilePublic: true,
@@ -111,8 +122,11 @@ async function getAuthenticatedUser(req: Request) {
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true },
+    });
     if (user) return user;
   }
 
@@ -120,9 +134,10 @@ async function getAuthenticatedUser(req: Request) {
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email })
-        .select("_id email")
-        .lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+      });
       if (user) return user;
     }
   } catch (err) {
@@ -134,25 +149,28 @@ async function getAuthenticatedUser(req: Request) {
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
-
     const currentUser: any = await getAuthenticatedUser(req);
 
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await User.findById(currentUser._id)
-      .select(
-        "-password -batch -personalContact -professionalContact -skills -projects"
-      )
-      .lean();
+    const user = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+    });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(cleanUser(user, currentUser.email), { status: 200 });
+    const experiences = await prisma.experience.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return NextResponse.json(cleanUser(user, experiences, currentUser.email), {
+      status: 200,
+    });
   } catch (error) {
     console.error("GET /api/users/me error:", error);
 

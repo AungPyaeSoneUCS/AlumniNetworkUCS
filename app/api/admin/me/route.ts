@@ -3,12 +3,11 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 function cleanAdmin(user: any) {
   return {
-    _id: String(user._id),
+    _id: String(user.id),
     name: user.name || "",
     email: user.email || "",
     image: user.image || "",
@@ -27,13 +26,19 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
-    const admin: any = await User.findOne({
-      email: session.user.email,
-    })
-      .select("_id name email image role isBlocked createdAt updatedAt")
-      .lean();
+    const admin: any = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+        isBlocked: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
     if (!admin) {
       return NextResponse.json({ error: "Admin not found" }, { status: 404 });

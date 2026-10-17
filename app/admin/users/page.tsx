@@ -3,8 +3,7 @@ import type React from "react";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import ExportGraphButtons from "@/components/admin/export-graph-buttons";
 import {
@@ -495,22 +494,54 @@ export default async function AdminUsersPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const allUsers: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select(
-      "_id name email role degree department graduatedYear experiences createdAt",
-    )
-    .lean();
+  const allUsers: any[] = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    where: { role: { not: "admin" } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      degree: true,
+      graduatedYear: true,
+      createdAt: true,
+    },
+  });
 
-  const users = allUsers.filter((user) => user.role !== "admin");
+  const experienceRows = await prisma.experience.findMany({
+    select: {
+      userId: true,
+      position: true,
+      employmentType: true,
+      company: true,
+      salary: true,
+    },
+  });
+
+  const experiencesByUserId = new Map<string, any[]>();
+  for (const exp of experienceRows) {
+    const list = experiencesByUserId.get(exp.userId) || [];
+    list.push({
+      position: exp.position,
+      employmentType: exp.employmentType,
+      company: exp.company,
+      salary: exp.salary,
+    });
+    experiencesByUserId.set(exp.userId, list);
+  }
+
+  const users = allUsers.map((user) => ({
+    ...user,
+    _id: user.id,
+    experiences: experiencesByUserId.get(user.id) || [],
+  }));
 
   const degreeOptions = Array.from(
     new Set(

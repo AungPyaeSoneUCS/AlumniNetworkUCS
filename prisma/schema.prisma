@@ -1,0 +1,376 @@
+// Prisma schema for the Alumni Network (SQLite)
+// Migrated from MongoDB/Mongoose. IDs preserve the original Mongo ObjectId
+// hex strings when seeding; new rows use cuid().
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ----------------------------- Users -----------------------------
+
+model User {
+  id     String  @id @default(cuid())
+  name   String
+  email  String  @unique
+  password String?
+
+  role     String  @default("user") // user | admin | staff
+  position String  @default("")
+  isBlocked Boolean @default(false)
+
+  image String @default("")
+  bio   String @default("")
+
+  graduatedYear String @default("")
+  degree        String @default("")
+
+  // Present in legacy data but missing from the old schema
+  isVerified Boolean @default(false)
+  fatherName String  @default("")
+
+  // contactInfo.* (flattened)
+  contactPhone    String @default("")
+  contactEmail    String @default("")
+  contactAddress  String @default("")
+  contactCompany  String @default("")
+  contactPosition String @default("")
+
+  // socialLinks.* (flattened)
+  socialFacebook  String @default("")
+  socialTelegram  String @default("")
+  socialInstagram String @default("")
+  socialYoutube   String @default("")
+  socialLinkedin  String @default("")
+  socialGithub    String @default("")
+  socialTiktok    String @default("")
+  socialViber     String @default("")
+  socialLine      String @default("")
+  socialX         String @default("")
+  socialTwitter   String @default("")
+  socialWhatsapp  String @default("")
+  socialWebsite   String @default("")
+
+  isProfilePublic    Boolean @default(true)
+  profileVisibility  String  @default("public")
+  languagePreference String  @default("en")
+  themePreference    String  @default("light")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([isBlocked])
+  @@index([degree])
+  @@map("users")
+}
+
+model Experience {
+  id             String  @id @default(cuid())
+  userId         String
+  company        String  @default("")
+  position       String  @default("")
+  employmentType String  @default("")
+  location       String  @default("")
+  phone          String  @default("")
+  email          String  @default("")
+  salary         String  @default("")
+  website        String  @default("")
+  startDate      String  @default("")
+  endDate        String  @default("")
+  isCurrent      Boolean @default(false)
+  experienceYear String  @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("experiences")
+}
+
+// ------------------------- Approved students -------------------------
+
+model ApprovedStudent {
+  id            String  @id @default(cuid())
+  name          String
+  fatherName    String
+  graduatedYear String
+  approved      Boolean @default(true)
+  registered    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([graduatedYear])
+  @@map("approved_students")
+}
+
+// Legacy collection produced by /api/migrate-data
+model Student {
+  id            String  @id @default(cuid())
+  name          String
+  fatherName    String  @default("")
+  graduatedYear String  @default("")
+  approved      Boolean @default(true)
+  registered    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("students")
+}
+
+// --------------------------- Contact info ---------------------------
+
+model ContactSetting {
+  id           String @id @default(cuid())
+  phone1       String @default("044 22725")
+  phone2       String @default("09783543901")
+  email        String @default("cu.hinthada@gmail.com")
+  address      String @default("No.28, Kayin Kyaung Street, TarNgar Se (South) Quarter, Hinthada Township, Ayeyarwaddy Region, Myanmar. Postcode – 100601")
+  website      String @default("ucsh.edu.mm")
+  facebookUrl  String @default("https://www.facebook.com")
+  facebookName String @default("University of Computer Studies, Hinthada")
+  mapUrl       String @default("https://www.google.com/maps?q=University%20of%20Computer%20Studies%20Hinthada&output=embed")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contact_settings")
+}
+
+// ------------------------------- Jobs -------------------------------
+
+model Job {
+  id          String  @id @default(cuid())
+  title       String
+  company     String
+  location    String  @default("")
+  type        String  @default("Full Time") // Full Time | Part Time | Remote | Internship
+  description String  @default("")
+  salary      String  @default("")
+  applyLink   String  @default("")
+  postedBy    String?
+  isActive    Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postedBy])
+  @@map("jobs")
+}
+
+model JobApplication {
+  id           String  @id @default(cuid())
+  jobId        String
+  applicant    String
+  title        String  @default("")
+  company      String  @default("")
+  coverLetter  String  @default("")
+  name         String
+  email        String
+  phone        String  @default("")
+  experienceId String  @default("")
+  status       String  @default("pending") // pending | reviewed | accepted | rejected
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([applicant])
+  @@index([status])
+  @@index([applicant, jobId])
+  @@map("job_applications")
+}
+
+// ----------------------------- Messages -----------------------------
+
+model Message {
+  id        String  @id @default(cuid())
+  sender    String
+  receiver  String
+  text      String
+  seen      Boolean @default(false)
+  isDeleted Boolean @default(false)
+  isEdited  Boolean @default(false)
+  deletedBy String  @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sender])
+  @@index([receiver])
+  @@index([sender, receiver])
+  @@map("messages")
+}
+
+model MessageReaction {
+  id        String @id @default(cuid())
+  messageId String
+  emoji     String
+  users     String @default("[]") // JSON array of user ids
+
+  createdAt DateTime @default(now())
+
+  @@index([messageId])
+  @@map("message_reactions")
+}
+
+// --------------------------- Notifications ---------------------------
+
+model Notification {
+  id       String  @id @default(cuid())
+  receiver String
+  sender   String?
+  type     String  @default("message")
+  title    String  @default("")
+  body     String  @default("")
+  link     String  @default("")
+  read     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([receiver])
+  @@index([sender])
+  @@index([type])
+  @@index([read])
+  @@index([receiver, read, createdAt])
+  @@map("notifications")
+}
+
+// ------------------------------- OTP -------------------------------
+
+model Otp {
+  id            String   @id @default(cuid())
+  email         String
+  name          String   @default("")
+  fatherName    String   @default("")
+  graduatedYear String   @default("")
+  password      String   @default("")
+  otp           String
+  purpose       String
+  lang          String   @default("en")
+  expiresAt     DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("otps")
+}
+
+// ------------------------------- Posts -------------------------------
+
+model Post {
+  id       String  @id @default(cuid())
+  author   String
+  content  String
+  category String  @default("General") // General | Job | Event | News
+  image    String  @default("")
+  images   String  @default("[]") // JSON array (max 3)
+  isEdited Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([author])
+  @@index([category])
+  @@map("posts")
+}
+
+model PostComment {
+  id       String @id @default(cuid())
+  postId   String
+  authorId String
+  content  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("post_comments")
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("post_likes")
+}
+
+// ---------------------------- Push tokens ----------------------------
+
+model PushToken {
+  id            String   @id @default(cuid())
+  user          String
+  expoPushToken String   @unique
+  platform      String   @default("android") // android | ios | web
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([user])
+  @@map("push_tokens")
+}
+
+// --------------------------- Vote system ---------------------------
+
+model VoteUser {
+  id             String  @id @default(cuid())
+  name           String
+  email          String  @unique
+  password       String
+  role           String  @default("VOTER") // ADMIN | TEAM | VOTER
+  hasVoted       Boolean @default(false)
+  votedProjectId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("vote_users")
+}
+
+model VoteProject {
+  id                String @id @default(cuid())
+  teamId            String
+  title             String
+  description       String
+  languagesAndTools String @default("[]") // JSON array
+  photos            String @default("[]") // JSON array
+  voteCount         Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teamId])
+  @@map("vote_projects")
+}
+
+// -------------------------- Site settings --------------------------
+// Merges the old `Setting` (key/value) and `Settings` (voting window) models,
+// which both resolved to the same `settings` collection in MongoDB.
+
+model Setting {
+  id        String @id @default(cuid())
+  key       String @unique
+  value     String @default("")
+  startDate String @default("")
+  endDate   String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}

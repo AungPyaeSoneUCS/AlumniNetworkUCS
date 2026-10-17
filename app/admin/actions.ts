@@ -1,7 +1,6 @@
 "use server";
 
-import { connectDB } from "@/lib/mongodb";
-import ApprovedStudent from "@/models/ApprovedStudent";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function updateStudentRegistrationByName(name: string, registeredStatus: boolean) {
@@ -11,26 +10,29 @@ export async function updateStudentRegistrationByName(name: string, registeredSt
       return { success: false, message: "Please enter a valid student name." };
     }
 
-    await connectDB();
-
     // Perform a case-insensitive match for the name
-    const updatedStudent = await ApprovedStudent.findOneAndUpdate(
-      { name: { $regex: new RegExp(`^${trimmedName}$`, "i") } },
-      { $set: { registered: registeredStatus } },
-      { new: true }
-    ).lean();
+    const candidates = await prisma.approvedStudent.findMany({
+      where: { name: { contains: trimmedName } },
+    });
+    const found = candidates.find(
+      (c) => c.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
 
-    if (!updatedStudent) {
+    if (!found) {
       return { success: false, message: `No student found matching "${trimmedName}".` };
     }
 
-    // Refresh dashboard or admin data caches
+    const updatedStudent = await prisma.approvedStudent.update({
+      where: { id: found.id },
+      data: { registered: registeredStatus },
+    });
+
     revalidatePath("/admin/dashboard");
 
     return {
       success: true,
       message: `Successfully updated ${updatedStudent.name}'s registration status to ${registeredStatus}.`,
-      student: JSON.parse(JSON.stringify(updatedStudent)),
+      student: updatedStudent,
     };
   } catch (error: any) {
     console.error("Failed to update student registration:", error);

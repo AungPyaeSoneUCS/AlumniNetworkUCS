@@ -1,34 +1,42 @@
 // file: app/admin/edit/delete-data/page.tsx
 import { redirect } from "next/navigation";
-import mongoose from "mongoose";
 import { Trash2 } from "lucide-react";
 
 import { auth } from "@/auth";
-import User from "@/models/User";
-import { connectDB } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import EditNav from "@/components/admin/edit-nav";
 import DeleteDataClient from "@/components/admin/delete-data-client";
 
-async function getDb() {
-  const db = mongoose.connection.db;
-  if (!db) throw new Error("Database connection is not ready");
-  return db;
-}
+const ALL_TABLES = [
+  { name: "users", model: "user" },
+  { name: "posts", model: "post" },
+  { name: "messages", model: "message" },
+  { name: "notifications", model: "notification" },
+  { name: "approved_students", model: "approvedStudent" },
+  { name: "students", model: "student" },
+  { name: "jobs", model: "job" },
+  { name: "job_applications", model: "jobApplication" },
+  { name: "otps", model: "otp" },
+  { name: "settings", model: "setting" },
+  { name: "contact_settings", model: "contactSetting" },
+  { name: "vote_users", model: "voteUser" },
+  { name: "vote_projects", model: "voteProject" },
+  { name: "push_tokens", model: "pushToken" },
+  { name: "experiences", model: "experience" },
+  { name: "post_comments", model: "postComment" },
+  { name: "post_likes", model: "postLike" },
+  { name: "message_reactions", model: "messageReaction" },
+];
 
 async function listCollections() {
   const collections: { name: string; count: number }[] = [];
 
-  const raw = await (await getDb()).listCollections().toArray();
-
-  for (const item of raw) {
-    if (!item.name || item.name.startsWith("system.")) continue;
+  for (const table of ALL_TABLES) {
     try {
-      const count = await (await getDb())
-        .collection(item.name)
-        .estimatedDocumentCount();
-      collections.push({ name: item.name, count });
+      const count = await (prisma as any)[table.model].count();
+      collections.push({ name: table.name, count });
     } catch {
-      collections.push({ name: item.name, count: 0 });
+      collections.push({ name: table.name, count: 0 });
     }
   }
 
@@ -43,10 +51,10 @@ export default async function DeleteDataPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("name role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { name: true, role: true },
+  });
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
   const resolvedSearchParams = await Promise.resolve(searchParams || {});

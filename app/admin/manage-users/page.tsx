@@ -18,9 +18,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import ApprovedStudent from "@/models/ApprovedStudent";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import AutoSubmitManageUsersFilters from "@/components/admin/auto-submit-manage-users-filters";
 import ConfirmDelete from "@/components/admin/confirm-delete";
@@ -456,35 +454,46 @@ async function deleteUserAccount(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
-  if (String(admin._id) === id) return;
+  if (String(admin.id) === id) return;
 
-  const userToDelete: any = await User.findById(id).lean();
+  const userToDelete: any = await prisma.user.findUnique({ where: { id } });
 
   if (userToDelete) {
     if (userToDelete.name) {
       const safeName = userToDelete.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
-      const queryFilter: any = {
-        name: new RegExp(`^\\s*${safeName}\\s*$`, "i"),
-      };
 
-      if (userToDelete.graduatedYear) {
-        queryFilter.graduatedYear = Number(userToDelete.graduatedYear);
-      }
+      const nameRegex = new RegExp(`^\\s*${safeName}\\s*$`, "i");
+      const yearFilter = userToDelete.graduatedYear
+        ? String(Number(userToDelete.graduatedYear))
+        : null;
 
-      await ApprovedStudent.updateMany(queryFilter, {
-        $set: { registered: false },
+      const candidates = await prisma.approvedStudent.findMany({
+        where: {
+          name: { contains: userToDelete.name.trim() },
+          ...(yearFilter ? { graduatedYear: yearFilter } : {}),
+        },
+        select: { id: true, name: true },
       });
+
+      const matchedIds = candidates
+        .filter((student) => nameRegex.test(student.name))
+        .map((student) => student.id);
+
+      if (matchedIds.length > 0) {
+        await prisma.approvedStudent.updateMany({
+          where: { id: { in: matchedIds } },
+          data: { registered: false },
+        });
+      }
     }
 
-    await User.findByIdAndDelete(id);
+    await prisma.user.delete({ where: { id } });
   }
 
   revalidatePath("/admin/manage-users");
@@ -530,20 +539,33 @@ export default async function AdminManageUsersPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const allUsers: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select(
-      "_id name email image role degree department graduatedYear contactInfo.phone phone phoneNumber createdAt",
-    )
-    .lean();
+  const rawUsers: any[] = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      role: true,
+      degree: true,
+      graduatedYear: true,
+      contactPhone: true,
+      createdAt: true,
+    },
+  });
+
+  const allUsers: any[] = rawUsers.map((user) => ({
+    ...user,
+    _id: user.id,
+    contactInfo: { phone: user.contactPhone },
+  }));
 
   // ONLY show strictly the "user" role (exclude "admin" and "staff" explicitly)
   const users = allUsers.filter((user) => user.role === "user");

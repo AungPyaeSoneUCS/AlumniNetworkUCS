@@ -2,9 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import ApprovedStudent from "@/models/ApprovedStudent";
+import { prisma } from "@/lib/prisma";
 
 type StaffCheckResult =
   | { ok: true }
@@ -17,13 +15,11 @@ async function checkStaff(): Promise<StaffCheckResult> {
     return { error: "Unauthorized", status: 401 };
   }
 
-  await connectDB();
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
 
-  const user = await User.findOne({ email: session.user.email })
-    .select("role")
-    .lean();
-
-  // Allow either staff or admin to perform this action
   if (!user || (user.role !== "staff" && user.role !== "admin")) {
     return { error: "Forbidden", status: 403 };
   }
@@ -59,20 +55,30 @@ export async function POST(req: Request) {
       );
     }
 
-    let createdCount = 0;
     let skippedCount = 0;
+    let createdCount = 0;
+
+    const userData: {
+      name: string;
+      email: string;
+      password: string;
+      role: string;
+      isBlocked: boolean;
+      isProfilePublic: boolean;
+      fatherName: string;
+      graduatedYear: string;
+    }[] = [];
+    const approvedIds: string[] = [];
+    const usedApprovedIds = new Set<string>();
+    const usedEmails = new Set<string>();
 
     for (const row of body.users) {
       const name = String(row.name || "").trim();
       const fatherName = String(row.fatherName || "").trim();
-      
-      // Converted to string to fix TypeScript error
-      const graduatedYear = String(row.graduatedYear || "").trim(); 
-      
+      const graduatedYear = String(row.graduatedYear || "").trim();
       const email = String(row.email || "").trim().toLowerCase();
       const password = String(row.password || "");
 
-      // Validation check
       if (
         !name ||
         !fatherName ||
@@ -86,35 +92,39 @@ export async function POST(req: Request) {
         continue;
       }
 
-      // Check if student exists in approved list
       const normName = normalizeForMatch(name);
       const normFatherName = normalizeForMatch(fatherName);
 
-      // FIXED: Passed as String
-      const approvedStudents = await ApprovedStudent.find({ graduatedYear: String(graduatedYear) });      
+      const approvedStudents = await prisma.approvedStudent.findMany({
+        where: { graduatedYear },
+      });
       const approvedRecord = approvedStudents.find(
         (s) =>
           normalizeForMatch(s.name) === normName &&
           normalizeForMatch(s.fatherName) === normFatherName,
       );
 
-      // Auto-skip if not found in approved list or if already registered
-      if (!approvedRecord || approvedRecord.registered) {
+      if (
+        !approvedRecord ||
+        approvedRecord.registered ||
+        usedApprovedIds.has(approvedRecord.id)
+      ) {
         skippedCount++;
         continue;
       }
 
-      // Auto-skip if email is already taken
-      const existingUser = await User.findOne({ email }).select("_id").lean();
-      if (existingUser) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+      if (existingUser || usedEmails.has(email)) {
         skippedCount++;
         continue;
       }
 
-      // Create user account
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      await User.create({
+      userData.push({
         name,
         email,
         password: hashedPassword,
@@ -122,14 +132,26 @@ export async function POST(req: Request) {
         isBlocked: false,
         isProfilePublic: true,
         fatherName,
-        graduatedYear, // Saves safely as string
+        graduatedYear,
       });
+      approvedIds.push(approvedRecord.id);
+      usedApprovedIds.add(approvedRecord.id);
+      usedEmails.add(email);
+    }
 
-      // Mark student record as registered
-      approvedRecord.registered = true;
-      await approvedRecord.save();
-
-      createdCount++;
+    if (userData.length > 0) {
+      const created = await prisma.$transaction(async (tx) => {
+        const rows = await tx.user.createManyAndReturn({
+          data: userData,
+          select: { id: true },
+        });
+        await tx.approvedStudent.updateMany({
+          where: { id: { in: approvedIds } },
+          data: { registered: true },
+        });
+        return rows;
+      });
+      createdCount = created.length;
     }
 
     return NextResponse.json({

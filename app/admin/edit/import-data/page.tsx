@@ -3,8 +3,7 @@ import { redirect } from "next/navigation";
 import { CloudUpload } from "lucide-react";
 
 import { auth } from "@/auth";
-import User from "@/models/User";
-import { connectDB } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import EditNav from "@/components/admin/edit-nav";
 import ImportDataClient from "@/components/admin/import-data-client";
 
@@ -16,10 +15,10 @@ export default async function ImportDataPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("name role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { name: true, role: true },
+  });
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
   const resolvedSearchParams = await Promise.resolve(searchParams || {});

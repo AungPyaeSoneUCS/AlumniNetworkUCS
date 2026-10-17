@@ -3,8 +3,7 @@ import type React from "react";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import StaffSidebar from "@/components/staff/staff-sidebar";
 import ExportGraphButtons from "@/components/admin/export-graph-buttons";
 import {
@@ -495,22 +494,44 @@ export default async function AdminUsersPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const allUsers: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select(
-      "_id name email role degree department graduatedYear experiences createdAt",
-    )
-    .lean();
+  const allUsers: any[] = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      degree: true,
+      graduatedYear: true,
+      createdAt: true,
+    },
+  });
 
-  const users = allUsers.filter((user) => user.role !== "admin");
+  const allExperiences = await prisma.experience.findMany({
+    select: { id: true, userId: true, position: true, salary: true },
+  });
+
+  const experiencesByUser = new Map<string, any[]>();
+  allExperiences.forEach((exp) => {
+    const key = exp.userId || "";
+    if (!experiencesByUser.has(key)) experiencesByUser.set(key, []);
+    experiencesByUser.get(key)!.push(exp);
+  });
+
+  const users = allUsers
+    .filter((user) => user.role !== "admin")
+    .map((user) => ({
+      ...user,
+      _id: user.id,
+      experiences: experiencesByUser.get(user.id) || [],
+    }));
 
   const degreeOptions = Array.from(
     new Set(

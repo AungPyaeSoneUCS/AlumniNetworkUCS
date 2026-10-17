@@ -2,12 +2,11 @@
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import mongoose from "mongoose";
 import { exec } from "child_process";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 5MB
 
@@ -21,15 +20,16 @@ const allowedTypes = [
 
 // Dual Authentication Helper: Web Cookie Session OR Mobile Header
 async function getAuthenticatedUser(req: Request) {
-  await connectDB();
-
   // 1. Check Mobile App Headers
   const mobileHeaderId =
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true },
+    });
     if (user) return user;
   }
 
@@ -37,9 +37,10 @@ async function getAuthenticatedUser(req: Request) {
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email })
-        .select("_id email")
-        .lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+      });
       if (user) return user;
     }
   } catch (err) {

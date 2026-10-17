@@ -20,8 +20,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import UserModel from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 
 type Lang = "en" | "mm";
@@ -124,16 +123,16 @@ async function updateUserStatus(formData: FormData) {
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await UserModel.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  await UserModel.findByIdAndUpdate(id, {
-    isBlocked: status === "blocked",
+  await prisma.user.update({
+    where: { id },
+    data: { isBlocked: status === "blocked" },
   });
 
   revalidatePath(`/admin/users/${id}`);
@@ -210,23 +209,35 @@ export default async function AdminUserDetailsPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await UserModel.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const user: any = await UserModel.findById(id)
-    .select(
-      "_id name email image role isBlocked degree department graduatedYear contactInfo personalContact professionalContact experiences createdAt isProfilePublic"
-    )
-    .lean();
+  const userRow = await prisma.user.findUnique({ where: { id } });
 
-  if (!user) notFound();
+  if (!userRow) notFound();
 
-  const experiences = Array.isArray(user.experiences) ? user.experiences : [];
+  const experienceRows = await prisma.experience.findMany({
+    where: { userId: id },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const experiences = experienceRows;
+
+  const user: any = {
+    ...userRow,
+    _id: userRow.id,
+    contactInfo: {
+      phone: userRow.contactPhone,
+      email: userRow.contactEmail,
+      address: userRow.contactAddress,
+      company: userRow.contactCompany,
+      position: userRow.contactPosition,
+    },
+  };
 
   return (
     <main className="min-h-screen bg-[#eef2f7] text-slate-950 dark:bg-slate-950 dark:text-white">

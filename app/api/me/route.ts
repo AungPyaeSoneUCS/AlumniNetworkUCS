@@ -1,12 +1,10 @@
 // file: app/api/me/route.ts
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import mongoose from "mongoose";
 import { exec } from "child_process";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma, isValidId } from "@/lib/db";
 
 const degreeValues = [
   "B.C.Sc",
@@ -178,36 +176,49 @@ function cleanDegree(userObject: any) {
   return trimValue(userObject.degree || userObject.department);
 }
 
-function cleanProfileResponse(userObject: any) {
-  const {
-    password,
-    batch,
-    department,
-    personalContact,
-    professionalContact,
-    skills,
-    projects,
-    ...safeUser
-  } = userObject;
-
+function cleanProfileResponse(userObject: any, experiences: any[] = []) {
   return {
-    ...safeUser,
-    _id: String(userObject._id),
+    _id: String(userObject.id),
     name: userObject.name || "",
     email: userObject.email || "",
+    role: userObject.role || "user",
+    position: userObject.position || "",
+    isBlocked: Boolean(userObject.isBlocked),
     image: userObject.image || "",
     bio: userObject.bio || "",
     graduatedYear: userObject.graduatedYear ? String(userObject.graduatedYear) : "",
     degree: cleanDegree(userObject),
-    contactInfo: cleanContactInfo(userObject.contactInfo),
-    experiences: Array.isArray(userObject.experiences)
-      ? cleanExperiences(userObject.experiences)
-      : [],
-    socialLinks: cleanSocialLinks(userObject.socialLinks),
+    isVerified: Boolean(userObject.isVerified),
+    fatherName: userObject.fatherName || "",
+    contactInfo: cleanContactInfo({
+      phone: userObject.contactPhone,
+      email: userObject.contactEmail,
+      address: userObject.contactAddress,
+      company: userObject.contactCompany,
+      position: userObject.contactPosition,
+    }),
+    experiences: cleanExperiences(experiences),
+    socialLinks: cleanSocialLinks({
+      facebook: userObject.socialFacebook,
+      telegram: userObject.socialTelegram,
+      instagram: userObject.socialInstagram,
+      youtube: userObject.socialYoutube,
+      linkedin: userObject.socialLinkedin,
+      github: userObject.socialGithub,
+      tiktok: userObject.socialTiktok,
+      viber: userObject.socialViber,
+      line: userObject.socialLine,
+      x: userObject.socialX,
+      twitter: userObject.socialTwitter,
+      whatsapp: userObject.socialWhatsapp,
+      website: userObject.socialWebsite,
+    }),
     isProfilePublic: true,
     profileVisibility: "public",
     languagePreference: userObject.languagePreference || "en",
     themePreference: userObject.themePreference || "light",
+    createdAt: userObject.createdAt || null,
+    updatedAt: userObject.updatedAt || null,
   };
 }
 
@@ -215,15 +226,16 @@ function cleanProfileResponse(userObject: any) {
 // DUAL AUTHENTICATION HELPER (Web Cookies or Mobile Headers)
 // ----------------------------------------------------
 async function getAuthenticatedUser(req: Request) {
-  await connectDB();
-
   // 1. Check Mobile App Headers (x-user-id or Authorization)
   const mobileHeaderId =
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true },
+    });
     if (user) return user;
   }
 
@@ -231,9 +243,10 @@ async function getAuthenticatedUser(req: Request) {
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email })
-        .select("_id email")
-        .lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+      });
       if (user) return user;
     }
   } catch (err) {
@@ -254,15 +267,20 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await User.findById(currentUser._id)
-      .select("-password")
-      .lean();
+    const user = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+    });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(cleanProfileResponse(user), { status: 200 });
+    const experiences = await prisma.experience.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return NextResponse.json(cleanProfileResponse(user, experiences), { status: 200 });
   } catch (error) {
     console.error("GET /api/me error:", error);
     return NextResponse.json(
@@ -329,15 +347,29 @@ export async function PUT(req: Request) {
     }
 
     if (data.contactInfo !== undefined) {
-      updateData.contactInfo = cleanContactInfo(data.contactInfo);
-    }
-
-    if (data.experiences !== undefined) {
-      updateData.experiences = cleanExperiences(data.experiences);
+      const contactInfo = cleanContactInfo(data.contactInfo);
+      updateData.contactPhone = contactInfo.phone;
+      updateData.contactEmail = contactInfo.email;
+      updateData.contactAddress = contactInfo.address;
+      updateData.contactCompany = contactInfo.company;
+      updateData.contactPosition = contactInfo.position;
     }
 
     if (data.socialLinks !== undefined) {
-      updateData.socialLinks = cleanSocialLinks(data.socialLinks);
+      const socialLinks = cleanSocialLinks(data.socialLinks);
+      updateData.socialFacebook = socialLinks.facebook;
+      updateData.socialTelegram = socialLinks.telegram;
+      updateData.socialInstagram = socialLinks.instagram;
+      updateData.socialYoutube = socialLinks.youtube;
+      updateData.socialLinkedin = socialLinks.linkedin;
+      updateData.socialGithub = socialLinks.github;
+      updateData.socialTiktok = socialLinks.tiktok;
+      updateData.socialViber = socialLinks.viber;
+      updateData.socialLine = socialLinks.line;
+      updateData.socialX = socialLinks.x;
+      updateData.socialTwitter = socialLinks.twitter;
+      updateData.socialWhatsapp = socialLinks.whatsapp;
+      updateData.socialWebsite = socialLinks.website;
     }
 
     if (data.languagePreference !== undefined) {
@@ -351,37 +383,32 @@ export async function PUT(req: Request) {
     updateData.isProfilePublic = true;
     updateData.profileVisibility = "public";
 
-    const unsetData: Record<string, string> = {
-      department: "",
-      batch: "",
-      personalContact: "",
-      professionalContact: "",
-      skills: "",
-      projects: "",
-    };
-
-    if (data.contactInfo === undefined) {
-      unsetData["contactInfo.telegram"] = "";
-      unsetData["contactInfo.viber"] = "";
-    }
-
-    const updatedUser = await User.findByIdAndUpdate(
-      currentUser._id,
-      {
-        $set: updateData,
-        $unset: unsetData,
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    )
-      .select("-password")
-      .lean();
+    const updatedUser = await prisma.user.update({
+      where: { id: currentUser.id },
+      data: updateData,
+    });
 
     if (!updatedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    if (data.experiences !== undefined) {
+      const cleanedExperiences = cleanExperiences(data.experiences);
+      await prisma.experience.deleteMany({ where: { userId: currentUser.id } });
+      if (cleanedExperiences.length > 0) {
+        await prisma.experience.createMany({
+          data: cleanedExperiences.map((exp) => ({
+            userId: currentUser.id,
+            ...exp,
+          })),
+        });
+      }
+    }
+
+    const experiences = await prisma.experience.findMany({
+      where: { userId: currentUser.id },
+      orderBy: { createdAt: "asc" },
+    });
 
     // Restart PM2 after a 10s delay so the profile update response goes out
     // first (avoids 502), then flushes the photo cache so the new photo shows.
@@ -399,7 +426,7 @@ export async function PUT(req: Request) {
       });
     }, 10000);
 
-    return NextResponse.json(cleanProfileResponse(updatedUser), { status: 200 });
+    return NextResponse.json(cleanProfileResponse(updatedUser, experiences), { status: 200 });
   } catch (error) {
     console.error("PUT /api/me error:", error);
     return NextResponse.json(

@@ -3,12 +3,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { connectDB } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
 import { otpTemplate } from "@/lib/emailTemplates";
-
-import User from "@/models/User";
-import Otp from "@/models/Otp";
 
 type Lang = "en" | "mm";
 
@@ -35,11 +32,9 @@ export async function POST(req: Request) {
       );
     }
 
-    await connectDB();
-
     const email = parsed.data.email.trim().toLowerCase();
 
-    const user = await User.findOne({ email });
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
       const lang: Lang = parsed.data.lang === "mm" ? "mm" : "en";
@@ -80,19 +75,23 @@ export async function POST(req: Request) {
         ? "mm"
         : "en";
 
-    await Otp.deleteMany({
-      email,
-      purpose: "forgot-password",
+    await prisma.otp.deleteMany({
+      where: {
+        email,
+        purpose: "forgot-password",
+      },
     });
 
     const otp = generateOtp();
 
-    await Otp.create({
-      email,
-      otp,
-      purpose: "forgot-password",
-      lang,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    await prisma.otp.create({
+      data: {
+        email,
+        otp,
+        purpose: "forgot-password",
+        lang,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      },
     });
 
     await sendMail({

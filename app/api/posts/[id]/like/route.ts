@@ -1,13 +1,10 @@
 // app/api/posts/[id]/like/route.ts
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
 import { pusherServer } from "@/lib/pusher";
-import User from "@/models/User";
-import Post from "@/models/Post";
-import Notification from "@/models/Notification";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -15,15 +12,16 @@ type Props = {
 
 // Dual Authentication Helper (Web Cookies or Mobile Headers)
 async function getAuthenticatedUser(req: Request) {
-  await connectDB();
-
   // 1. Check Mobile App Headers (x-user-id or Authorization)
   const mobileHeaderId =
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true },
+    });
     if (user) return user;
   }
 
@@ -31,9 +29,10 @@ async function getAuthenticatedUser(req: Request) {
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email })
-        .select("_id email")
-        .lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+      });
       if (user) return user;
     }
   } catch (err) {
@@ -52,49 +51,60 @@ export async function PATCH(req: Request, { params }: Props) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidId(id)) {
       return NextResponse.json({ error: "Invalid post ID" }, { status: 400 });
     }
 
-    const post: any = await Post.findById(id).select("likes author");
+    const post = await prisma.post.findUnique({
+      where: { id },
+      select: { author: true },
+    });
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
-    const liked = post.likes.some(
-      (like: any) => String(like) === String(user._id)
-    );
+    const existingLike = await prisma.postLike.findUnique({
+      where: { postId_userId: { postId: id, userId: user.id } },
+    });
+    const liked = !!existingLike;
 
     if (liked) {
-      post.likes.pull(user._id);
+      await prisma.postLike.delete({
+        where: { postId_userId: { postId: id, userId: user.id } },
+      });
     } else {
-      post.likes.push(user._id);
+      await prisma.postLike.create({
+        data: { postId: id, userId: user.id },
+      });
     }
 
-    await post.save();
-
     // Notify post author on like (skip self-like)
-    if (!liked && String(post.author) !== String(user._id)) {
+    if (!liked && String(post.author) !== String(user.id)) {
       try {
-        const liker = await User.findById(user._id).select("name").lean();
-        const likerName = (liker as any)?.name || "Someone";
+        const liker = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { name: true },
+        });
+        const likerName = liker?.name || "Someone";
 
-        const notification = await Notification.create({
-          receiver: post.author,
-          sender: user._id,
-          type: "like",
-          title: "New Like",
-          body: `${likerName} liked your post`,
-          link: `/feeds?post=${id}`,
-          read: false,
+        const notification = await prisma.notification.create({
+          data: {
+            receiver: post.author,
+            sender: user.id,
+            type: "like",
+            title: "New Like",
+            body: `${likerName} liked your post`,
+            link: `/feeds?post=${id}`,
+            read: false,
+          },
         });
 
         await pusherServer.trigger(
           `notifications-${post.author}`,
           "new-notification",
           {
-            _id: String(notification._id),
+            _id: String(notification.id),
             title: notification.title,
             body: notification.body,
             link: notification.link,
@@ -106,11 +116,17 @@ export async function PATCH(req: Request, { params }: Props) {
       }
     }
 
+    const likes = await prisma.postLike.findMany({
+      where: { postId: id },
+      select: { userId: true },
+    });
+    const likeIds = likes.map((l) => l.userId);
+
     return NextResponse.json(
       {
         liked: !liked,
-        likes: post.likes.map(String),
-        likesCount: post.likes.length,
+        likes: likeIds,
+        likesCount: likeIds.length,
       },
       { status: 200 }
     );

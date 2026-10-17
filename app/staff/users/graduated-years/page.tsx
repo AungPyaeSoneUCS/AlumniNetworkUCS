@@ -5,8 +5,7 @@ import { redirect } from "next/navigation";
 import { BarChart3 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import StaffSidebar from "@/components/staff/staff-sidebar";
 import GraduatedYearsChart from "@/components/admin/graduated-years-chart";
 import GraduatedYearsExporter from "@/components/admin/graduated-years-exporter";
@@ -515,20 +514,26 @@ export default async function StaffGraduatedYearsPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/staff/login");
 
-  await connectDB();
-
-  const staffUser: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!staffUser || (staffUser.role !== "staff" && staffUser.role !== "admin")) {
     redirect("/staff/login");
   }
 
-  const users: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select("_id name email role degree department graduatedYear")
-    .lean();
+  const users: any[] = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      degree: true,
+      graduatedYear: true,
+    },
+  });
 
   // Only consider standard alumni users for metrics
   const normalUsers = users.filter((user) => user.role === "user");

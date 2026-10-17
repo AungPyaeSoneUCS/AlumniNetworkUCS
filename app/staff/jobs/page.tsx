@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import StaffSidebar from "@/components/staff/staff-sidebar";
 import PrintUsersButton from "@/components/admin/print-users-button";
 import AutoSubmitJobsFilters from "@/components/admin/auto-submit-jobs-filters";
@@ -47,7 +46,7 @@ type JobItem = Experience & {
   userEmail: string;
   userImage?: string;
   userDepartment?: string;
-  userGraduatedYear?: number | null;
+  userGraduatedYear?: string | null;
 };
 
 const text = {
@@ -528,51 +527,83 @@ export default async function StaffJobsPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/staff/login");
 
-  await connectDB();
-
-  const staffUser: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const staffUser = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!staffUser || (staffUser.role !== "staff" && staffUser.role !== "admin")) {
     redirect("/staff/login");
   }
 
-  const users: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select(
-      "_id name email image profileImage googleImage role department degree graduatedYear experiences",
-    )
-    .lean();
+  const [users, allExperiences] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+        degree: true,
+        graduatedYear: true,
+      },
+    }),
+    prisma.experience.findMany({
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        userId: true,
+        company: true,
+        position: true,
+        employmentType: true,
+        location: true,
+        phone: true,
+        email: true,
+        salary: true,
+        website: true,
+        startDate: true,
+        endDate: true,
+        isCurrent: true,
+      },
+    }),
+  ]);
+
+  const experiencesByUser = new Map<string, typeof allExperiences>();
+  for (const exp of allExperiences) {
+    const list = experiencesByUser.get(exp.userId) || [];
+    list.push(exp);
+    experiencesByUser.set(exp.userId, list);
+  }
 
   // Only allow normal alumni users (role === "user") to show up in jobs management
   const normalUsers = users.filter((user) => user.role === "user");
 
-  const jobs: JobItem[] = normalUsers.flatMap((user) =>
-    Array.isArray(user.experiences)
-      ? user.experiences
-          .filter(
-            (job: Experience) =>
-              job.company ||
-              job.position ||
-              job.employmentType ||
-              job.location ||
-              job.salary ||
-              job.email ||
-              job.phone ||
-              job.website,
-          )
-          .map((job: Experience) => ({
-            ...job,
-            userId: String(user._id),
-            userName: user.name || t.unknownAlumni,
-            userEmail: user.email || "",
-            userImage: user.profileImage || user.image || user.googleImage || "",
-            userDepartment: user.degree || user.department || "",
-            userGraduatedYear: user.graduatedYear || null,
-          }))
-      : [],
-  );
+  const jobs: JobItem[] = normalUsers.flatMap((user) => {
+    const userExperiences = experiencesByUser.get(user.id) || [];
+
+    return userExperiences
+      .filter(
+        (job) =>
+          job.company ||
+          job.position ||
+          job.employmentType ||
+          job.location ||
+          job.salary ||
+          job.email ||
+          job.phone ||
+          job.website,
+      )
+      .map((job) => ({
+        ...job,
+        userId: user.id,
+        userName: user.name || t.unknownAlumni,
+        userEmail: user.email || "",
+        userImage: user.image || "",
+        userDepartment: user.degree || "",
+        userGraduatedYear: user.graduatedYear || null,
+      }));
+  });
 
   const companyOptions = Array.from(
     new Set(jobs.map((job) => cleanText(job.company)).filter(Boolean)),

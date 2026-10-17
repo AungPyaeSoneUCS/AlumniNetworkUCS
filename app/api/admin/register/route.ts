@@ -3,13 +3,10 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-
     const body = await req.json();
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
@@ -29,7 +26,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingUser = await User.findOne({ email }).select("_id").lean();
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
 
     if (existingUser) {
       return NextResponse.json(
@@ -40,13 +40,15 @@ export async function POST(req: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: "admin",
-      isBlocked: false,
-      isProfilePublic: true,
+    await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: "admin",
+        isBlocked: false,
+        isProfilePublic: true,
+      },
     });
 
     return NextResponse.json(

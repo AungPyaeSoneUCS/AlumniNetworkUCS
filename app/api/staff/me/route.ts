@@ -3,12 +3,11 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 function cleanStaff(user: any) {
   return {
-    _id: String(user._id),
+    _id: String(user.id),
     name: user.name || "",
     email: user.email || "",
     image: user.image || "",
@@ -28,13 +27,20 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
-    const staff: any = await User.findOne({
-      email: session.user.email,
-    })
-      .select("_id name email image role position isBlocked createdAt updatedAt")
-      .lean();
+    const staff: any = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+        position: true,
+        isBlocked: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
     if (!staff) {
       return NextResponse.json({ error: "Staff not found" }, { status: 404 });

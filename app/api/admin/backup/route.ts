@@ -1,11 +1,30 @@
 // file: app/api/admin/backup/route.ts
 
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
+
+const TABLE_DELEGATES: Record<string, any> = {
+  approved_students: prisma.approvedStudent,
+  contact_settings: prisma.contactSetting,
+  experiences: prisma.experience,
+  job_applications: prisma.jobApplication,
+  jobs: prisma.job,
+  message_reactions: prisma.messageReaction,
+  messages: prisma.message,
+  notifications: prisma.notification,
+  otps: prisma.otp,
+  post_comments: prisma.postComment,
+  post_likes: prisma.postLike,
+  posts: prisma.post,
+  push_tokens: prisma.pushToken,
+  settings: prisma.setting,
+  students: prisma.student,
+  users: prisma.user,
+  vote_projects: prisma.voteProject,
+  vote_users: prisma.voteUser,
+};
 
 async function requireAdmin() {
   const session = await auth();
@@ -14,13 +33,10 @@ async function requireAdmin() {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
-  await connectDB();
-
-  const admin: any = await User.findOne({
-    email: session.user.email,
-  })
-    .select("_id role isBlocked")
-    .lean();
+  const admin = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, role: true, isBlocked: true },
+  });
 
   if (!admin) {
     return { error: NextResponse.json({ error: "Admin not found" }, { status: 404 }) };
@@ -38,25 +54,11 @@ async function requireAdmin() {
     };
   }
 
-  return { error: null };
+  return { error: null, admin };
 }
 
-async function getDb() {
-  const db = mongoose.connection.db;
-  if (!db) throw new Error("Database connection is not ready");
-  return db;
-}
-
-async function listCollectionNames() {
-  const names: string[] = [];
-  const collections = await (await getDb()).listCollections().toArray();
-
-  for (const item of collections) {
-    if (!item.name || item.name.startsWith("system.")) continue;
-    names.push(item.name);
-  }
-
-  return names.sort();
+function listTableNames() {
+  return Object.keys(TABLE_DELEGATES).sort();
 }
 
 // GET /api/admin/backup            -> JSON: { collections: [{ name, count }] }
@@ -66,23 +68,20 @@ export async function GET(req: Request) {
     const { error } = await requireAdmin();
     if (error) return error;
 
-    await connectDB();
-
     const { searchParams } = new URL(req.url);
     const name = (searchParams.get("name") || "").trim();
 
-    // Download a single collection as a JSON file
     if (name) {
       if (!/^[a-zA-Z0-9_]+$/.test(name)) {
         return NextResponse.json({ error: "Invalid collection name" }, { status: 400 });
       }
 
-      const names = await listCollectionNames();
+      const names = listTableNames();
       if (!names.includes(name)) {
         return NextResponse.json({ error: "Collection not found" }, { status: 404 });
       }
 
-      const docs = await (await getDb()).collection(name).find({}).toArray();
+      const docs = await TABLE_DELEGATES[name].findMany();
 
       const json = JSON.stringify(docs, null, 2);
 
@@ -96,15 +95,12 @@ export async function GET(req: Request) {
       });
     }
 
-    // Otherwise return the list of all collections with document counts
-    const names = await listCollectionNames();
+    const names = listTableNames();
 
     const collections: { name: string; count: number }[] = [];
     for (const collectionName of names) {
       try {
-        const count = await (await getDb())
-          .collection(collectionName)
-          .estimatedDocumentCount();
+        const count = await TABLE_DELEGATES[collectionName].count();
         collections.push({ name: collectionName, count });
       } catch {
         collections.push({ name: collectionName, count: 0 });

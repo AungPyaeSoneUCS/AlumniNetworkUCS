@@ -1,11 +1,9 @@
 // file: app/api/notifications/register-push/route.ts
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import PushToken from "@/models/PushToken";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
@@ -23,13 +21,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "expoPushToken is required" }, { status: 400 });
     }
 
-    await connectDB();
-
     let currentUser: any = null;
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id").lean();
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id").lean();
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
     }
 
     if (!currentUser) {
@@ -37,11 +39,15 @@ export async function POST(req: Request) {
     }
 
     // Upsert the push token for this user (remove stale tokens for same user+token)
-    await PushToken.updateOne(
-      { user: currentUser._id, expoPushToken },
-      { $set: { user: currentUser._id, expoPushToken, platform: platform || "android" } },
-      { upsert: true }
-    );
+    await prisma.pushToken.upsert({
+      where: { expoPushToken },
+      update: { user: currentUser.id, platform: platform || "android" },
+      create: {
+        user: currentUser.id,
+        expoPushToken,
+        platform: platform || "android",
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -2,8 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import User from "@/models/User";
-import { connectDB } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import EditAlumniForm from "@/components/admin/edit-alumni-form";
 import EditNav from "@/components/admin/edit-nav";
 
@@ -106,32 +105,87 @@ export default async function EditAlumniPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("name role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { name: true, role: true },
+  });
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
   const resolvedSearchParams = await Promise.resolve(searchParams || {});
   const lang = resolvedSearchParams.lang === "mm" ? "mm" : "en";
   const initialSearch = resolvedSearchParams.search || "";
 
-  const rawUsers = await User.find({ role: { $ne: "admin" } })
-    .select("-password -otp -otpExpires")
-    .sort({ graduatedYear: -1, createdAt: -1 })
-    .lean();
+  const rawRows: any[] = await prisma.user.findMany({
+    where: { role: { not: "admin" } },
+    orderBy: [{ graduatedYear: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      bio: true,
+      degree: true,
+      graduatedYear: true,
+      contactPhone: true,
+      contactEmail: true,
+      contactAddress: true,
+      contactCompany: true,
+      contactPosition: true,
+      socialFacebook: true,
+      socialTelegram: true,
+      socialInstagram: true,
+      socialYoutube: true,
+      socialLinkedin: true,
+      socialGithub: true,
+      socialTiktok: true,
+      socialViber: true,
+      socialLine: true,
+      socialWhatsapp: true,
+      socialWebsite: true,
+    },
+  });
+
+  const rawUsers = rawRows.map((u: any) => ({
+    _id: String(u.id),
+    name: u.name,
+    email: u.email,
+    image: u.image,
+    bio: u.bio,
+    degree: u.degree,
+    graduatedYear: u.graduatedYear,
+    contactInfo: {
+      phone: u.contactPhone,
+      email: u.contactEmail,
+      address: u.contactAddress,
+      company: u.contactCompany,
+      position: u.contactPosition,
+    },
+    socialLinks: {
+      facebook: u.socialFacebook,
+      telegram: u.socialTelegram,
+      instagram: u.socialInstagram,
+      youtube: u.socialYoutube,
+      linkedin: u.socialLinkedin,
+      github: u.socialGithub,
+      tiktok: u.socialTiktok,
+      viber: u.socialViber,
+      line: u.socialLine,
+      whatsapp: u.socialWhatsapp,
+      website: u.socialWebsite,
+    },
+  }));
 
   const allUsers = rawUsers.map(cleanUser);
 
   async function updateAlumniDataAction(userId: string, data: any) {
     "use server";
-    await connectDB();
 
     const currentSession = await auth();
     if (!currentSession?.user?.email) return { error: "Unauthorized" };
-    const adminCheck = await User.findOne({ email: currentSession.user.email })
-      .select("role")
-      .lean();
+    const adminCheck = await prisma.user.findFirst({
+      where: { email: currentSession.user.email },
+      select: { role: true },
+    });
     if (!adminCheck || adminCheck.role !== "admin") return { error: "Forbidden" };
 
     try {
@@ -140,7 +194,10 @@ export default async function EditAlumniPage({
 
       // Name/Email already exist on the alumni record — keep the current
       // values when the update payload does not include them.
-      const existingUser: any = await User.findById(userId).select("name email graduatedYear").lean();
+      const existingUser: any = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true, graduatedYear: true },
+      });
       if (!existingUser) return { error: "User not found." };
 
       const finalName = name || existingUser.name || "";
@@ -149,9 +206,28 @@ export default async function EditAlumniPage({
       if (!finalName || !finalEmail) return { error: "Name and Email are required." };
 
       if (finalEmail !== existingUser.email) {
-        const emailTaken = await User.findOne({ email: finalEmail, _id: { $ne: userId } });
+        const emailTaken = await prisma.user.findFirst({
+          where: { email: finalEmail, id: { not: userId } },
+        });
         if (emailTaken) return { error: "Email is already taken by another user." };
       }
+
+      const experiences = Array.isArray(data.experiences)
+        ? data.experiences.map((item: any) => ({
+            company: item.company || "",
+            position: item.position || "",
+            employmentType: item.employmentType || "",
+            location: item.location || "",
+            phone: item.phone || "",
+            email: item.email || "",
+            salary: item.salary || "",
+            website: item.website || "",
+            startDate: item.startDate || "",
+            endDate: item.isCurrent ? "" : item.endDate || "",
+            isCurrent: Boolean(item.isCurrent),
+            experienceYear: item.experienceYear || "",
+          }))
+        : [];
 
       const updateData: any = {
         name: finalName,
@@ -160,45 +236,31 @@ export default async function EditAlumniPage({
         bio: typeof data.bio === "string" ? data.bio : "",
         degree: typeof data.degree === "string" ? data.degree : "",
         graduatedYear: graduatedYearFrom(data, existingUser.graduatedYear),
-        contactInfo: {
-          phone: data.contactInfo?.phone || "",
-          email: data.contactInfo?.email || "",
-          address: data.contactInfo?.address || "",
-          company: data.contactInfo?.company || "",
-          position: data.contactInfo?.position || "",
-        },
-        experiences: Array.isArray(data.experiences)
-          ? data.experiences.map((item: any) => ({
-              company: item.company || "",
-              position: item.position || "",
-              employmentType: item.employmentType || "",
-              location: item.location || "",
-              phone: item.phone || "",
-              email: item.email || "",
-              salary: item.salary || "",
-              website: item.website || "",
-              startDate: item.startDate || "",
-              endDate: item.isCurrent ? "" : item.endDate || "",
-              isCurrent: Boolean(item.isCurrent),
-              experienceYear: item.experienceYear || "",
-            }))
-          : [],
-        socialLinks: {
-          facebook: data.socialLinks?.facebook || "",
-          telegram: data.socialLinks?.telegram || "",
-          instagram: data.socialLinks?.instagram || "",
-          youtube: data.socialLinks?.youtube || "",
-          linkedin: data.socialLinks?.linkedin || "",
-          github: data.socialLinks?.github || "",
-          tiktok: data.socialLinks?.tiktok || "",
-          viber: data.socialLinks?.viber || "",
-          line: data.socialLinks?.line || "",
-          whatsapp: data.socialLinks?.whatsapp || "",
-          website: data.socialLinks?.website || "",
-        },
+        contactPhone: data.contactInfo?.phone || "",
+        contactEmail: data.contactInfo?.email || "",
+        contactAddress: data.contactInfo?.address || "",
+        contactCompany: data.contactInfo?.company || "",
+        contactPosition: data.contactInfo?.position || "",
+        socialFacebook: data.socialLinks?.facebook || "",
+        socialTelegram: data.socialLinks?.telegram || "",
+        socialInstagram: data.socialLinks?.instagram || "",
+        socialYoutube: data.socialLinks?.youtube || "",
+        socialLinkedin: data.socialLinks?.linkedin || "",
+        socialGithub: data.socialLinks?.github || "",
+        socialTiktok: data.socialLinks?.tiktok || "",
+        socialViber: data.socialLinks?.viber || "",
+        socialLine: data.socialLinks?.line || "",
+        socialWhatsapp: data.socialLinks?.whatsapp || "",
+        socialWebsite: data.socialLinks?.website || "",
       };
 
-      await User.findByIdAndUpdate(userId, { $set: updateData });
+      await prisma.$transaction([
+        prisma.experience.deleteMany({ where: { userId } }),
+        prisma.user.update({ where: { id: userId }, data: updateData }),
+        prisma.experience.createMany({
+          data: experiences.map((item: any) => ({ ...item, userId })),
+        }),
+      ]);
 
       revalidatePath("/admin/edit/edit-alumni");
       revalidatePath("/admin/users");

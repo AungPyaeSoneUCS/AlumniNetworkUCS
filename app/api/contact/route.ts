@@ -2,8 +2,7 @@
 
 import { NextResponse } from "next/server";
 
-import { connectDB } from "@/lib/mongodb";
-import ContactSetting from "@/models/ContactSetting";
+import { prisma } from "@/lib/prisma";
 
 const defaultContact = {
   phone1: "044 22725",
@@ -18,17 +17,21 @@ const defaultContact = {
     "https://www.google.com/maps?q=University%20of%20Computer%20Studies%20Hinthada&output=embed",
 };
 
+function serializeContact(row: any) {
+  if (!row) return row;
+  const { id, ...rest } = row;
+  return { ...rest, _id: String(id) };
+}
+
 export async function GET() {
   try {
-    await connectDB();
-
-    let contact = await ContactSetting.findOne().lean();
+    let contact = await prisma.contactSetting.findFirst();
 
     if (!contact) {
-      contact = await ContactSetting.create(defaultContact);
+      contact = await prisma.contactSetting.create({ data: defaultContact });
     }
 
-    return NextResponse.json(contact);
+    return NextResponse.json(serializeContact(contact));
   } catch (error) {
     console.error("Get contact failed:", error);
     return NextResponse.json(defaultContact);

@@ -1,16 +1,14 @@
 // file: app/api/messages/[userId]/route.ts
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Message from "@/models/Message";
+import { prisma } from "@/lib/prisma";
+import { getUsersByIds, isValidId, parseList } from "@/lib/db";
 import { pusherServer } from "@/lib/pusher";
 
 function cleanUser(user: any) {
   return {
-    _id: String(user?._id || ""),
+    _id: String(user?._id || user?.id || ""),
     name: user?.name || "Unknown Alumni",
     email: user?.email || "",
     role: user?.role || "user",
@@ -22,7 +20,7 @@ function cleanUser(user: any) {
 
 function cleanMessage(message: any) {
   return {
-    _id: String(message?._id || ""),
+    _id: String(message?._id || message?.id || ""),
     text: message?.text || "",
     isDeleted: Boolean(message?.isDeleted),
     isEdited: Boolean(message?.isEdited),
@@ -43,6 +41,40 @@ function getConversationId(userA: string, userB: string) {
   return [userA, userB].sort().join("-");
 }
 
+async function hydrateMessages(messages: any[]) {
+  const messageIds = messages.map((m) => m.id);
+  const userIds: string[] = [];
+  for (const m of messages) {
+    userIds.push(m.sender, m.receiver);
+  }
+
+  const usersMap = await getUsersByIds(userIds);
+  const reactionRows = messageIds.length
+    ? await prisma.messageReaction.findMany({
+        where: { messageId: { in: messageIds } },
+        orderBy: { createdAt: "asc" },
+      })
+    : [];
+
+  const reactionsByMessage: Record<string, { emoji: string; users: string[] }[]> = {};
+  for (const row of reactionRows) {
+    if (!reactionsByMessage[row.messageId]) reactionsByMessage[row.messageId] = [];
+    reactionsByMessage[row.messageId].push({
+      emoji: row.emoji,
+      users: parseList(row.users),
+    });
+  }
+
+  return messages.map((row) =>
+    cleanMessage({
+      ...row,
+      sender: usersMap.get(row.sender),
+      receiver: usersMap.get(row.receiver),
+      reactions: reactionsByMessage[row.id] || [],
+    })
+  );
+}
+
 // 1. GET: FETCH ALL MESSAGES
 export async function GET(
   req: Request,
@@ -59,36 +91,41 @@ export async function GET(
 
     const { userId } = await context.params;
 
-    if (!Types.ObjectId.isValid(userId)) {
+    if (!isValidId(userId)) {
       return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
     }
 
-    await connectDB();
-
     // Identify current user
     let currentUser: any = null;
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id name email role image department graduatedYear");
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true, name: true, email: true, role: true, image: true, graduatedYear: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id name email role image department graduatedYear");
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, name: true, email: true, role: true, image: true, graduatedYear: true },
+      });
     }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const messages = await Message.find({
-      $or: [
-        { sender: currentUser._id, receiver: userId },
-        { sender: userId, receiver: currentUser._id },
-      ],
-    })
-      .sort({ createdAt: 1 })
-      .populate("sender", "name email role image department graduatedYear")
-      .populate("receiver", "name email role image department graduatedYear")
-      .lean();
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { sender: currentUser.id, receiver: userId },
+          { sender: userId, receiver: currentUser.id },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+    });
 
-    return NextResponse.json(messages.map(cleanMessage));
+    const cleanedMessages = await hydrateMessages(messages);
+
+    return NextResponse.json(cleanedMessages);
   } catch (error) {
     console.error("Fetch messages error:", error);
     return NextResponse.json(
@@ -115,7 +152,7 @@ export async function PATCH(
     const { userId } = await context.params;
     const { messageId, newText } = await req.json();
 
-    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(messageId)) {
+    if (!isValidId(userId) || !isValidId(messageId)) {
       return NextResponse.json({ error: "Invalid IDs provided" }, { status: 400 });
     }
 
@@ -123,23 +160,27 @@ export async function PATCH(
       return NextResponse.json({ error: "Text cannot be empty" }, { status: 400 });
     }
 
-    await connectDB();
-
     // Identify current user
     let currentUser: any = null;
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id");
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id");
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
     }
 
     if (!currentUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    const message = await Message.findById(messageId);
+    const message = await prisma.message.findUnique({ where: { id: messageId } });
     if (!message) return NextResponse.json({ error: "Message not found" }, { status: 404 });
 
     // Ensure strictly the author can edit their own message
-    if (String(message.sender) !== String(currentUser._id)) {
+    if (String(message.sender) !== String(currentUser.id)) {
       return NextResponse.json({ error: "Forbidden: You can only edit your own messages" }, { status: 403 });
     }
 
@@ -147,20 +188,18 @@ export async function PATCH(
       return NextResponse.json({ error: "Cannot edit a deleted message" }, { status: 400 });
     }
 
-    message.text = newText.trim();
-    message.isEdited = true;
-    await message.save();
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        text: newText.trim(),
+        isEdited: true,
+      },
+    });
 
-    // Re-populate to get full sender/receiver objects for the UI payload
-    await message.populate([
-      { path: "sender", select: "name email role image department graduatedYear" },
-      { path: "receiver", select: "name email role image department graduatedYear" }
-    ]);
-
-    const cleanedPayload = cleanMessage(message.toObject());
+    const cleanedPayload = (await hydrateMessages([updatedMessage]))[0];
 
     // Broadcast instant update via Pusher
-    const convoId = getConversationId(String(currentUser._id), userId);
+    const convoId = getConversationId(String(currentUser.id), userId);
     if (pusherServer) {
       await pusherServer.trigger(`chat-${convoId}`, "new-message", cleanedPayload);
     }
@@ -189,56 +228,59 @@ export async function DELETE(
     const { userId } = await context.params;
     const messageId = new URL(req.url).searchParams.get("messageId");
 
-    if (!Types.ObjectId.isValid(userId)) {
+    if (!isValidId(userId)) {
       return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
     }
 
-    if (!messageId || !Types.ObjectId.isValid(messageId)) {
+    if (!messageId || !isValidId(messageId)) {
       return NextResponse.json({ error: "Invalid message id" }, { status: 400 });
     }
 
-    await connectDB();
-
     // Identify current user
     let currentUser: any = null;
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id name");
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true, name: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id name");
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, name: true },
+      });
     }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const message = await Message.findById(messageId);
+    const message = await prisma.message.findUnique({ where: { id: messageId } });
 
     if (!message) {
       return NextResponse.json({ error: "Message not found" }, { status: 404 });
     }
 
     // Ensure only the sender can delete their message
-    if (String(message.sender) !== String(currentUser._id)) {
+    if (String(message.sender) !== String(currentUser.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const deleterName = currentUser.name || "User";
 
     // Soft-delete mutation
-    message.text = `${deleterName} deleted this message.`;
-    message.isDeleted = true;
-    message.deletedBy = deleterName;
-    await message.save();
+    const deletedMessage = await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        text: `${deleterName} deleted this message.`,
+        isDeleted: true,
+        deletedBy: deleterName,
+      },
+    });
 
-    await message.populate([
-      { path: "sender", select: "name email role image department graduatedYear" },
-      { path: "receiver", select: "name email role image department graduatedYear" }
-    ]);
-
-    const cleanedPayload = cleanMessage(message.toObject());
+    const cleanedPayload = (await hydrateMessages([deletedMessage]))[0];
 
     // Broadcast instant ghost update via Pusher
-    const convoId = getConversationId(String(currentUser._id), userId);
+    const convoId = getConversationId(String(currentUser.id), userId);
     if (pusherServer) {
       await pusherServer.trigger(`chat-${convoId}`, "new-message", cleanedPayload);
     }

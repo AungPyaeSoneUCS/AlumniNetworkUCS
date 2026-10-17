@@ -3,10 +3,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Otp from "@/models/Otp";
-import ApprovedStudent from "@/models/ApprovedStudent";
+import { prisma } from "@/lib/prisma";
 
 type Lang = "en" | "mm";
 
@@ -35,16 +32,18 @@ export async function POST(req: Request) {
       );
     }
 
-    await connectDB();
-
     const email = parsed.data.email.trim().toLowerCase();
     const otp = parsed.data.otp.trim();
 
-    const record = await Otp.findOne({
-      email,
-      otp,
-      purpose: "register",
-      expiresAt: { $gt: new Date() },
+    await prisma.otp.deleteMany({ where: { expiresAt: { lt: new Date() } } });
+
+    const record = await prisma.otp.findFirst({
+      where: {
+        email,
+        otp,
+        purpose: "register",
+        expiresAt: { gt: new Date() },
+      },
     });
 
     if (!record) {
@@ -73,12 +72,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const approvedStudent = await ApprovedStudent.findOne({
-      name: recordName,
-      fatherName: recordFatherName,
-      graduatedYear: recordGraduatedYear,
-      approved: true,
-    }).lean();
+    const approvedStudent = await prisma.approvedStudent.findFirst({
+      where: {
+        name: recordName,
+        fatherName: recordFatherName,
+        graduatedYear: recordGraduatedYear,
+        approved: true,
+      },
+    });
 
     if (!approvedStudent) {
       return NextResponse.json(
@@ -93,7 +94,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const emailUser = await User.findOne({ email }).select("_id").lean();
+    const emailUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
 
     if (emailUser) {
       return NextResponse.json(
@@ -108,11 +112,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingAlumniUser = await User.findOne({ 
-      name: recordName, 
-      fatherName: recordFatherName, 
-      graduatedYear: recordGraduatedYear 
-    }).select("_id").lean();
+    const existingAlumniUser = await prisma.user.findFirst({
+      where: {
+        name: recordName,
+        fatherName: recordFatherName,
+        graduatedYear: recordGraduatedYear,
+      },
+      select: { id: true },
+    });
 
     if (existingAlumniUser) {
       return NextResponse.json(
@@ -127,34 +134,81 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await User.create({
-      name: clean(approvedStudent.name),
-      fatherName: clean(approvedStudent.fatherName),
-      graduatedYear: approvedStudent.graduatedYear,
-      email,
-      password: record.password,
-      role: "user",
-      approved: true,
-      isVerified: true,
-      image: "",
-      bio: "",
-      languagePreference: lang,
-      themePreference: "light",
-      personalContact: {},
-      professionalContact: {},
-      socialLinks: {},
+    const user = await prisma.user.create({
+      data: {
+        name: clean(approvedStudent.name),
+        fatherName: clean(approvedStudent.fatherName),
+        graduatedYear: approvedStudent.graduatedYear,
+        email,
+        password: record.password,
+        role: "user",
+        isVerified: true,
+        image: "",
+        bio: "",
+        languagePreference: lang,
+        themePreference: "light",
+      },
     });
 
     // Flag this record as successfully registered in the Admin Panel
-    await ApprovedStudent.updateOne(
-      { _id: approvedStudent._id },
-      { $set: { registered: true } }
-    );
+    await prisma.approvedStudent.update({
+      where: { id: approvedStudent.id },
+      data: { registered: true },
+    });
 
-    await Otp.deleteMany({ email, purpose: "register" });
+    await prisma.otp.deleteMany({ where: { email, purpose: "register" } });
 
     // Prepare safe user object for mobile auto-login
-    const userObject = user.toObject();
+    const {
+      id: userId,
+      password: _password,
+      contactPhone,
+      contactEmail,
+      contactAddress,
+      contactCompany,
+      contactPosition,
+      socialFacebook,
+      socialTelegram,
+      socialInstagram,
+      socialYoutube,
+      socialLinkedin,
+      socialGithub,
+      socialTiktok,
+      socialViber,
+      socialLine,
+      socialX,
+      socialTwitter,
+      socialWhatsapp,
+      socialWebsite,
+      ...userRest
+    } = user as any;
+    const userObject: any = {
+      ...userRest,
+      _id: String(userId),
+      department: user.degree || "",
+      contactInfo: {
+        phone: user.contactPhone || "",
+        email: user.contactEmail || "",
+        address: user.contactAddress || "",
+        company: user.contactCompany || "",
+        position: user.contactPosition || "",
+      },
+      socialLinks: {
+        facebook: user.socialFacebook || "",
+        telegram: user.socialTelegram || "",
+        instagram: user.socialInstagram || "",
+        youtube: user.socialYoutube || "",
+        linkedin: user.socialLinkedin || "",
+        github: user.socialGithub || "",
+        tiktok: user.socialTiktok || "",
+        viber: user.socialViber || "",
+        line: user.socialLine || "",
+        x: user.socialX || "",
+        twitter: user.socialTwitter || "",
+        whatsapp: user.socialWhatsapp || "",
+        website: user.socialWebsite || "",
+      },
+    };
     delete userObject.password;
 
     return NextResponse.json({

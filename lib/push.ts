@@ -1,10 +1,12 @@
 // file: lib/push.ts
 
+import { prisma } from "./prisma";
+
 export interface ExpoPushMessage {
   to: string;
   title?: string;
   body?: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   sound?: string;
   channelId?: string;
 }
@@ -35,11 +37,14 @@ export async function sendExpoPushNotifications(messages: ExpoPushMessage[]) {
   }
 }
 
-// Parse and return the expo push tokens for a list of users
-export async function getPushTokensForUsers(userIds: string[], pushModel: any) {
+// Return the Expo push tokens registered for the given users
+export async function getPushTokensForUsers(userIds: string[]): Promise<string[]> {
   if (!userIds || userIds.length === 0) return [];
-  const tokens = await pushModel.find({
-    user: { $in: userIds },
-  }).distinct("expoPushToken").lean();
-  return tokens as string[];
+
+  const rows = await prisma.pushToken.findMany({
+    where: { user: { in: userIds } },
+    select: { expoPushToken: true },
+  });
+
+  return Array.from(new Set(rows.map((r) => r.expoPushToken).filter(Boolean)));
 }

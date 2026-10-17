@@ -1,14 +1,10 @@
 // file: app/api/messages/send/route.ts
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
 import { pusherServer } from "@/lib/pusher";
-
-import User from "@/models/User";
-import Message from "@/models/Message";
-import Notification from "@/models/Notification";
+import { prisma } from "@/lib/prisma";
+import { getUsersByIds, isValidId, parseList } from "@/lib/db";
 
 function getConversationId(userA: string, userB: string) {
   return [userA, userB].sort().join("-");
@@ -16,7 +12,7 @@ function getConversationId(userA: string, userB: string) {
 
 function cleanUser(user: any) {
   return {
-    _id: String(user?._id || ""),
+    _id: String(user?._id || user?.id || ""),
     name: user?.name || "Unknown Alumni",
     email: user?.email || "",
     image: user?.image || "",
@@ -27,7 +23,7 @@ function cleanUser(user: any) {
 
 function cleanMessage(message: any) {
   return {
-    _id: String(message?._id || ""),
+    _id: String(message?._id || message?.id || ""),
     text: message?.text || "",
     seen: Boolean(message?.seen),
     createdAt: message?.createdAt || null,
@@ -43,7 +39,7 @@ function cleanMessage(message: any) {
 
 function cleanNotification(notification: any) {
   return {
-    _id: String(notification?._id || ""),
+    _id: String(notification?._id || notification?.id || ""),
     type: notification?.type || "message",
     title: notification?.title || "",
     body: notification?.body || "",
@@ -72,81 +68,101 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    if (!Types.ObjectId.isValid(receiverId)) {
+    if (!isValidId(receiverId)) {
       return NextResponse.json({ error: "Invalid receiver id" }, { status: 400 });
     }
 
-    await connectDB();
-
     // Identify current user either by Mobile Header ID or Web Session Email
     let currentUser: any = null;
-    
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id name email image department graduatedYear");
+
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true, name: true, email: true, image: true, graduatedYear: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id name email image department graduatedYear");
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, name: true, email: true, image: true, graduatedYear: true },
+      });
     }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (String(currentUser._id) === receiverId) {
+    if (String(currentUser.id) === receiverId) {
       return NextResponse.json(
         { error: "You cannot message yourself" },
         { status: 400 }
       );
     }
 
-    const receiver: any = await User.findById(receiverId).select(
-      "_id name email image department graduatedYear"
-    );
+    const receiver: any = await prisma.user.findUnique({
+      where: { id: receiverId },
+      select: { id: true, name: true, email: true, image: true, graduatedYear: true },
+    });
 
     if (!receiver) {
       return NextResponse.json({ error: "Receiver not found" }, { status: 404 });
     }
 
-    const createdMessage = await Message.create({
-      sender: currentUser._id,
-      receiver: receiver._id,
-      text,
-      seen: false,
+    const createdMessage = await prisma.message.create({
+      data: {
+        sender: currentUser.id,
+        receiver: receiver.id,
+        text,
+        seen: false,
+      },
     });
 
-    const populatedMessage = await Message.findById(createdMessage._id)
-      .populate("sender", "name email image department graduatedYear")
-      .populate("receiver", "name email image department graduatedYear")
-      .lean();
+    const messageUsers = await getUsersByIds([
+      createdMessage.sender,
+      createdMessage.receiver,
+    ]);
+    const reactionRows = await prisma.messageReaction.findMany({
+      where: { messageId: createdMessage.id },
+      orderBy: { createdAt: "asc" },
+    });
 
-    const message = cleanMessage(populatedMessage);
+    const message = cleanMessage({
+      ...createdMessage,
+      sender: messageUsers.get(createdMessage.sender),
+      receiver: messageUsers.get(createdMessage.receiver),
+      reactions: reactionRows.map((r) => ({
+        emoji: r.emoji,
+        users: parseList(r.users),
+      })),
+    });
 
     const conversationId = getConversationId(
-      String(currentUser._id),
-      String(receiver._id)
+      String(currentUser.id),
+      String(receiver.id)
     );
 
     await pusherServer.trigger(`chat-${conversationId}`, "new-message", message);
 
-    const createdNotification = await Notification.create({
-      receiver: receiver._id,
-      sender: currentUser._id,
-      type: "message",
-      title: `${currentUser.name || "Alumni"} sent you a message`,
-      body: text.length > 90 ? `${text.slice(0, 90)}...` : text,
-      link: `/messages?user=${String(currentUser._id)}`,
-      read: false,
+    const createdNotification = await prisma.notification.create({
+      data: {
+        receiver: receiver.id,
+        sender: currentUser.id,
+        type: "message",
+        title: `${currentUser.name || "Alumni"} sent you a message`,
+        body: text.length > 90 ? `${text.slice(0, 90)}...` : text,
+        link: `/messages?user=${String(currentUser.id)}`,
+        read: false,
+      },
     });
 
-    const populatedNotification = await Notification.findById(
-      createdNotification._id
-    )
-      .populate("sender", "name email image department graduatedYear")
-      .lean();
+    const notificationSenders = await getUsersByIds([currentUser.id]);
 
-    const notification = cleanNotification(populatedNotification);
+    const notification = cleanNotification({
+      ...createdNotification,
+      sender: notificationSenders.get(currentUser.id),
+    });
 
     await pusherServer.trigger(
-      `notifications-${String(receiver._id)}`,
+      `notifications-${String(receiver.id)}`,
       "new-notification",
       notification
     );

@@ -6,7 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
-import { connectDB } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
 import {
   googleLoginTemplate,
@@ -14,8 +14,6 @@ import {
   registerSuccessTemplate,
 } from "@/lib/emailTemplates";
 import { getRequestInfo } from "@/lib/requestInfo";
-import User from "@/models/User";
-import VoteUser from "@/models/VoteUser";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
@@ -58,30 +56,34 @@ export const authOptions: NextAuthOptions = {
         const email = parsed.data.email.trim().toLowerCase();
         const password = parsed.data.password;
 
-        await connectDB();
-
-        const user: any = await User.findOne({ email }).select("+password");
+        const user: any = await prisma.user.findUnique({
+          where: { email },
+          select: { id: true, password: true },
+        });
 
         if (!user || !user.password) return null;
 
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return null;
 
-        if (user.isBlocked) return null;
+        const fullUser = await prisma.user.findUnique({ where: { id: user.id } });
+        if (!fullUser) return null;
 
-        const lang = user.languagePreference === "mm" ? "mm" : "en";
+        if (fullUser.isBlocked) return null;
+
+        const lang = fullUser.languagePreference === "mm" ? "mm" : "en";
 
         try {
           const info = await getRequestInfo();
 
           await sendMail({
-            to: user.email,
+            to: fullUser.email,
             subject:
               lang === "mm"
                 ? "Alumni Network ဝင်ရောက်မှု အသိပေးချက်"
                 : "Alumni Network Login Alert",
-            html: loginTemplate(user.name || "User", lang, {
-              email: user.email,
+            html: loginTemplate(fullUser.name || "User", lang, {
+              email: fullUser.email,
               date: info.date,
               time: info.time,
               device: info.device,
@@ -93,21 +95,21 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id: user._id.toString(),
-          name: user.name || "",
-          email: user.email,
+          id: fullUser.id,
+          name: fullUser.name || "",
+          email: fullUser.email,
           image:
-            user.image && !String(user.image).startsWith("data:")
-              ? user.image
+            fullUser.image && !String(fullUser.image).startsWith("data:")
+              ? fullUser.image
               : null,
-          role: user.role || "user",
+          role: fullUser.role || "user",
         };
       },
     }),
 
     // --- 2. VOTING SYSTEM LOGIN ---
     CredentialsProvider({
-      id: "vote-login", // Unique ID used to call this specific login
+      id: "vote-login",
       name: "Voting System Login",
 
       credentials: {
@@ -128,22 +130,25 @@ export const authOptions: NextAuthOptions = {
         const email = parsed.data.email.trim().toLowerCase();
         const password = parsed.data.password;
 
-        await connectDB();
-
-        // Check the vote_users collection
-        const user: any = await VoteUser.findOne({ email }).select("+password");
+        const user: any = await prisma.voteUser.findUnique({
+          where: { email },
+          select: { id: true, password: true },
+        });
 
         if (!user || !user.password) return null;
 
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return null;
 
+        const fullUser = await prisma.voteUser.findUnique({ where: { id: user.id } });
+        if (!fullUser) return null;
+
         return {
-          id: user._id.toString(),
-          name: user.name || "",
-          email: user.email,
-          role: user.role || "VOTER",
-          hasVoted: user.hasVoted,
+          id: fullUser.id,
+          name: fullUser.name || "",
+          email: fullUser.email,
+          role: fullUser.role || "VOTER",
+          hasVoted: fullUser.hasVoted,
           isVoteSystem: true, // Flag to identify which database they belong to
         };
       },
@@ -152,7 +157,6 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // Allow redirects to your custom production domains
       if (
         url.startsWith("https://alumni.ucsh.edu.mm") ||
         url.startsWith("https://ucshalumninetwork.netlify.app")
@@ -160,12 +164,10 @@ export const authOptions: NextAuthOptions = {
         return url;
       }
 
-      // Allow relative paths (e.g. /dashboard)
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       }
 
-      // Allow same-origin redirects
       try {
         if (new URL(url).origin === baseUrl) {
           return url;
@@ -176,33 +178,26 @@ export const authOptions: NextAuthOptions = {
     },
 
     async signIn({ user, account }) {
-      await connectDB();
-
       if (account?.provider === "google" && user.email) {
         const email = user.email.trim().toLowerCase();
         const info = await getRequestInfo();
 
-        let dbUser: any = await User.findOne({ email });
+        let dbUser: any = await prisma.user.findUnique({ where: { email } });
 
         if (!dbUser) {
-          dbUser = await User.create({
-            name: user.name || email.split("@")[0],
-            email,
-            image:
-              user.image && !String(user.image).startsWith("data:")
-                ? user.image
-                : "",
-            bio: "",
-            role: "user",
-            languagePreference: "en",
-            themePreference: "light",
-            personalContact: {},
-            professionalContact: {},
-            contactInfo: {},
-            socialLinks: {},
-            experiences: [],
-            skills: [],
-            projects: [],
+          dbUser = await prisma.user.create({
+            data: {
+              name: user.name || email.split("@")[0],
+              email,
+              image:
+                user.image && !String(user.image).startsWith("data:")
+                  ? user.image
+                  : "",
+              bio: "",
+              role: "user",
+              languagePreference: "en",
+              themePreference: "light",
+            },
           });
 
           try {
@@ -226,8 +221,10 @@ export const authOptions: NextAuthOptions = {
           const lang = dbUser.languagePreference === "mm" ? "mm" : "en";
 
           if (user.image && !String(user.image).startsWith("data:")) {
-            dbUser.image = user.image;
-            await dbUser.save();
+            dbUser = await prisma.user.update({
+              where: { id: dbUser.id },
+              data: { image: user.image },
+            });
           }
 
           try {
@@ -250,7 +247,7 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        user.id = dbUser._id.toString();
+        user.id = dbUser.id;
         (user as any).role = dbUser.role || "user";
       }
 
@@ -262,34 +259,29 @@ export const authOptions: NextAuthOptions = {
         token.id = (user as any).id || token.id;
         token.role = (user as any).role || token.role || "user";
 
-        // Pass voting fields into the token
         if ((user as any).isVoteSystem) {
           token.isVoteSystem = true;
           token.hasVoted = (user as any).hasVoted;
         }
       }
 
-      // Prevent NextAuth from looking for a VoteUser in the Alumni User DB.
-      // Only query the DB when the token lacks id/role (cold refresh); once
-      // present, reuse the cached values so each session poll is instant.
       if (!token.id && !token.isVoteSystem) {
-        await connectDB();
-
-        const dbUser: any = await User.findOne({
-          email: String(token.email || "").trim().toLowerCase(),
-        }).select("_id role isBlocked");
+        const dbUser: any = await prisma.user.findFirst({
+          where: { email: String(token.email || "").trim().toLowerCase() },
+          select: { id: true, role: true, isBlocked: true },
+        });
 
         if (!dbUser || dbUser.isBlocked) {
           return {};
         }
 
-        token.id = dbUser._id.toString();
+        token.id = dbUser.id;
         token.role = dbUser.role || "user";
       } else if (!token.role && token.email && !token.isVoteSystem) {
-        // id cached but role missing — fetch role only (lightweight)
-        await connectDB();
-
-        const dbUser: any = await User.findById(token.id).select("role isBlocked");
+        const dbUser: any = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, isBlocked: true },
+        });
 
         if (dbUser && !dbUser.isBlocked) {
           token.role = dbUser.role || "user";
@@ -304,7 +296,6 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id as string;
         (session.user as any).role = (token.role as string) || "user";
 
-        // Pass voting fields into the active session
         if (token.isVoteSystem) {
           (session.user as any).isVoteSystem = true;
           (session.user as any).hasVoted = token.hasVoted as boolean;

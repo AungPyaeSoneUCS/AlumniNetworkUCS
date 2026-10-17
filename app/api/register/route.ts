@@ -3,13 +3,9 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
-import { connectDB } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
 import { otpTemplate } from "@/lib/emailTemplates";
-
-import User from "@/models/User";
-import Otp from "@/models/Otp";
-import ApprovedStudent from "@/models/ApprovedStudent";
 
 type Lang = "en" | "mm";
 
@@ -75,14 +71,15 @@ export async function POST(req: Request) {
       );
     }
 
-    await connectDB();
-
     const input = parsed.data;
     const email = normalizeEmail(input.email);
-    const graduatedYear = input.graduatedYear; 
+    const graduatedYear = input.graduatedYear;
 
     // 1. Check if email is already registered in User model
-    const existingUser = await User.findOne({ email }).select("_id email").lean();
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true },
+    });
 
     if (existingUser) {
       return NextResponse.json(
@@ -98,14 +95,16 @@ export async function POST(req: Request) {
     }
 
     // 2. Retrieve approved students for the specified graduated year
-    const approvedStudentsInYear = await ApprovedStudent.find({
-      graduatedYear,
-      approved: true,
-    }).lean();
+    const approvedStudentsInYear = await prisma.approvedStudent.findMany({
+      where: {
+        graduatedYear,
+        approved: true,
+      },
+    });
 
     // 3. Match loose values for Name and Father Name ignoring casing and extra spaces
     const approvedStudent = approvedStudentsInYear.find(
-      (student) =>
+      (student: any) =>
         loose(student.name) === loose(input.name) &&
         loose(student.fatherName) === loose(input.fatherName)
     );
@@ -138,25 +137,29 @@ export async function POST(req: Request) {
     }
 
     // 5. Clean up old OTPs
-    await Otp.deleteMany({
-      email,
-      purpose: "register",
+    await prisma.otp.deleteMany({
+      where: {
+        email,
+        purpose: "register",
+      },
     });
 
     const otp = generateOtp();
     const hashedPassword = await bcrypt.hash(input.password, 12);
 
     // 6. Create new OTP record
-    await Otp.create({
-      name: clean(approvedStudent.name),
-      fatherName: clean(approvedStudent.fatherName),
-      graduatedYear: approvedStudent.graduatedYear,
-      email,
-      password: hashedPassword,
-      otp,
-      purpose: "register",
-      lang,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes expiry
+    await prisma.otp.create({
+      data: {
+        name: clean(approvedStudent.name),
+        fatherName: clean(approvedStudent.fatherName),
+        graduatedYear: approvedStudent.graduatedYear,
+        email,
+        password: hashedPassword,
+        otp,
+        purpose: "register",
+        lang,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes expiry
+      },
     });
 
     // 7. Send OTP via email
@@ -193,7 +196,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Register OTP send error:", error);
 
-    if (error?.code === 11000) {
+    if (error?.code === 11000 || error?.code === "P2002") {
       return NextResponse.json(
         {
           error: "Duplicate data found. Email may already exist.",

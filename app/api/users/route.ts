@@ -1,10 +1,8 @@
 // app/api/users/route.ts
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma, isValidId } from "@/lib/db";
 
 function cleanText(value: any) {
   return typeof value === "string" ? value.trim() : "";
@@ -14,21 +12,50 @@ function cleanDegree(user: any) {
   return cleanText(user.degree || user.department);
 }
 
-function cleanUser(user: any) {
+function cleanExperiences(experiences: any[]) {
+  return experiences.map((item: any) => ({
+    company: cleanText(item.company),
+    position: cleanText(item.position),
+    employmentType: cleanText(item.employmentType),
+    location: cleanText(item.location),
+    phone: cleanText(item.phone),
+    email: cleanText(item.email),
+    salary: cleanText(item.salary),
+    website: cleanText(item.website),
+    startDate: cleanText(item.startDate),
+    endDate: item.isCurrent ? "" : cleanText(item.endDate),
+    isCurrent: Boolean(item.isCurrent),
+    experienceYear: cleanText(item.experienceYear),
+  }));
+}
+
+function cleanUser(user: any, experiences: any[] = []) {
   const {
-    password,
-    batch,
-    department,
-    personalContact,
-    professionalContact,
-    skills,
-    projects,
-    ...safeUser
+    id,
+    contactPhone,
+    contactEmail,
+    contactAddress,
+    contactCompany,
+    contactPosition,
+    socialFacebook,
+    socialTelegram,
+    socialInstagram,
+    socialYoutube,
+    socialLinkedin,
+    socialGithub,
+    socialTiktok,
+    socialViber,
+    socialLine,
+    socialX,
+    socialTwitter,
+    socialWhatsapp,
+    socialWebsite,
+    ...rest
   } = user;
 
   return {
-    ...safeUser,
-    _id: String(user._id),
+    ...rest,
+    _id: String(id),
 
     name: cleanText(user.name),
     email: cleanText(user.email),
@@ -38,46 +65,32 @@ function cleanUser(user: any) {
     graduatedYear: user.graduatedYear ? String(user.graduatedYear) : "",
 
     degree: cleanDegree(user),
+    department: cleanDegree(user),
 
     contactInfo: {
-      phone: cleanText(user.contactInfo?.phone),
-      email: cleanText(user.contactInfo?.email),
-      address: cleanText(user.contactInfo?.address),
-      company: cleanText(user.contactInfo?.company),
-      position: cleanText(user.contactInfo?.position),
+      phone: cleanText(user.contactPhone),
+      email: cleanText(user.contactEmail),
+      address: cleanText(user.contactAddress),
+      company: cleanText(user.contactCompany),
+      position: cleanText(user.contactPosition),
     },
 
-    experiences: Array.isArray(user.experiences)
-      ? user.experiences.map((item: any) => ({
-          company: cleanText(item.company),
-          position: cleanText(item.position),
-          employmentType: cleanText(item.employmentType),
-          location: cleanText(item.location),
-          phone: cleanText(item.phone),
-          email: cleanText(item.email),
-          salary: cleanText(item.salary),
-          website: cleanText(item.website),
-          startDate: cleanText(item.startDate),
-          endDate: item.isCurrent ? "" : cleanText(item.endDate),
-          isCurrent: Boolean(item.isCurrent),
-          experienceYear: cleanText(item.experienceYear),
-        }))
-      : [],
+    experiences: cleanExperiences(experiences),
 
     socialLinks: {
-      facebook: cleanText(user.socialLinks?.facebook),
-      telegram: cleanText(user.socialLinks?.telegram),
-      instagram: cleanText(user.socialLinks?.instagram),
-      youtube: cleanText(user.socialLinks?.youtube),
-      linkedin: cleanText(user.socialLinks?.linkedin),
-      github: cleanText(user.socialLinks?.github),
-      tiktok: cleanText(user.socialLinks?.tiktok),
-      viber: cleanText(user.socialLinks?.viber),
-      line: cleanText(user.socialLinks?.line),
-      x: cleanText(user.socialLinks?.x || user.socialLinks?.twitter),
-      twitter: cleanText(user.socialLinks?.x || user.socialLinks?.twitter),
-      whatsapp: cleanText(user.socialLinks?.whatsapp),
-      website: cleanText(user.socialLinks?.website),
+      facebook: cleanText(user.socialFacebook),
+      telegram: cleanText(user.socialTelegram),
+      instagram: cleanText(user.socialInstagram),
+      youtube: cleanText(user.socialYoutube),
+      linkedin: cleanText(user.socialLinkedin),
+      github: cleanText(user.socialGithub),
+      tiktok: cleanText(user.socialTiktok),
+      viber: cleanText(user.socialViber),
+      line: cleanText(user.socialLine),
+      x: cleanText(user.socialX || user.socialTwitter),
+      twitter: cleanText(user.socialX || user.socialTwitter),
+      whatsapp: cleanText(user.socialWhatsapp),
+      website: cleanText(user.socialWebsite),
     },
 
     isProfilePublic: true,
@@ -87,15 +100,16 @@ function cleanUser(user: any) {
 
 // Dual Authentication Helper (Web Cookies or Mobile Headers)
 async function getAuthenticatedUser(req: Request) {
-  await connectDB();
-
   // 1. Check Mobile App Headers (x-user-id or Authorization)
   const mobileHeaderId =
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true },
+    });
     if (user) return user;
   }
 
@@ -103,9 +117,10 @@ async function getAuthenticatedUser(req: Request) {
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email })
-        .select("_id email")
-        .lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+      });
       if (user) return user;
     }
   } catch (err) {
@@ -132,20 +147,15 @@ export async function GET(req: Request) {
     );
 
     const query: any = {
-      _id: { $ne: currentUser._id }, // Don't show the logged-in user in the directory
-      $or: [{ isProfilePublic: true }, { isProfilePublic: { $exists: false } }],
+      id: { not: currentUser.id }, // Don't show the logged-in user in the directory
+      isProfilePublic: true,
     };
 
     if (q) {
-      query.$and = [
-        {
-          $or: [
-            { name: { $regex: q, $options: "i" } },
-            { email: { $regex: q, $options: "i" } },
-            { degree: { $regex: q, $options: "i" } },
-            { department: { $regex: q, $options: "i" } },
-          ],
-        },
+      query.OR = [
+        { name: { contains: q } },
+        { email: { contains: q } },
+        { degree: { contains: q } },
       ];
     }
 
@@ -154,22 +164,35 @@ export async function GET(req: Request) {
     }
 
     if (degree) {
-      query.$and = [
-        ...(query.$and || []),
-        {
-          $or: [{ degree }, { department: degree }],
-        },
-      ];
+      query.degree = degree;
     }
 
-    const users = await User.find(query)
-      .select(
-        "-password -batch -personalContact -professionalContact -skills -projects"
-      )
-      .sort({ createdAt: -1 })
-      .lean();
+    const users = await prisma.user.findMany({
+      where: query,
+      orderBy: { createdAt: "desc" },
+    });
 
-    return NextResponse.json(users.map(cleanUser), { status: 200 });
+    const userIds = users.map((u) => u.id);
+    const experienceRows = userIds.length
+      ? await prisma.experience.findMany({
+          where: { userId: { in: userIds } },
+          orderBy: { createdAt: "asc" },
+        })
+      : [];
+
+    const experiencesByUser = experienceRows.reduce<Record<string, any[]>>(
+      (acc, exp) => {
+        if (!acc[exp.userId]) acc[exp.userId] = [];
+        acc[exp.userId].push(exp);
+        return acc;
+      },
+      {}
+    );
+
+    return NextResponse.json(
+      users.map((u) => cleanUser(u, experiencesByUser[u.id] || [])),
+      { status: 200 }
+    );
   } catch (error) {
     console.error("GET /api/users error:", error);
 

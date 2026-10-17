@@ -1,21 +1,22 @@
 // file: app/api/register/years/route.ts
 
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import ApprovedStudent from "@/models/ApprovedStudent";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    await connectDB();
-    
     // Find all distinct "graduatedYear" values from students who are approved
-    const rawYears = await ApprovedStudent.distinct("graduatedYear", { approved: true });
-    
+    const rows = await prisma.approvedStudent.groupBy({
+      by: ["graduatedYear"],
+      where: { approved: true },
+    });
+    const rawYears = rows.map((r) => r.graduatedYear);
+
     // 1. Ensure every value is a string (prevents the localeCompare error)
     // 2. Sort the strings alphabetically in descending order
     const years = rawYears
-      .map((year) => String(year))
-      .sort((a, b) => b.localeCompare(a));
+      .map((year: any) => String(year))
+      .sort((a: string, b: string) => b.localeCompare(a));
 
     return NextResponse.json({ years }, { status: 200 });
   } catch (error) {

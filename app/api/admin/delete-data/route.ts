@@ -1,11 +1,30 @@
 // file: app/api/admin/delete-data/route.ts
 
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
+
+const TABLE_DELEGATES: Record<string, any> = {
+  approved_students: prisma.approvedStudent,
+  contact_settings: prisma.contactSetting,
+  experiences: prisma.experience,
+  job_applications: prisma.jobApplication,
+  jobs: prisma.job,
+  message_reactions: prisma.messageReaction,
+  messages: prisma.message,
+  notifications: prisma.notification,
+  otps: prisma.otp,
+  post_comments: prisma.postComment,
+  post_likes: prisma.postLike,
+  posts: prisma.post,
+  push_tokens: prisma.pushToken,
+  settings: prisma.setting,
+  students: prisma.student,
+  users: prisma.user,
+  vote_projects: prisma.voteProject,
+  vote_users: prisma.voteUser,
+};
 
 async function requireAdmin() {
   const session = await auth();
@@ -14,11 +33,10 @@ async function requireAdmin() {
     return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }), admin: null };
   }
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role isBlocked")
-    .lean();
+  const admin = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, role: true, isBlocked: true },
+  });
 
   if (!admin) {
     return { error: NextResponse.json({ error: "Admin not found" }, { status: 404 }), admin: null };
@@ -39,12 +57,6 @@ async function requireAdmin() {
   }
 
   return { error: null, admin };
-}
-
-async function getDb() {
-  const db = mongoose.connection.db;
-  if (!db) throw new Error("Database connection is not ready");
-  return db;
 }
 
 // DELETE /api/admin/delete-data?name=posts&confirm=posts
@@ -68,30 +80,24 @@ export async function DELETE(req: Request) {
       );
     }
 
-    await connectDB();
-    const db = await getDb();
-
-    const names = (await db.listCollections().toArray())
-      .map((item) => item.name)
-      .filter((item) => !item.startsWith("system."));
-
-    if (!names.includes(name)) {
+    const delegate = TABLE_DELEGATES[name];
+    if (!delegate) {
       return NextResponse.json({ error: "Collection not found" }, { status: 404 });
     }
 
-    const filter =
-      name === "users" && admin?._id
-        ? { _id: { $ne: admin._id } } // keep the current admin login safe
+    const where =
+      name === "users" && admin?.id
+        ? { id: { not: admin.id } }
         : {};
 
-    const result = await db.collection(name).deleteMany(filter);
+    const result = await delegate.deleteMany({ where });
 
     return NextResponse.json(
       {
         success: true,
         collection: name,
-        deletedCount: result.deletedCount ?? 0,
-        protectedAdmin: name === "users" && !!admin?._id,
+        deletedCount: result.count ?? 0,
+        protectedAdmin: name === "users" && !!admin?.id,
       },
       { status: 200 }
     );

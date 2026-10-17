@@ -4,10 +4,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
-import { connectDB } from "@/lib/mongodb";
-
-import User from "@/models/User";
-import Otp from "@/models/Otp";
+import { prisma } from "@/lib/prisma";
 
 const AdminResetPasswordSchema = z.object({
   email: z.string().email("Invalid administrative email format"),
@@ -41,8 +38,6 @@ export async function POST(req: Request) {
       );
     }
 
-    await connectDB();
-
     const email = parsed.data.email.trim().toLowerCase();
     const otp = parsed.data.otp.trim();
     const password = parsed.data.password;
@@ -52,13 +47,17 @@ export async function POST(req: Request) {
       timestamp: new Date().toISOString(),
     });
 
+    await prisma.otp.deleteMany({ where: { expiresAt: { lt: new Date() } } });
+
     // Enforce dedicated admin-only purpose string
-    const otpRecord = await Otp.findOne({
-      email,
-      otp,
-      purpose: "admin-forgot-password",
-      expiresAt: {
-        $gt: new Date(),
+    const otpRecord = await prisma.otp.findFirst({
+      where: {
+        email,
+        otp,
+        purpose: "admin-forgot-password",
+        expiresAt: {
+          gt: new Date(),
+        },
       },
     });
 
@@ -74,16 +73,18 @@ export async function POST(req: Request) {
     }
 
     // STRICT PRIVILEGE GATE: Verify the email belongs to an active Administrator
-    const user = await User.findOne({
-      email,
+    const user = await prisma.user.findUnique({
+      where: { email },
     });
 
     // Check existence and enforce admin role
     if (!user || user.role?.toLowerCase() !== "admin") {
       // Purge any lingering OTPs to prevent brute-force attacks
-      await Otp.deleteMany({
-        email,
-        purpose: "admin-forgot-password",
+      await prisma.otp.deleteMany({
+        where: {
+          email,
+          purpose: "admin-forgot-password",
+        },
       });
 
       console.warn("⚠️ [SECURITY ALERT] Unauthorized Admin Override Attempted:", { email });
@@ -101,21 +102,19 @@ export async function POST(req: Request) {
     // Cryptographic passkey rotation
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    await User.updateOne(
-      {
-        _id: user._id,
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
       },
-      {
-        $set: {
-          password: hashedPassword,
-        },
-      },
-    );
+    });
 
     // Clean up used OTP records
-    await Otp.deleteMany({
-      email,
-      purpose: "admin-forgot-password",
+    await prisma.otp.deleteMany({
+      where: {
+        email,
+        purpose: "admin-forgot-password",
+      },
     });
 
     console.log("✅ [SECURITY AUDIT] Executive Passkey Rotated Successfully:", { email });

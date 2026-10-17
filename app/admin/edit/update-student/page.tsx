@@ -2,8 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import User from "@/models/User";
-import { connectDB } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import EditNav from "@/components/admin/edit-nav";
 import DynamicStudentRegistrationForm from "@/components/admin/update-student-form";
@@ -16,8 +15,10 @@ export default async function UpdateStudentPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-  const admin: any = await User.findOne({ email: session.user.email }).select("name role").lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { name: true, role: true },
+  });
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
   const resolvedSearchParams = await Promise.resolve(searchParams || {});
@@ -25,17 +26,25 @@ export default async function UpdateStudentPage({
   const initialSearch = resolvedSearchParams.search || "";
 
   // Securely fetch users without exposing the password hash to the frontend
-  const rawUsers = await User.find({ role: { $ne: "admin" } })
-    .select("_id name email phone contactInfo graduatedYear degree department")
-    .lean();
+  const rawUsers: any[] = await prisma.user.findMany({
+    where: { role: { not: "admin" } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      contactPhone: true,
+      graduatedYear: true,
+      degree: true,
+    },
+  });
 
   const allUsers = rawUsers.map((u: any) => ({
-    _id: String(u._id),
+    _id: String(u.id),
     name: u.name || "",
     email: u.email || "",
-    phone: u.contactInfo?.phone || u.phone || u.phoneNumber || "",
+    phone: u.contactPhone || "",
     graduatedYear: u.graduatedYear || "",
-    degree: u.degree || u.department || "",
+    degree: u.degree || "",
   }));
 
   async function updateUserAction(
@@ -43,15 +52,19 @@ export default async function UpdateStudentPage({
     data: { name: string; email: string; phone: string; password?: string }
   ) {
     "use server";
-    await connectDB();
 
     const currentSession = await auth();
     if (!currentSession?.user?.email) return { error: "Unauthorized" };
-    const adminCheck = await User.findOne({ email: currentSession.user.email }).select("role").lean();
+    const adminCheck = await prisma.user.findFirst({
+      where: { email: currentSession.user.email },
+      select: { role: true },
+    });
     if (!adminCheck || adminCheck.role !== "admin") return { error: "Forbidden" };
 
     try {
-      const emailTaken = await User.findOne({ email: data.email, _id: { $ne: userId } });
+      const emailTaken = await prisma.user.findFirst({
+        where: { email: data.email, id: { not: userId } },
+      });
       if (emailTaken) return { error: "Email is already taken by another user." };
 
       const updateData: any = {
@@ -60,14 +73,16 @@ export default async function UpdateStudentPage({
       };
 
       if (data.phone) {
-        updateData.phone = data.phone;
-        updateData["contactInfo.phone"] = data.phone;
+        updateData.contactPhone = data.phone;
       }
 
       // If a new password is provided, hash it using bcrypt
       if (data.password) {
-        const existingUser = await User.findById(userId).select("password").lean();
-        
+        const existingUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { password: true },
+        });
+
         // Prevent setting the new password to the exact same old password
         if (existingUser?.password) {
           const isSamePassword = await bcrypt.compare(data.password, existingUser.password);
@@ -75,11 +90,11 @@ export default async function UpdateStudentPage({
             return { error: lang === "mm" ? "စကားဝှက်အသစ်သည် အဟောင်းနှင့် တူညီနေပါသည်။" : "New password cannot be the same as the current password." };
           }
         }
-        
+
         updateData.password = await bcrypt.hash(data.password, 10);
       }
 
-      await User.findByIdAndUpdate(userId, { $set: updateData });
+      await prisma.user.update({ where: { id: userId }, data: updateData });
       
       revalidatePath("/admin/edit/update-student");
       revalidatePath("/admin/manage-users");

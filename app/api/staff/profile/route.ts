@@ -2,8 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 export async function PUT(req: Request) {
@@ -29,11 +28,10 @@ export async function PUT(req: Request) {
       );
     }
 
-    // 3. Connect to database
-    await connectDB();
-
-    // 4. Verify staff or admin role
-    const currentUser: any = await User.findOne({ email: session.user.email }).lean();
+    // 3. Verify staff or admin role
+    const currentUser: any = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
     if (!currentUser || (currentUser.role !== "staff" && currentUser.role !== "admin")) {
       return NextResponse.json(
         { error: "Forbidden. Staff access required." },
@@ -41,12 +39,12 @@ export async function PUT(req: Request) {
       );
     }
 
-    // 5. Prepare update payload (name and optional password only)
+    // 4. Prepare update payload (name and optional password only)
     const updateData: { name: string; password?: string } = {
       name: trimmedName,
     };
 
-    // 6. Handle password hashing if provided
+    // 5. Handle password hashing if provided
     if (password) {
       if (typeof password !== "string" || password.length < 8) {
         return NextResponse.json(
@@ -58,21 +56,13 @@ export async function PUT(req: Request) {
       updateData.password = await bcrypt.hash(password, salt);
     }
 
-    // 7. Update user profile in MongoDB
-    const updatedUser = await User.findByIdAndUpdate(
-      currentUser._id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
+    // 6. Update user profile
+    const updatedUser = await prisma.user.update({
+      where: { id: currentUser.id },
+      data: updateData,
+    });
 
-    if (!updatedUser) {
-      return NextResponse.json(
-        { error: "Staff user not found." },
-        { status: 404 }
-      );
-    }
-
-    // 8. Return response
+    // 7. Return response
     return NextResponse.json(
       {
         success: true,

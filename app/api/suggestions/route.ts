@@ -1,39 +1,34 @@
 // app/api/suggestions/route.ts
 
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import "@/models/User";
-import "@/models/Job";
-import User from "@/models/User";
-import Job from "@/models/Job";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 const FIELDS = ["position", "company", "location", "salary", "graduatedYear"] as const;
-
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+const JOB_FIELDS = ["company", "location", "salary"] as const;
 
 async function getAuthenticatedUser(req: Request) {
-  await connectDB();
-
   const mobileHeaderId =
     req.headers.get("x-user-id") ||
     req.headers.get("authorization")?.replace("Bearer ", "").trim();
 
-  if (mobileHeaderId && mongoose.Types.ObjectId.isValid(mobileHeaderId)) {
-    const user = await User.findById(mobileHeaderId).select("_id email").lean();
+  if (mobileHeaderId && isValidId(mobileHeaderId)) {
+    const user = await prisma.user.findUnique({
+      where: { id: mobileHeaderId },
+      select: { id: true, email: true },
+    });
     if (user) return user;
   }
 
   try {
     const session = await auth();
     if (session?.user?.email) {
-      const user = await User.findOne({ email: session.user.email })
-        .select("_id email")
-        .lean();
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, email: true },
+      });
       if (user) return user;
     }
   } catch {
@@ -41,6 +36,30 @@ async function getAuthenticatedUser(req: Request) {
   }
 
   return null;
+}
+
+function matchesValue(value: unknown, q: string) {
+  const trimmed = String(value ?? "").trim();
+  if (!q) return trimmed !== "";
+  return trimmed.toLowerCase().includes(q.toLowerCase());
+}
+
+function groupValues(values: string[]) {
+  const map = new Map<string, { sample: string; count: number }>();
+
+  for (const raw of values) {
+    const sample = String(raw ?? "").trim();
+    if (!sample) continue;
+    const key = sample.toLowerCase();
+    const current = map.get(key);
+    if (current) {
+      current.count += 1;
+    } else {
+      map.set(key, { sample, count: 1 });
+    }
+  }
+
+  return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 50);
 }
 
 export async function GET(req: Request) {
@@ -58,79 +77,52 @@ export async function GET(req: Request) {
       : "position";
     const q = searchParams.get("q")?.trim() || "";
 
-    await connectDB();
+    let experienceGroups: { sample: string; count: number }[] = [];
+    let jobGroups: { sample: string; count: number }[] = [];
 
-    const cleanExpr = {
-      $trim: { input: { $toString: `$experiences.${field}` } },
-    };
+    if (field === "graduatedYear") {
+      const users = await prisma.user.findMany({
+        where: { isBlocked: false },
+        select: { graduatedYear: true },
+      });
 
-    const matchExpr = q
-      ? { $regexMatch: { input: cleanExpr, regex: escapeRegex(q), options: "i" } }
-      : { $ne: [cleanExpr, ""] };
+      const values = users
+        .map((u) => u.graduatedYear)
+        .filter((v) => matchesValue(v, q));
 
-    const [experienceGroups, jobGroups] =
-      field === "graduatedYear"
-        ? await (async () => {
-            const yearMatchExpr = q
-              ? {
-                  $regexMatch: {
-                    input: { $toString: "$graduatedYear" },
-                    regex: escapeRegex(q),
-                    options: "i",
-                  },
-                }
-              : { $ne: [ { $trim: { input: { $toString: "$graduatedYear" } } }, "" ] };
+      experienceGroups = groupValues(values);
+    } else {
+      const activeUsers = await prisma.user.findMany({
+        where: { isBlocked: false },
+        select: { id: true },
+      });
+      const activeUserIds = activeUsers.map((u) => u.id);
 
-            const groups = await User.aggregate([
-              { $match: { isBlocked: { $ne: true }, $expr: yearMatchExpr } },
-              {
-                $group: {
-                  _id: { $toLower: { $trim: { input: { $toString: "$graduatedYear" } } } },
-                  sample: { $first: { $trim: { input: { $toString: "$graduatedYear" } } } },
-                  count: { $sum: 1 },
-                },
-              },
-              { $sort: { count: -1 } },
-              { $limit: 50 },
-            ]);
+      const experiences = activeUserIds.length
+        ? await prisma.experience.findMany({
+            where: { userId: { in: activeUserIds } },
+          })
+        : [];
 
-            return [groups, [] as any[]];
-          })()
-        : await (async () => {
-            const [expGroups, jobResult] = await Promise.all([
-              User.aggregate([
-                { $unwind: { path: "$experiences", preserveNullAndEmptyArrays: false } },
-                { $match: { isBlocked: { $ne: true }, $expr: matchExpr } },
-                {
-                  $group: {
-                    _id: { $toLower: cleanExpr },
-                    sample: { $first: cleanExpr },
-                    count: { $sum: 1 },
-                  },
-                },
-                { $sort: { count: -1 } },
-                { $limit: 50 },
-              ]),
-              Job.aggregate([
-                {
-                  $match: q
-                    ? { isActive: true, [field]: { $regex: escapeRegex(q), $options: "i" } }
-                    : { isActive: true, [field]: { $ne: "" } },
-                },
-                {
-                  $group: {
-                    _id: { $toLower: { $trim: { input: { $toString: `$${field}` } } } },
-                    sample: { $first: { $trim: { input: { $toString: `$${field}` } } } },
-                    count: { $sum: 1 },
-                  },
-                },
-                { $sort: { count: -1 } },
-                { $limit: 50 },
-              ]),
-            ]);
+      const experienceValues = experiences
+        .map((exp) => (exp as any)[field])
+        .filter((v) => matchesValue(v, q));
 
-            return [expGroups, jobResult];
-          })();
+      experienceGroups = groupValues(experienceValues);
+
+      if ((JOB_FIELDS as readonly string[]).includes(field)) {
+        const where: any = { isActive: true };
+        where[field] = q ? { contains: q } : { not: "" };
+
+        const jobs = await prisma.job.findMany({ where });
+
+        const jobValues = jobs
+          .map((job) => (job as any)[field])
+          .filter((v) => matchesValue(v, q));
+
+        jobGroups = groupValues(jobValues);
+      }
+    }
 
     const counts = new Map<string, { value: string; total: number }>();
 

@@ -2,9 +2,8 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import bcrypt from "bcryptjs"; // Make sure to run: npm install bcryptjs @types/bcryptjs
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export async function PUT(req: Request) {
   try {
@@ -28,12 +27,9 @@ export async function PUT(req: Request) {
       );
     }
 
-    // 3. Connect to the database
-    await connectDB();
-
-    // 4. Check if they are changing their email, and if it's already taken
+    // 3. Check if they are changing their email, and if it's already taken
     if (email !== session.user.email) {
-      const existingUser = await User.findOne({ email });
+      const existingUser = await prisma.user.findUnique({ where: { email } });
       if (existingUser) {
         return NextResponse.json(
           { error: "This email is already in use by another account." },
@@ -42,13 +38,13 @@ export async function PUT(req: Request) {
       }
     }
 
-    // 5. Prepare the data to update
+    // 4. Prepare the data to update
     const updateData: { name: string; email: string; password?: string } = {
       name,
       email,
     };
 
-    // 6. If they provided a new password, hash it before saving
+    // 5. If they provided a new password, hash it before saving
     if (password) {
       if (password.length < 8) {
         return NextResponse.json(
@@ -60,21 +56,25 @@ export async function PUT(req: Request) {
       updateData.password = await bcrypt.hash(password, salt);
     }
 
-    // 7. Update the database
-    const updatedUser = await User.findOneAndUpdate(
-      { email: session.user.email }, // Find by the CURRENT session email
-      { $set: updateData },
-      { new: true }
-    );
+    // 6. Update the database
+    const currentUser = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
 
-    if (!updatedUser) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: "Admin user not found in database." },
         { status: 404 }
       );
     }
 
-    // 8. Return success!
+    await prisma.user.update({
+      where: { id: currentUser.id },
+      data: updateData,
+    });
+
+    // 7. Return success!
     return NextResponse.json(
       { success: true, message: "Profile updated successfully." },
       { status: 200 }

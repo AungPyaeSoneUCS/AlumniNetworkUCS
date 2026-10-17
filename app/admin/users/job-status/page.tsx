@@ -5,8 +5,7 @@ import { redirect } from "next/navigation";
 import { BarChart3 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import JobStatusChart from "@/components/admin/job-status-chart";
 import JobStatusExporter from "@/components/admin/job-status-exporter";
@@ -625,20 +624,46 @@ export default async function AdminJobStatusPage({
   const session = await auth();
   if (!session?.user?.email) redirect("/admin/login");
 
-  await connectDB();
-
-  const admin: any = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const admin: any = await prisma.user.findFirst({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!admin || admin.role !== "admin") redirect("/admin/login");
 
-  const allUsers: any[] = await User.find({})
-    .sort({ createdAt: -1 })
-    .select("_id role graduatedYear experiences")
-    .lean();
+  const allUsers: any[] = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    where: { role: { not: "admin" } },
+    select: { id: true, role: true, graduatedYear: true },
+  });
 
-  const users = allUsers.filter((user) => user.role !== "admin");
+  const experienceRows = await prisma.experience.findMany({
+    select: {
+      userId: true,
+      position: true,
+      employmentType: true,
+      company: true,
+      isCurrent: true,
+    },
+  });
+
+  const experiencesByUserId = new Map<string, any[]>();
+  for (const exp of experienceRows) {
+    const list = experiencesByUserId.get(exp.userId) || [];
+    list.push({
+      position: exp.position,
+      employmentType: exp.employmentType,
+      company: exp.company,
+      isCurrent: exp.isCurrent,
+    });
+    experiencesByUserId.set(exp.userId, list);
+  }
+
+  const users = allUsers.map((user) => ({
+    ...user,
+    _id: user.id,
+    experiences: experiencesByUserId.get(user.id) || [],
+  }));
 
   const yearOptions = Array.from(
     new Set(

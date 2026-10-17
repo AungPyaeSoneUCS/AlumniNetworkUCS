@@ -1,12 +1,9 @@
 // file: app/api/migrate-data/route.ts
 
 import { NextResponse } from "next/server";
-import mongoose, { Types } from "mongoose";
 import { auth } from "@/auth";
-import User from "@/models/User";
-
-// Make sure your MongoDB URI is correctly loaded from your .env file
-const MONGODB_URI = process.env.MONGODB_URI || "";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 export async function GET(req: Request) {
   try {
@@ -18,21 +15,19 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Connect to DB for the auth check and migration
-    if (mongoose.connection.readyState !== 1) {
-      if (!MONGODB_URI) {
-        throw new Error("MONGODB_URI is not defined in environment variables");
-      }
-      await mongoose.connect(MONGODB_URI);
-    }
-
     // --- 2. ADMIN ROLE VERIFICATION ---
-    let currentUser: any = null;
-    
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id role");
+    let currentUser: { id: string; role: string } | null = null;
+
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true, role: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id role");
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, role: true },
+      });
     }
 
     if (!currentUser) {
@@ -44,47 +39,69 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Forbidden: Only administrators can run migrations" }, { status: 403 });
     }
 
-    const db = mongoose.connection.db;
-    if (!db) throw new Error("Failed to get database instance");
-
     // --- 3. RUN MIGRATION ---
-    // Convert 'graduatedYear' from Number to String in the Users collection
-    await db.collection("users").updateMany(
-      { graduatedYear: { $type: "number" } },
-      [{ $set: { graduatedYear: { $toString: "$graduatedYear" } } }]
-    );
+    // Convert 'graduatedYear' from Number to String in the users table
+    const userRows = (await prisma.user.findMany({
+      select: { id: true, graduatedYear: true },
+    })) as Array<{ id: string; graduatedYear: any }>;
 
-    // Convert 'graduatedYear' from Number to String in ApprovedStudents collection
-    await db.collection("approvedstudents").updateMany(
-      { graduatedYear: { $type: "number" } },
-      [{ $set: { graduatedYear: { $toString: "$graduatedYear" } } }]
-    );
+    const userUpdates = userRows
+      .filter((row) => row.graduatedYear !== null && typeof row.graduatedYear !== "string")
+      .map((row) =>
+        prisma.user.update({
+          where: { id: row.id },
+          data: { graduatedYear: String(row.graduatedYear) },
+        })
+      );
 
-    // Copy approved students to the 'students' collection
-    // This pipeline filters for approved users and merges them into 'students'
-    await db.collection("approvedstudents").aggregate([
-      { $match: { approved: true } },
-      { 
-        $project: {
-          _id: 1, // Keep the original ObjectId
-          name: 1,
-          fatherName: 1,
-          // Ensure it's passed as a string during the copy just in case
-          graduatedYear: { $toString: "$graduatedYear" }, 
-          registered: 1,
-          createdAt: 1,
-          updatedAt: 1
-        }
-      },
-      { 
-        // $merge inserts new documents or updates existing ones with matching _ids
-        $merge: { 
-          into: "students", 
-          whenMatched: "merge", 
-          whenNotMatched: "insert" 
-        } 
-      }
-    ]).toArray(); // Execute the aggregation pipeline
+    // Convert 'graduatedYear' from Number to String in the approved_students table
+    const approvedRows = (await prisma.approvedStudent.findMany({
+      select: { id: true, graduatedYear: true },
+    })) as Array<{ id: string; graduatedYear: any }>;
+
+    const approvedUpdates = approvedRows
+      .filter((row) => row.graduatedYear !== null && typeof row.graduatedYear !== "string")
+      .map((row) =>
+        prisma.approvedStudent.update({
+          where: { id: row.id },
+          data: { graduatedYear: String(row.graduatedYear) },
+        })
+      );
+
+    const updates = [...userUpdates, ...approvedUpdates];
+
+    if (updates.length > 0) {
+      await prisma.$transaction(updates);
+    }
+
+    // Copy approved students into the 'students' table (insert or update by id)
+    const approved = await prisma.approvedStudent.findMany({
+      where: { approved: true },
+    });
+
+    if (approved.length > 0) {
+      await prisma.$transaction(
+        approved.map((student) =>
+          prisma.student.upsert({
+            where: { id: student.id },
+            update: {
+              name: student.name,
+              fatherName: student.fatherName,
+              graduatedYear: String(student.graduatedYear),
+              registered: student.registered,
+            },
+            create: {
+              id: student.id,
+              name: student.name,
+              fatherName: student.fatherName,
+              graduatedYear: String(student.graduatedYear),
+              approved: student.approved,
+              registered: student.registered,
+            },
+          })
+        )
+      );
+    }
 
     return NextResponse.json(
       { message: "Migration completed successfully! Data updated and copied." },

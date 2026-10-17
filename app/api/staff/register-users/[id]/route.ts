@@ -3,9 +3,8 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import ApprovedStudent from "@/models/ApprovedStudent";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 type RouteContext = {
   params: Promise<{ id: string }> | { id: string };
@@ -22,11 +21,10 @@ async function checkStaffOrAdmin(): Promise<StaffCheckResult> {
     return { error: "Unauthorized", status: 401 };
   }
 
-  await connectDB();
-
-  const user = await User.findOne({ email: session.user.email })
-    .select("role")
-    .lean();
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { role: true },
+  });
 
   if (!user || (user.role !== "admin" && user.role !== "staff")) {
     return { error: "Staff or Admin access only.", status: 403 };
@@ -35,8 +33,8 @@ async function checkStaffOrAdmin(): Promise<StaffCheckResult> {
   return { ok: true };
 }
 
-function isValidMongoId(id: string) {
-  return /^[a-f\d]{24}$/i.test(id);
+function withId<T extends { id: string }>(row: T) {
+  return { ...row, _id: row.id };
 }
 
 export async function PUT(req: Request, { params }: RouteContext) {
@@ -52,7 +50,7 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
     const { id } = await Promise.resolve(params);
 
-    if (!id || !isValidMongoId(id)) {
+    if (!id || !isValidId(id)) {
       return NextResponse.json(
         { error: "Invalid register data ID." },
         { status: 400 },
@@ -70,16 +68,15 @@ export async function PUT(req: Request, { params }: RouteContext) {
 
     const name = body.name.trim();
     const fatherName = body.fatherName.trim();
-    
-    // <-- Updated: Parse as string instead of Number
-    const graduatedYear = String(body.graduatedYear).trim(); 
+    const graduatedYear = String(body.graduatedYear).trim();
 
-    // Prevent editing into an exact duplicate of another existing record
-    const existingStudent = await ApprovedStudent.findOne({
-      name,
-      fatherName,
-      graduatedYear,
-      _id: { $ne: id }, // exclude the current record from the search
+    const existingStudent = await prisma.approvedStudent.findFirst({
+      where: {
+        name,
+        fatherName,
+        graduatedYear,
+        id: { not: id },
+      },
     });
 
     if (existingStudent) {
@@ -89,49 +86,44 @@ export async function PUT(req: Request, { params }: RouteContext) {
       );
     }
 
-    const student = await ApprovedStudent.findByIdAndUpdate(
-      id,
-      {
+    const student = await prisma.approvedStudent.update({
+      where: { id },
+      data: {
         name,
         fatherName,
         graduatedYear,
       },
-      {
-        new: true,
-        runValidators: true,
-      },
-    );
-
-    if (!student) {
-      return NextResponse.json(
-        { error: "Register data not found." },
-        { status: 404 },
-      );
-    }
+    });
 
     return NextResponse.json({
       success: true,
       message: "Register data updated successfully.",
-      student,
+      student: withId(student),
     });
   } catch (error: any) {
     console.error("Edit register data error:", error);
 
-    if (error?.code === 11000) {
-      const field = Object.keys(error?.keyPattern || {})[0];
-      
-      // If the conflict is on an old field, tell the frontend it can be dropped
+    if (error?.code === "P2002" || error?.code === 11000) {
+      const field = error?.meta?.target?.[0] || Object.keys(error?.keyPattern || {})[0];
+
       if (["studentId", "rollNumber", "nrc"].includes(field)) {
         return NextResponse.json(
-          { 
+          {
             error: `Legacy database index conflict on field: ${field}`,
-            requiresIndexDrop: true, 
+            requiresIndexDrop: true,
             conflictingIndex: field
           },
           { status: 400 }
         );
       }
       return NextResponse.json({ error: "Duplicate register data exists." }, { status: 400 });
+    }
+
+    if (error?.code === "P2025") {
+      return NextResponse.json(
+        { error: "Register data not found." },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(
@@ -154,14 +146,14 @@ export async function DELETE(req: Request, { params }: RouteContext) {
 
     const { id } = await Promise.resolve(params);
 
-    if (!id || !isValidMongoId(id)) {
+    if (!id || !isValidId(id)) {
       return NextResponse.json(
         { error: "Invalid register data ID." },
         { status: 400 },
       );
     }
 
-    const student = await ApprovedStudent.findByIdAndDelete(id);
+    const student = await prisma.approvedStudent.delete({ where: { id } });
 
     if (!student) {
       return NextResponse.json(
@@ -174,8 +166,15 @@ export async function DELETE(req: Request, { params }: RouteContext) {
       success: true,
       message: "Register data deleted.",
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Delete register data error:", error);
+
+    if (error?.code === "P2025") {
+      return NextResponse.json(
+        { error: "Register data not found." },
+        { status: 404 },
+      );
+    }
 
     return NextResponse.json(
       { error: "Failed to delete register data." },

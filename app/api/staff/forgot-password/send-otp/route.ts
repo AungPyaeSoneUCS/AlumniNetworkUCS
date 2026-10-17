@@ -3,12 +3,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { connectDB } from "@/lib/mongodb";
+import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
 import { otpTemplate } from "@/lib/emailTemplates";
-
-import User from "@/models/User";
-import Otp from "@/models/Otp";
 
 type Lang = "en" | "mm";
 
@@ -35,12 +32,10 @@ export async function POST(req: Request) {
       );
     }
 
-    await connectDB();
-
     const email = parsed.data.email.trim().toLowerCase();
 
     // STRICT PRIVILEGE GATE: Verify existence AND enforce Staff/Admin role
-    const user = await User.findOne({ email });
+    const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user || (user.role?.toLowerCase() !== "staff" && user.role?.toLowerCase() !== "admin")) {
       const lang: Lang = parsed.data.lang === "mm" ? "mm" : "en";
@@ -64,19 +59,23 @@ export async function POST(req: Request) {
         : "en";
 
     // Isolate staff recovery tokens from standard user tokens
-    await Otp.deleteMany({
-      email,
-      purpose: "staff-forgot-password",
+    await prisma.otp.deleteMany({
+      where: {
+        email,
+        purpose: "staff-forgot-password",
+      },
     });
 
     const otp = generateSecureOtp();
 
-    await Otp.create({
-      email,
-      otp,
-      purpose: "staff-forgot-password",
-      lang,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10-minute expiry
+    await prisma.otp.create({
+      data: {
+        email,
+        otp,
+        purpose: "staff-forgot-password",
+        lang,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10-minute expiry
+      },
     });
 
     console.log("🔒 [SECURITY AUDIT] Dispatching Staff Recovery Token:", {

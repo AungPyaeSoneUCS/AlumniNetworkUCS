@@ -19,13 +19,13 @@ The **UCSH Alumni Network** is a comprehensive, full-stack digital platform desi
 
 This project is built on a modern JavaScript/TypeScript ecosystem using the Next.js App Router.
 
-* **Frontend:** Next.js 15 (App Router), React, TypeScript
+* **Frontend:** Next.js 16 (App Router), React, TypeScript
 * **Styling:** Tailwind CSS, PostCSS, Lucide React (Icons)
 * **Backend:** Next.js Serverless API Routes, Node.js
-* **Database:** MongoDB (Document-Oriented NoSQL) with Mongoose ODM
+* **Database:** SQLite with Prisma ORM (migrated from MongoDB/Mongoose)
 * **Authentication:** NextAuth.js, bcryptjs
 * **Real-time Engine:** Pusher
-* **Deployment:** Ubuntu Linux Virtual Machine / Dokploy / Netlify
+* **Deployment:** Ubuntu Linux Virtual Machine / Dokploy / PM2
 
 ---
 
@@ -68,14 +68,25 @@ npm install
 Create a `.env` (or `.env.local`) file in the root directory. Add your specific configuration keys. *(Note: Never commit your actual passwords or secrets to GitHub).*
 
 ```env
-MONGODB_URI="mongodb://127.0.0.1:27017/AlumniNetworkDB"
+DATABASE_URL="file:./prisma/dev.db"
 NEXTAUTH_SECRET="your_secure_secret"
 NEXTAUTH_URL="http://localhost:3000"
 # Add other necessary variables (e.g., Pusher keys, Google OAuth credentials)
 
 ```
 
-**4. Start the development server:**
+**4. Create the database schema (and optionally import existing data):**
+
+```bash
+# Create/update the SQLite database from prisma/schema.prisma
+npm run db:push
+
+# Optional: seed the database from the JSON files in backup_data/
+npm run db:seed
+
+```
+
+**5. Start the development server:**
 
 ```bash
 npm run dev
@@ -83,6 +94,8 @@ npm run dev
 ```
 
 Navigate to `http://localhost:3000` in your browser to view the application.
+
+> **Note:** `npm install` runs `prisma generate` automatically (via the `postinstall` script). If you add/change models in `prisma/schema.prisma`, re-run `npm run db:push` and `npm run db:generate`.
 
 ---
 
@@ -118,22 +131,31 @@ sudo npm install -g pm2
 
 
 
-### Step 2: Database Setup (MongoDB via Docker)
+### Step 2: Database Setup (SQLite via Prisma)
 
-Virtual Machine hypervisors often do not pass through AVX CPU instructions, causing standard native installations of MongoDB 5.0+ to crash immediately. Deploying MongoDB 4.4 using Docker is the most stable workaround for a VM environment.
+This project uses **SQLite** (a single file database) with the Prisma ORM. No separate database server is required — the database lives in a file (e.g. `prisma/dev.db`) on the server's persistent disk.
 
-1. **Enable and start the Docker service:**
+1. **Ensure the project has a writable data directory:**
 ```bash
-sudo systemctl enable --now docker
+mkdir -p prisma
 
 ```
 
 
-2. **Deploy the MongoDB Container:**
+2. **Create/update the schema after configuring `DATABASE_URL`:**
 ```bash
-sudo docker run --name local-mongo -d -p 27017:27017 --restart always mongo:4.4
+npx prisma db push
 
 ```
+
+*(Optional) Import existing data from `backup_data/*.json`:*
+
+```bash
+npm run db:seed
+
+```
+
+> **Important:** Keep the SQLite file on a persistent volume and include it in your backups. Do **not** deploy this database to ephemeral/serverless hosts (e.g. Netlify/Vercel functions) where the filesystem is reset — use a VM/VPS with a persistent disk.
 
 
 
@@ -162,7 +184,7 @@ nano .env
 ```
 
 
-*Ensure your database string points to the local Docker container (e.g., `MONGODB_URI="mongodb://127.0.0.1:27017/AlumniNetworkDB"`).*
+*Ensure your database string points to the SQLite file (e.g. `DATABASE_URL="file:./prisma/dev.db"`), then run `npx prisma db push` to create the schema.*
 
 ### Step 4: Folder Permissions
 

@@ -1,14 +1,11 @@
 // file: app/api/auth/logout-mail/route.ts
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
+import { prisma, isValidId } from "@/lib/db";
 import { sendMail } from "@/lib/mail";
 import { getRequestInfo } from "@/lib/requestInfo";
 import { logoutTemplate } from "@/lib/emailTemplates";
-
-import User from "@/models/User";
 
 export async function POST(req: Request) {
   try {
@@ -20,15 +17,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    await connectDB();
-
     // Identify current user either by Mobile Header ID or Web Session Email
     let user: any = null;
     
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      user = await User.findById(mobileUserId);
+    if (mobileUserId && isValidId(mobileUserId)) {
+      user = await prisma.user.findUnique({ where: { id: mobileUserId } });
     } else if (session?.user?.email) {
-      user = await User.findOne({ email: session.user.email });
+      user = await prisma.user.findUnique({ where: { email: session.user.email } });
     }
 
     if (!user) {

@@ -17,8 +17,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 type Lang = "en" | "mm";
 
@@ -89,11 +88,10 @@ export default async function StaffHomePage({
   const session = await auth();
 
   if (session?.user?.email) {
-    await connectDB();
-
-    const staffUser: any = await User.findOne({ email: session.user.email })
-      .select("_id role")
-      .lean();
+    const staffUser = await prisma.user.findFirst({
+      where: { email: session.user.email },
+      select: { id: true, role: true },
+    });
 
     if (staffUser?.role === "staff" || staffUser?.role === "admin") {
       redirect(`/staff/dashboard?lang=${lang}`);

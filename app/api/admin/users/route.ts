@@ -3,12 +3,11 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 function cleanUser(user: any) {
   return {
-    _id: String(user._id),
+    _id: String(user.id),
     name: user.name || "",
     email: user.email || "",
     image: user.image || "",
@@ -32,13 +31,10 @@ async function requireAdmin() {
     };
   }
 
-  await connectDB();
-
-  const admin: any = await User.findOne({
-    email: session.user.email,
-  })
-    .select("_id role isBlocked")
-    .lean();
+  const admin = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, role: true, isBlocked: true },
+  });
 
   if (!admin) {
     return {
@@ -79,26 +75,37 @@ export async function GET(req: Request) {
     const q = searchParams.get("q")?.trim() || "";
     const role = searchParams.get("role")?.trim() || "";
 
-    const filter: Record<string, any> = {};
+    const where: Record<string, any> = {};
 
     if (role && role !== "all") {
-      filter.role = role;
+      where.role = role;
     }
 
     if (q) {
-      filter.$or = [
-        { name: { $regex: q, $options: "i" } },
-        { email: { $regex: q, $options: "i" } },
-        { department: { $regex: q, $options: "i" } },
+      where.OR = [
+        { name: { contains: q } },
+        { email: { contains: q } },
+        { degree: { contains: q } },
       ];
     }
 
-    const users = await User.find(filter)
-      .sort({ createdAt: -1 })
-      .select(
-        "_id name email image role isBlocked department graduatedYear isProfilePublic createdAt updatedAt"
-      )
-      .lean();
+    const users = await prisma.user.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+        isBlocked: true,
+        degree: true,
+        graduatedYear: true,
+        isProfilePublic: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
     return NextResponse.json(users.map(cleanUser));
   } catch (error) {
@@ -128,14 +135,17 @@ export async function PATCH(req: Request) {
       );
     }
 
-    if (String(admin._id) === userId && action !== "make-admin") {
+    if (String(admin.id) === userId && action !== "make-admin") {
       return NextResponse.json(
         { error: "You cannot modify your own admin account here" },
         { status: 400 }
       );
     }
 
-    const targetUser: any = await User.findById(userId).select("_id role");
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
 
     if (!targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -155,15 +165,23 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $set: update },
-      { new: true }
-    )
-      .select(
-        "_id name email image role isBlocked department graduatedYear isProfilePublic createdAt updatedAt"
-      )
-      .lean();
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: update,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+        isBlocked: true,
+        degree: true,
+        graduatedYear: true,
+        isProfilePublic: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -191,20 +209,23 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    if (String(admin._id) === userId) {
+    if (String(admin.id) === userId) {
       return NextResponse.json(
         { error: "You cannot delete your own admin account" },
         { status: 400 }
       );
     }
 
-    const targetUser = await User.findById(userId).select("_id");
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
 
     if (!targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    await User.findByIdAndDelete(userId);
+    await prisma.user.delete({ where: { id: userId } });
 
     return NextResponse.json({
       success: true,

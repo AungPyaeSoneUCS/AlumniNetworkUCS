@@ -3,24 +3,27 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import ContactSetting from "@/models/ContactSetting";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 async function checkStaffOrAdmin() {
   const session = await auth();
 
   if (!session?.user?.email) return null;
 
-  await connectDB();
-
-  const user = await User.findOne({ email: session.user.email })
-    .select("_id role")
-    .lean();
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { id: true, role: true },
+  });
 
   if (!user || (user.role !== "admin" && user.role !== "staff")) return null;
 
   return user;
+}
+
+function serializeContact(row: any) {
+  if (!row) return row;
+  const { id, ...rest } = row;
+  return { ...rest, _id: String(id) };
 }
 
 export async function GET() {
@@ -31,13 +34,13 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let contact = await ContactSetting.findOne().lean();
+    let contact = await prisma.contactSetting.findFirst();
 
     if (!contact) {
-      contact = await ContactSetting.create({});
+      contact = await prisma.contactSetting.create({ data: {} });
     }
 
-    return NextResponse.json(contact);
+    return NextResponse.json(serializeContact(contact));
   } catch (error) {
     console.error("Staff/Admin get contact failed:", error);
 
@@ -69,19 +72,15 @@ export async function PUT(req: Request) {
       mapUrl: String(body.mapUrl || "").trim(),
     };
 
-    await connectDB();
-
-    const existing = await ContactSetting.findOne();
+    const existing = await prisma.contactSetting.findFirst();
 
     const contact = existing
-      ? await ContactSetting.findByIdAndUpdate(existing._id, data, {
-          new: true,
-        })
-      : await ContactSetting.create(data);
+      ? await prisma.contactSetting.update({ where: { id: existing.id }, data })
+      : await prisma.contactSetting.create({ data });
 
     return NextResponse.json({
       success: true,
-      contact,
+      contact: serializeContact(contact),
     });
   } catch (error) {
     console.error("Staff/Admin update contact failed:", error);

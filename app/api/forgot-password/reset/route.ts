@@ -4,10 +4,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 
-import { connectDB } from "@/lib/mongodb";
-
-import User from "@/models/User";
-import Otp from "@/models/Otp";
+import { prisma } from "@/lib/prisma";
 
 const ResetPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -41,8 +38,6 @@ export async function POST(req: Request) {
       );
     }
 
-    await connectDB();
-
     const email = parsed.data.email.trim().toLowerCase();
     const otp = parsed.data.otp.trim();
     const password = parsed.data.password;
@@ -52,12 +47,16 @@ export async function POST(req: Request) {
       timestamp: new Date().toISOString(),
     });
 
-    const otpRecord = await Otp.findOne({
-      email,
-      otp,
-      purpose: "forgot-password", // Ensures it only uses public OTPs
-      expiresAt: {
-        $gt: new Date(),
+    await prisma.otp.deleteMany({ where: { expiresAt: { lt: new Date() } } });
+
+    const otpRecord = await prisma.otp.findFirst({
+      where: {
+        email,
+        otp,
+        purpose: "forgot-password", // Ensures it only uses public OTPs
+        expiresAt: {
+          gt: new Date(),
+        },
       },
     });
 
@@ -72,14 +71,16 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await User.findOne({
-      email,
+    const user = await prisma.user.findUnique({
+      where: { email },
     });
 
     if (!user) {
-      await Otp.deleteMany({
-        email,
-        purpose: "forgot-password",
+      await prisma.otp.deleteMany({
+        where: {
+          email,
+          purpose: "forgot-password",
+        },
       });
 
       return NextResponse.json(
@@ -96,9 +97,11 @@ export async function POST(req: Request) {
     // STRICT PRIVILEGE GATE: Protect Admin & Staff accounts from public reset
     if (user.role?.toLowerCase() === "admin" || user.role?.toLowerCase() === "staff") {
       // Purge the OTP immediately to prevent abuse
-      await Otp.deleteMany({
-        email,
-        purpose: "forgot-password",
+      await prisma.otp.deleteMany({
+        where: {
+          email,
+          purpose: "forgot-password",
+        },
       });
 
       console.warn("⚠️ [SECURITY ALERT] Unauthorized Public Reset Attempted on High-Privilege Account:", { 
@@ -119,21 +122,19 @@ export async function POST(req: Request) {
     // Cryptographic passkey rotation for regular user
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    await User.updateOne(
-      {
-        _id: user._id,
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
       },
-      {
-        $set: {
-          password: hashedPassword,
-        },
-      },
-    );
+    });
 
     // Clean up used OTP records
-    await Otp.deleteMany({
-      email,
-      purpose: "forgot-password",
+    await prisma.otp.deleteMany({
+      where: {
+        email,
+        purpose: "forgot-password",
+      },
     });
 
     return NextResponse.json(

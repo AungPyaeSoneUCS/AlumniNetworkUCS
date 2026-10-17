@@ -2,9 +2,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { connectDB } from "@/lib/mongodb";
-import ApprovedStudent from "@/models/ApprovedStudent";
-import User from "@/models/User";
+import { prisma } from "@/lib/prisma";
 
 type Lang = "en" | "mm";
 
@@ -55,8 +53,6 @@ function getMismatchMessage(lang: Lang) {
 
 export async function POST(req: Request) {
   try {
-    await connectDB();
-
     const body = await req.json();
     const lang: Lang = body?.lang === "mm" ? "mm" : "en";
 
@@ -79,14 +75,16 @@ export async function POST(req: Request) {
     const inputEmail = normalizeEmail(parsed.data.email);
 
     // Fetch all approved students for the given year 
-    const studentsInYear = await ApprovedStudent.find({
-      graduatedYear: inputGraduatedYear,
-      approved: true,
-    }).lean();
+    const studentsInYear = await prisma.approvedStudent.findMany({
+      where: {
+        graduatedYear: inputGraduatedYear,
+        approved: true,
+      },
+    });
 
     // Use looseValue to match the DB string regardless of spacing or capitalization
     const approvedStudent = studentsInYear.find(
-      (student) =>
+      (student: any) =>
         looseValue(student.name) === looseValue(inputName) &&
         looseValue(student.fatherName) === looseValue(inputFatherName)
     );
@@ -121,11 +119,14 @@ export async function POST(req: Request) {
     }
 
     // Fallback check against User collection just in case
-    const existingUser = await User.findOne({ 
-      name: approvedStudent.name, 
-      fatherName: approvedStudent.fatherName, 
-      graduatedYear: approvedStudent.graduatedYear 
-    }).select("_id").lean();
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        name: approvedStudent.name,
+        fatherName: approvedStudent.fatherName,
+        graduatedYear: approvedStudent.graduatedYear,
+      },
+      select: { id: true },
+    });
 
     if (existingUser) {
       return NextResponse.json({
@@ -144,9 +145,10 @@ export async function POST(req: Request) {
 
     // If they typed an email (happens during the second step validation checks)
     if (inputEmail) {
-      const emailUser = await User.findOne({ email: inputEmail })
-        .select("_id email")
-        .lean();
+      const emailUser = await prisma.user.findUnique({
+        where: { email: inputEmail },
+        select: { id: true, email: true },
+      });
 
       if (emailUser) {
         return NextResponse.json({
@@ -162,7 +164,7 @@ export async function POST(req: Request) {
             alumni: false,
           },
           student: {
-            id: String(approvedStudent._id),
+            id: String(approvedStudent.id),
             name: approvedStudent.name,
             fatherName: approvedStudent.fatherName,
             graduatedYear: approvedStudent.graduatedYear,
@@ -180,7 +182,7 @@ export async function POST(req: Request) {
         "အတည်ပြုပြီးပါပြီ။ Register data သည် Admin approved data နှင့် ကိုက်ညီပါသည်။"
       ),
       student: {
-        id: String(approvedStudent._id),
+        id: String(approvedStudent.id),
         name: approvedStudent.name,
         fatherName: approvedStudent.fatherName,
         graduatedYear: approvedStudent.graduatedYear,

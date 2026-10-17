@@ -1,11 +1,9 @@
 // file: app/api/notifications/[id]/route.ts
 import { NextResponse } from "next/server";
-import { Types } from "mongoose";
 
 import { auth } from "@/auth";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/User";
-import Notification from "@/models/Notification";
+import { prisma } from "@/lib/prisma";
+import { isValidId } from "@/lib/db";
 
 export async function DELETE(
   req: Request,
@@ -22,28 +20,31 @@ export async function DELETE(
 
     const { id } = await context.params;
 
-    if (!Types.ObjectId.isValid(id)) {
+    if (!isValidId(id)) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
 
-    await connectDB();
-
     // Identify current user either by Mobile Header ID or Web Session Email
     let currentUser: any = null;
-    
-    if (mobileUserId && Types.ObjectId.isValid(mobileUserId)) {
-      currentUser = await User.findById(mobileUserId).select("_id").lean();
+
+    if (mobileUserId && isValidId(mobileUserId)) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: mobileUserId },
+        select: { id: true },
+      });
     } else if (session?.user?.email) {
-      currentUser = await User.findOne({ email: session.user.email }).select("_id").lean();
+      currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true },
+      });
     }
 
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    await Notification.findOneAndDelete({
-      _id: id,
-      receiver: currentUser._id,
+    await prisma.notification.deleteMany({
+      where: { id, receiver: currentUser.id },
     });
 
     return NextResponse.json({
