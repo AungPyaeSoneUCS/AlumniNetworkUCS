@@ -27,6 +27,18 @@ const TABLE_DELEGATES: Record<string, any> = {
   vote_users: prisma.voteUser,
 };
 
+// Accept both the canonical names above and the raw MongoDB export filenames
+// (e.g. `approvedstudents.json` -> `approved_students`). Matching ignores
+// underscores and letter case.
+const COLLECTION_LOOKUP: Record<string, { name: string; delegate: any }> = {};
+for (const [name, delegate] of Object.entries(TABLE_DELEGATES)) {
+  COLLECTION_LOOKUP[name.toLowerCase().replace(/_/g, "")] = { name, delegate };
+}
+
+function resolveCollection(rawName: string) {
+  return COLLECTION_LOOKUP[rawName.toLowerCase().replace(/_/g, "")] ?? null;
+}
+
 const USER_SCALARS = [
   "name",
   "email",
@@ -224,8 +236,8 @@ export async function POST(req: Request) {
         continue;
       }
 
-      const delegate = TABLE_DELEGATES[collectionName];
-      if (!delegate) {
+      const resolved = resolveCollection(collectionName);
+      if (!resolved) {
         results.push({
           filename,
           collection: collectionName,
@@ -235,6 +247,9 @@ export async function POST(req: Request) {
         });
         continue;
       }
+
+      const canonicalName = resolved.name;
+      const delegate = resolved.delegate;
 
       try {
         const text = await file.text();
@@ -251,7 +266,7 @@ export async function POST(req: Request) {
           }
 
           try {
-            const data = toData(collectionName, doc);
+            const data = toData(canonicalName, doc);
             const id = data.id as string | undefined;
 
             if (id) {
@@ -269,7 +284,7 @@ export async function POST(req: Request) {
           }
         }
 
-        results.push({ filename, collection: collectionName, inserted, skipped });
+        results.push({ filename, collection: canonicalName, inserted, skipped });
       } catch (err: any) {
         results.push({
           filename,
