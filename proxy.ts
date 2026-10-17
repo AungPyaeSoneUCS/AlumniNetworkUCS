@@ -32,5 +32,12 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*",
+  // CORS for the public API (web + mobile). The admin data tools
+  // (import / backup / delete) are intentionally excluded: any route matched
+  // here has its request body fully buffered in memory by Next.js, which
+  // breaks/aborts large uploads (nginx surfaces this as a 502). Streamed
+  // large uploads must reach the route handler untouched.
+  matcher: [
+    "/api/((?!admin/import-data|admin/backup|admin/delete-data).*)",
+  ],
 };

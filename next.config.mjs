@@ -10,6 +10,14 @@ const allowedDevOrigins = [
 const nextConfig = {
   allowedDevOrigins,
 
+  experimental: {
+    // Any request that passes through the CORS proxy is fully buffered in
+    // memory by Next.js (default cap 10MB). Raise it so moderately sized
+    // uploads on proxied routes are not truncated. Large data imports are
+    // excluded from the proxy matcher entirely and stream instead.
+    proxyClientMaxBodySize: "128mb",
+  },
+
   images: {
     remotePatterns: [
       {

@@ -341,6 +341,22 @@ async function createWithFallback(delegate: any, rows: any[]) {
   return { inserted, skipped };
 }
 
+// Consume any remaining request body before sending an early response.
+// If the upstream responds while nginx is still pushing the request body,
+// nginx aborts the connection and the client sees a 502.
+async function drainBody(req: Request) {
+  if (!req.body) return;
+  try {
+    const reader = req.body.getReader();
+    while (true) {
+      const { done } = await reader.read();
+      if (done) break;
+    }
+  } catch {
+    // body already closed/aborted - nothing else to do
+  }
+}
+
 // POST /api/admin/import-data?name=<filename>
 // The raw request body is the JSON file. `name` may be the canonical table
 // name (`approved_students.json`) or the raw Mongo export name
@@ -348,13 +364,17 @@ async function createWithFallback(delegate: any, rows: any[]) {
 export async function POST(req: Request) {
   try {
     const { error } = await requireAdmin();
-    if (error) return error;
+    if (error) {
+      await drainBody(req);
+      return error;
+    }
 
     const { searchParams } = new URL(req.url);
     const rawName = (searchParams.get("name") || "").trim();
     const resolvedName = resolveCollectionName(rawName);
 
     if (!resolvedName) {
+      await drainBody(req);
       return NextResponse.json(
         { error: rawName ? `Unknown collection: ${rawName}` : "Missing collection name" },
         { status: 400 },
@@ -365,6 +385,7 @@ export async function POST(req: Request) {
 
     const delegate = getDelegate(collectionName);
     if (!delegate) {
+      await drainBody(req);
       return NextResponse.json({ error: "Unknown collection" }, { status: 400 });
     }
 
