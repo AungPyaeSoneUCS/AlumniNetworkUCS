@@ -6,6 +6,7 @@ import { prisma } from "../lib/prisma";
 
 function readJson(name: string): any[] {
   const p = path.join(__dirname, "..", "backup_data", name);
+  if (!fs.existsSync(p)) return [];
   const raw = JSON.parse(fs.readFileSync(p, "utf8"));
   return Array.isArray(raw) ? raw : [];
 }
@@ -154,7 +155,7 @@ async function seedApprovedStudents() {
 }
 
 async function seedPosts() {
-  const docs = [...readJson("posts.json"), ...readJson("posts (1).json")];
+  const docs = readJson("posts.json");
   const posts: any[] = [];
   const likes: any[] = [];
   const comments: any[] = [];

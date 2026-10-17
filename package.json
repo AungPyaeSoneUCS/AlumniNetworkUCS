@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:export-mongo": "node scripts/export-mongo.mjs"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.10.1",
@@ -48,6 +49,7 @@
     "autoprefixer": "^10.5.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.2.6",
+    "mongodb": "^7.7.0",
     "postcss": "^8.5.15",
     "prisma": "^7.10.1",
     "tailwindcss": "^3.4.17",
