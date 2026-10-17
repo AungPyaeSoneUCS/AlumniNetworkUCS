@@ -80,6 +80,7 @@ export default function BackupClient({
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [progressPct, setProgressPct] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -87,37 +88,58 @@ export default function BackupClient({
     a.name.localeCompare(b.name),
   );
 
-  async function downloadCollection(name: string) {
-    const res = await fetch(`/api/admin/backup?name=${encodeURIComponent(name)}`, {
-      cache: "no-store",
+  function downloadCollection(
+    name: string,
+    onProgress: (pct: number) => void,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", `/api/admin/backup?name=${encodeURIComponent(name)}`);
+      xhr.responseType = "blob";
+
+      let last = -1;
+      xhr.onprogress = (event) => {
+        if (!event.lengthComputable || event.total === 0) return;
+        const pct = Math.min(100, Math.round((event.loaded / event.total) * 100));
+        if (pct !== last) {
+          last = pct;
+          onProgress(pct);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const blob = xhr.response as Blob;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${name}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          resolve();
+        } else {
+          reject(new Error(`HTTP ${xhr.status}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error("Network error"));
+      xhr.send();
     });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      throw new Error(data?.error || "Failed to download");
-    }
-
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${name}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
   }
 
   async function handleDownload(name: string) {
     setMessage("");
     setError("");
     setDownloading(name);
+    setProgressPct(0);
     try {
-      await downloadCollection(name);
+      await downloadCollection(name, setProgressPct);
     } catch {
       setError(t.error);
     } finally {
       setDownloading(null);
+      setProgressPct(0);
     }
   }
 
@@ -131,13 +153,14 @@ export default function BackupClient({
     try {
       for (let i = 0; i < total; i++) {
         const collectionName = sortedCollections[i].name;
+        setProgressPct(0);
         try {
-          await downloadCollection(collectionName);
+          await downloadCollection(collectionName, setProgressPct);
         } catch {
           // keep going, only report at the end
         }
         setProgress(i + 1);
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
       setMessage(t.success);
     } catch {
@@ -145,6 +168,7 @@ export default function BackupClient({
     } finally {
       setDownloadingAll(false);
       setProgress(0);
+      setProgressPct(0);
     }
   }
 
@@ -164,7 +188,8 @@ export default function BackupClient({
           {downloadingAll ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              {t.downloadingAll} ({progress}/{sortedCollections.length})
+              {t.downloadingAll} ({progress}/{sortedCollections.length}
+              {progressPct > 0 ? ` · ${progressPct}%` : ""})
             </>
           ) : (
             <>
@@ -263,7 +288,11 @@ export default function BackupClient({
                           ) : (
                             <Download size={14} />
                           )}
-                          {isDownloading ? t.downloadingAll : t.download}
+                          {isDownloading
+                            ? progressPct > 0
+                              ? `${progressPct}%`
+                              : t.downloadingAll
+                            : t.download}
                         </button>
                       </td>
                     </tr>

@@ -4,27 +4,10 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getDelegate, resolveCollectionName } from "@/lib/admin-collections";
 
-const TABLE_DELEGATES: Record<string, any> = {
-  approved_students: prisma.approvedStudent,
-  contact_settings: prisma.contactSetting,
-  experiences: prisma.experience,
-  job_applications: prisma.jobApplication,
-  jobs: prisma.job,
-  message_reactions: prisma.messageReaction,
-  messages: prisma.message,
-  notifications: prisma.notification,
-  otps: prisma.otp,
-  post_comments: prisma.postComment,
-  post_likes: prisma.postLike,
-  posts: prisma.post,
-  push_tokens: prisma.pushToken,
-  settings: prisma.setting,
-  students: prisma.student,
-  users: prisma.user,
-  vote_projects: prisma.voteProject,
-  vote_users: prisma.voteUser,
-};
+export const runtime = "nodejs";
+export const maxDuration = 3600;
 
 async function requireAdmin() {
   const session = await auth();
@@ -66,29 +49,30 @@ export async function DELETE(req: Request) {
     if (error) return error;
 
     const { searchParams } = new URL(req.url);
-    const name = (searchParams.get("name") || "").trim();
+    const requested = (searchParams.get("name") || "").trim();
     const confirm = (searchParams.get("confirm") || "").trim();
 
-    if (!/^[a-zA-Z0-9_]+$/.test(name) || name.startsWith("system.")) {
-      return NextResponse.json({ error: "Invalid collection name" }, { status: 400 });
+    const name = resolveCollectionName(requested);
+
+    if (!name) {
+      return NextResponse.json({ error: "Collection not found" }, { status: 404 });
     }
 
-    if (confirm !== name) {
+    // Confirmation must match exactly what the caller sees (raw or canonical).
+    if (confirm !== requested && confirm !== name) {
       return NextResponse.json(
         { error: "Type the exact collection name to confirm deletion." },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
-    const delegate = TABLE_DELEGATES[name];
+    const delegate = getDelegate(name);
     if (!delegate) {
       return NextResponse.json({ error: "Collection not found" }, { status: 404 });
     }
 
     const where =
-      name === "users" && admin?.id
-        ? { id: { not: admin.id } }
-        : {};
+      name === "users" && admin?.id ? { id: { not: admin.id } } : {};
 
     const result = await delegate.deleteMany({ where });
 
@@ -99,7 +83,7 @@ export async function DELETE(req: Request) {
         deletedCount: result.count ?? 0,
         protectedAdmin: name === "users" && !!admin?.id,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error("DELETE /api/admin/delete-data error:", err);

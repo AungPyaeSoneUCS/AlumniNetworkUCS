@@ -4,27 +4,14 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  COLLECTION_NAMES,
+  getDelegate,
+  resolveCollectionName,
+} from "@/lib/admin-collections";
 
-const TABLE_DELEGATES: Record<string, any> = {
-  approved_students: prisma.approvedStudent,
-  contact_settings: prisma.contactSetting,
-  experiences: prisma.experience,
-  job_applications: prisma.jobApplication,
-  jobs: prisma.job,
-  message_reactions: prisma.messageReaction,
-  messages: prisma.message,
-  notifications: prisma.notification,
-  otps: prisma.otp,
-  post_comments: prisma.postComment,
-  post_likes: prisma.postLike,
-  posts: prisma.post,
-  push_tokens: prisma.pushToken,
-  settings: prisma.setting,
-  students: prisma.student,
-  users: prisma.user,
-  vote_projects: prisma.voteProject,
-  vote_users: prisma.voteUser,
-};
+export const runtime = "nodejs";
+export const maxDuration = 3600;
 
 async function requireAdmin() {
   const session = await auth();
@@ -57,10 +44,6 @@ async function requireAdmin() {
   return { error: null, admin };
 }
 
-function listTableNames() {
-  return Object.keys(TABLE_DELEGATES).sort();
-}
-
 // GET /api/admin/backup            -> JSON: { collections: [{ name, count }] }
 // GET /api/admin/backup?name=users -> Downloads `users.json`
 export async function GET(req: Request) {
@@ -69,19 +52,17 @@ export async function GET(req: Request) {
     if (error) return error;
 
     const { searchParams } = new URL(req.url);
-    const name = (searchParams.get("name") || "").trim();
+    const requested = (searchParams.get("name") || "").trim();
 
-    if (name) {
-      if (!/^[a-zA-Z0-9_]+$/.test(name)) {
-        return NextResponse.json({ error: "Invalid collection name" }, { status: 400 });
-      }
+    if (requested) {
+      const name = resolveCollectionName(requested);
 
-      const names = listTableNames();
-      if (!names.includes(name)) {
+      if (!name) {
         return NextResponse.json({ error: "Collection not found" }, { status: 404 });
       }
 
-      const docs = await TABLE_DELEGATES[name].findMany();
+      const delegate = getDelegate(name);
+      const docs = await delegate.findMany();
 
       const json = JSON.stringify(docs, null, 2);
 
@@ -95,12 +76,10 @@ export async function GET(req: Request) {
       });
     }
 
-    const names = listTableNames();
-
     const collections: { name: string; count: number }[] = [];
-    for (const collectionName of names) {
+    for (const collectionName of COLLECTION_NAMES) {
       try {
-        const count = await TABLE_DELEGATES[collectionName].count();
+        const count = await getDelegate(collectionName).count();
         collections.push({ name: collectionName, count });
       } catch {
         collections.push({ name: collectionName, count: 0 });
